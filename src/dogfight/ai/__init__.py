@@ -8,7 +8,11 @@ from .dashboard_logger import (
     load_experiment_metadata,
     training_row_to_dashboard_metrics,
 )
-from .hybrid_action_provider import HybridActionProvider
+from .hybrid_action_provider import (
+    HybridActionProvider,
+    OffensiveGateConfig,
+    OffensiveResidualGate,
+)
 from .native_bt import AIPilot
 from .rl_action_provider import RLActionProvider
 from .rllib_utils import build_algorithm_from_bundle, build_algorithm_config, normalize_algorithm_name
@@ -23,6 +27,8 @@ __all__ = [
     "DashboardJsonlLogger",
     "activate_rule_xml",
     "HybridActionProvider",
+    "OffensiveGateConfig",
+    "OffensiveResidualGate",
     "RLActionProvider",
     "build_algorithm_config",
     "build_algorithm_from_bundle",

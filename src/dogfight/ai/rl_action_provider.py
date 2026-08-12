@@ -5,7 +5,12 @@ from typing import Callable
 
 import numpy as np
 
-from dogfight.ai.action_provider import ActionContext, ActionProvider, ActionResult, clip_action
+from dogfight.ai.action_provider import (
+    ActionContext,
+    ActionProvider,
+    ActionResult,
+    policy_action_to_sim_action,
+)
 from dogfight.ai.checkpoint_io import load_lightweight_policy_bundle
 
 
@@ -76,14 +81,18 @@ class RLActionProvider(ActionProvider):
                 raise ValueError("observation is required when obs_builder is not configured")
             observation = self.obs_builder(context)
 
-        action = self._compute_module_action(observation)
-        action = clip_action(action)
+        raw_policy_action = self._compute_module_action(observation)
+        action = policy_action_to_sim_action(raw_policy_action)
 
         return ActionResult(
             action=action,
             source="rl",
             confidence=self.confidence,
-            info={"policy_id": self.policy_id, "explore": self.explore},
+            info={
+                "policy_id": self.policy_id,
+                "explore": self.explore,
+                "raw_policy_action": np.asarray(raw_policy_action, dtype=np.float32).tolist(),
+            },
         )
 
     def close(self) -> None:

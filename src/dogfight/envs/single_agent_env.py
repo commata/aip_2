@@ -205,6 +205,8 @@ class DogFightEnv(gym.Env):
         self._ep_action_sum = np.zeros(self.num_action, dtype=np.float64)
         self._ep_action_sq_sum = np.zeros(self.num_action, dtype=np.float64)
         self._initial_scenario_metrics: Dict[str, float] = {}
+        self._last_ownship_action_info: Dict[str, object] = {}
+        self._last_target_action_info: Dict[str, object] = {}
 
     # Sim expects throttle in [0, 1]; RL policy outputs throttle in [-1, 1].
     _SIM_ACTION_LOW  = np.array([-1., -1., -1., 0.], dtype=np.float32)
@@ -285,6 +287,8 @@ class DogFightEnv(gym.Env):
         self._ep_reward_components = {}
         self._ep_action_sum = np.zeros(self.num_action, dtype=np.float64)
         self._ep_action_sq_sum = np.zeros(self.num_action, dtype=np.float64)
+        self._last_ownship_action_info = {}
+        self._last_target_action_info = {}
         return np.array(self.pre_obs, dtype=np.float32), dict(self.info)
 
     def step(self, action) -> Tuple[np.ndarray, float, bool, bool, Dict]:
@@ -362,6 +366,14 @@ class DogFightEnv(gym.Env):
                 self._ownship_state, self._target_state, True
             ))),
             "headon_guard_fail": end_condition == "two circle headon guard fail",
+            "ownship_action_info": dict(self._last_ownship_action_info),
+            "target_action_info": dict(self._last_target_action_info),
+            "ownship_provider_telemetry": self._provider_telemetry(
+                self._ownship_action_provider
+            ),
+            "target_provider_telemetry": self._provider_telemetry(
+                self._target_action_provider
+            ),
             **self._initial_scenario_metrics,
         }
 
@@ -498,6 +510,12 @@ class DogFightEnv(gym.Env):
                 self.pre_obs,
             )
             result = self._ownship_action_provider.compute_action(context)
+            self._last_ownship_action_info = {
+                "source": result.source,
+                "confidence": float(result.confidence),
+                "action": np.asarray(result.action, dtype=np.float32).tolist(),
+                **dict(result.info),
+            }
             self._sim.step(result.action)
             return
 
@@ -522,6 +540,12 @@ class DogFightEnv(gym.Env):
                 self.pre_obs,
             )
             result = self._target_action_provider.compute_action(context)
+            self._last_target_action_info = {
+                "source": result.source,
+                "confidence": float(result.confidence),
+                "action": np.asarray(result.action, dtype=np.float32).tolist(),
+                **dict(result.info),
+            }
             self._target_sim.step(result.action)
             return
 
@@ -997,6 +1021,15 @@ class DogFightEnv(gym.Env):
             if provider is None:
                 continue
             provider.reset(self._build_action_context(sim, opponent, ownship_state, target_state, self.pre_obs))
+
+    @staticmethod
+    def _provider_telemetry(provider) -> Dict[str, object]:
+        if provider is None:
+            return {}
+        telemetry = getattr(provider, "telemetry", None)
+        if not callable(telemetry):
+            return {}
+        return dict(telemetry())
 
     def get_ownship_sim(self):
         return self._sim

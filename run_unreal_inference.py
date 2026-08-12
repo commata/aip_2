@@ -16,7 +16,7 @@ if str(SRC) not in sys.path:
 
 from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.bt_rule_manager import activate_rule_xml
-from dogfight.ai.hybrid_action_provider import HybridActionProvider
+from dogfight.ai.hybrid_action_provider import HybridActionProvider, OffensiveGateConfig
 from dogfight.ai.rllib_utils import build_algorithm_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
@@ -72,9 +72,16 @@ def parse_args():
     parser.add_argument("--bundle-dir", help="Lightweight RL bundle directory created by train_rllib.py.")
     parser.add_argument("--policy-id", default="default_policy", help="RLlib policy id to load from the lightweight bundle.")
     parser.add_argument("--explore", action="store_true", help="Enable stochastic action sampling for RL inference.")
-    parser.add_argument("--hybrid-mode", choices=["residual", "blend", "switch"], default="residual", help="Hybrid action composition strategy.")
+    parser.add_argument("--hybrid-mode", choices=["offensive_residual", "residual", "blend", "switch"], default="offensive_residual", help="Hybrid action composition strategy.")
     parser.add_argument("--alpha", type=float, default=0.5, help="Blend weight for hybrid blend mode.")
-    parser.add_argument("--residual-scale", type=float, default=0.35, help="Residual scaling factor for hybrid residual mode.")
+    parser.add_argument("--residual-scale", type=float, default=0.15, help="Residual scaling factor; offensive mode accepts only 0.10 through 0.20.")
+    parser.add_argument("--offensive-min-range-m", type=float, default=152.4)
+    parser.add_argument("--offensive-enter-range-m", type=float, default=2400.0)
+    parser.add_argument("--offensive-exit-range-m", type=float, default=3000.0)
+    parser.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
+    parser.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
+    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=105.0)
+    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=80.0)
     parser.add_argument(
         "--ai-type",
         choices=["rule", "rl", "sl", "fusion", "etc"],
@@ -108,6 +115,16 @@ def build_action_provider(args):
         mode=args.hybrid_mode,
         alpha=args.alpha,
         residual_scale=args.residual_scale,
+        offensive_gate=OffensiveGateConfig(
+            min_range_m=args.offensive_min_range_m,
+            enter_max_range_m=args.offensive_enter_range_m,
+            exit_max_range_m=args.offensive_exit_range_m,
+            enter_ata_deg=args.offensive_enter_ata_deg,
+            exit_ata_deg=args.offensive_exit_ata_deg,
+            enter_min_target_ata_deg=args.offensive_enter_target_ata_deg,
+            exit_min_target_ata_deg=args.offensive_exit_target_ata_deg,
+        ),
+        primary_action_repeat=args.action_repeat,
     )
 
 
@@ -133,7 +150,11 @@ def main():
             observation_fn=observation_hook["build_observation"] if observation_hook else None,
             ownship_force_side=args.ownship_force_side,
             target_force_side=args.target_force_side,
-            action_repeat=args.action_repeat,
+            action_repeat=(
+                1
+                if args.mode == "hybrid" and args.hybrid_mode == "offensive_residual"
+                else args.action_repeat
+            ),
             debug_action_repeat=args.debug_action_repeat,
         )
         client = UnrealAIPilotUDPClient(
