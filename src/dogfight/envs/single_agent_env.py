@@ -18,6 +18,7 @@ import FighterSim
 import JSBSimWrapper
 from GeoMathUtil import GeometryInfo
 from dogfight.ai.action_provider import ActionContext
+from dogfight.ai.maneuver_telemetry_logger import ManeuverTelemetryLogger
 from dogfight.ai.native_bt import AIPilot
 from dogfight.config import FEET_TO_METER, METER_TO_FEET, merge_env_config
 from dogfight.envs.observation import (
@@ -107,6 +108,9 @@ class DogFightEnv(gym.Env):
         self._wez = self.config["wez"]
         self._reward_config = self.config["reward"]
         self._artifacts_dir = self.config["artifacts_dir"]
+        self._maneuver_telemetry = ManeuverTelemetryLogger(
+            self.config.get("maneuver_telemetry_path"), sim_hz=self._sim_hz
+        )
         self._reward_fn = reward_fn  # None → compute_reward from reward.py
         self._observation_fn = observation_fn
 
@@ -289,6 +293,7 @@ class DogFightEnv(gym.Env):
         self._ep_action_sq_sum = np.zeros(self.num_action, dtype=np.float64)
         self._last_ownship_action_info = {}
         self._last_target_action_info = {}
+        self._maneuver_telemetry.start_episode(seed=seed)
         return np.array(self.pre_obs, dtype=np.float32), dict(self.info)
 
     def step(self, action) -> Tuple[np.ndarray, float, bool, bool, Dict]:
@@ -374,6 +379,7 @@ class DogFightEnv(gym.Env):
             "target_provider_telemetry": self._provider_telemetry(
                 self._target_action_provider
             ),
+            "maneuver_telemetry": self._maneuver_telemetry.summary(),
             **self._initial_scenario_metrics,
         }
 
@@ -412,6 +418,13 @@ class DogFightEnv(gym.Env):
             in_wez_any = in_wez_any or self._in_wez
             self._ownship_state = self._sim.get_state()
             self._target_state = self._target_sim.get_state()
+            self._maneuver_telemetry.record(
+                self._ownship_state,
+                self._target_state,
+                self._sim.action,
+                self._target_sim.action,
+                self._last_ownship_action_info,
+            )
 
         self.ownship_damage = ownship_damage_total
         self.target_damage = target_damage_total
@@ -1137,6 +1150,7 @@ class DogFightEnv(gym.Env):
                     provider.close()
                 except Exception:
                     pass
+        self._maneuver_telemetry.close()
         sim_ai_pairs = (
             (getattr(self, "_sim", None), getattr(self, "_ownship_ai", None)),
             (getattr(self, "_target_sim", None), getattr(self, "_target_ai", None)),

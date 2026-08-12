@@ -50,6 +50,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--scenario-file", help="JSON file containing an initial_scenario object or a full env_config object.")
     parser.add_argument("--result-json", help="Write deterministic episode result and provider telemetry to this path.")
+    parser.add_argument("--telemetry-jsonl", help="Write simulator-rate maneuver and hybrid telemetry as JSON Lines.")
     parser.add_argument("--max-engage-time", type=float, default=300.0)
     parser.add_argument("--episode-step-limit", type=int, default=18000)
     parser.add_argument("--min-altitude", type=float, default=300.0)
@@ -136,6 +137,7 @@ def main():
                 "max_engage_time": args.max_engage_time,
                 "episode_step_limit": args.episode_step_limit,
                 "min_altitude": args.min_altitude,
+                "maneuver_telemetry_path": args.telemetry_jsonl,
             }
         if args.scenario_file:
             scenario_payload = json.loads(Path(args.scenario_file).read_text(encoding="utf-8"))
