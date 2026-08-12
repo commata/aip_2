@@ -1,0 +1,46 @@
+<root main_tree_to_execute="BehaviorTree">
+  <!-- ////////// -->
+  <BehaviorTree ID="BehaviorTree">
+    <Sequence>
+      <!-- 서비스 노드: 타겟 선택 및 정보 업데이트 -->
+      <SelectTarget name="SelectTarget" BB="{BB}"/>
+      <DirectionVectorUpdate name="DirectionVectorUpdate" BB="{BB}"/>
+      <DistanceUpdate name="DistanceUpdate" BB="{BB}"/>
+      <CheckSight name="CheckSight" BB="{BB}"/>          
+      <AngleOffUpdate name="AngleOffUpdate" BB="{BB}"/>
+      <AspectAngleUpdate name="AspectAngleUpdate" BB="{BB}"/>
+      <ClosingRateUpdate name="ClosingRateUpdate" BB="{BB}"/>
+      
+      <!-- Back to Basics: 단일 추종 태스크로 통일 -->
+      <Task_Pursue name="Task_Pursue" BB="{BB}"/>
+    </Sequence>
+  </BehaviorTree>
+  <!-- ////////// -->
+  <TreeNodesModel>
+    <Action ID="AngleOffUpdate">
+      <inout_port name="BB"/>
+    </Action>
+    <Action ID="AspectAngleUpdate">
+      <inout_port name="BB"/>
+    </Action>
+    <Action ID="CheckSight">
+      <inout_port name="BB"/>
+    </Action>
+    <Action ID="ClosingRateUpdate">
+      <inout_port name="BB"/>
+    </Action>
+    <Action ID="DirectionVectorUpdate">
+      <inout_port name="BB"/>
+    </Action>
+    <Action ID="DistanceUpdate">
+      <inout_port name="BB"/>
+    </Action>
+    <Action ID="SelectTarget">
+      <inout_port name="BB"/>
+    </Action>
+    <Action ID="Task_Pursue">
+      <inout_port name="BB"/>
+    </Action>
+  </TreeNodesModel>
+  <!-- ////////// -->
+</root>

@@ -1,0 +1,43 @@
+name: student_sac_baseline
+script: student/my_train
+student_reward: true
+
+output:
+  name: team01
+  tag: student_sac_baseline
+
+env:
+  observation_mode: tactical16
+  target_mode: behavior_tree
+  target_behavior_dll: AIP_DCS_base.dll
+  max_engage_time: 300.0
+  episode_step_limit: 18000
+
+algo:
+  name: sac
+  framework: torch
+  lr: 3.0e-4
+  gamma: 0.99
+  train_batch_size: 4096
+  minibatch_size: 256
+  gae_lambda: 0.95
+  clip_param: 0.2
+  tau: 0.005
+  target_entropy: auto
+
+runtime:
+  iterations: 50
+  num_env_runners: 1
+  num_envs_per_env_runner: 4
+  rollout_fragment_length: auto
+  batch_mode: truncate_episodes
+  use_tune: false
+  checkpoint_frequency: 0
+  save_native_checkpoint: false
+  print_every: 10
+
+dashboard:
+  enabled: true
+  logdir: artifacts/dashboard
+
+notes: "Release student reward SAC baseline"

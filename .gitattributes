@@ -1,0 +1,46 @@
+* text=auto
+
+.gitattributes text eol=lf
+.gitignore text eol=lf
+README text eol=lf
+INSTALL text eol=lf
+scripts/f16_cruise text eol=lf
+
+*.py text eol=lf
+*.md text eol=lf
+*.xml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.txt text eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.dll binary
+*.exe binary
+*.pyd binary
+*.lib binary
+*.pdb binary
+*.exp binary
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.gz binary
+*.pkl binary
+
+*.pt binary
+*.pth binary
+*.onnx binary
+*.ckpt binary
+*.safetensors binary
+
+*.obj binary

@@ -1,0 +1,96 @@
+# Straight Constant-Speed Target Tracking/Shooting RL Experiment
+# 
+# 실행:
+#   python scripts\run_experiment.py experiments\test_straight_target.yaml
+# dry-run 검증:
+#   python scripts\run_experiment.py experiments\test_straight_target.yaml --dry-run
+
+name: test_straight_target
+script: train_rllib
+
+output:
+  name: student_test
+  tag: straight_target_sac_v1
+
+env:
+  observation_mode: tactical16
+  target_mode: autopilot
+  reward_module: student.my_reward
+  max_engage_time: 60.0
+  episode_step_limit: 3600
+
+env_config:
+  step_ratio: 6
+  # [North, East, Down, Roll, Pitch, Heading, Speed]
+  # 에이전트: 고도 7000m(-7000.0), 북쪽(0도) 방향, 속도 300m/s
+  ownship: [4000.0, 0.0, -7000.0, 0.0, 0.0, 0.0, 300.0]
+  # 타겟: 에이전트 전방 2000m (North=6000m), 고도 7000m(-7000.0), 북쪽(0도) 방향, 속도 250m/s
+  target: [6000.0, 0.0, -7000.0, 0.0, 0.0, 0.0, 250.0]
+  initial_scenario:
+    mode: default
+    legacy_use_random_scenario: false
+  # 타겟 오토파일럿 설정 (단순 직선 등속 비행: 북쪽 0도, 고도 7000m, 속도 250m/s 유지)
+  target_autopilot:
+    heading_cmd: 0.0
+    altitude_cmd: -7000.0
+    speed_cmd: 250.0
+  wez:
+    angle_deg: 4.0
+    min_range_m: 152.4
+    max_range_m: 1500.0
+  reward:
+    mode: default
+    step_penalty: -0.01
+    damage_scale: 20.0
+    pursuit_scale: 0.3
+    low_altitude_penalty: 0.1
+    win_reward: 100.0
+    loss_reward: -100.0
+    draw_reward: -30.0
+
+algo:
+  name: sac
+  framework: torch
+  lr: 3.0e-4
+  gamma: 0.99
+  train_batch_size: 256
+  minibatch_size: 256
+  tau: 0.005
+  target_entropy: auto
+  replay_buffer_capacity: 10000
+  mlp:
+    enabled: true
+    fcnet_hiddens: [256, 256]
+    fcnet_activation: relu
+    head_fcnet_hiddens: []
+    head_fcnet_activation: relu
+
+runtime:
+  iterations: 200
+  num_env_runners: 1
+  num_envs_per_env_runner: 1
+  rollout_fragment_length: auto
+  batch_mode: truncate_episodes
+  save_lightweight_bundle: true
+  lightweight_bundle_frequency: 5
+  save_native_checkpoint: true
+  native_checkpoint_frequency: 10
+
+dashboard:
+  enabled: true
+  logdir: artifacts/dashboard
+
+policy_probe:
+  enabled: true
+  interval: 5
+  steps: 4
+  print: true
+
+engagement_log:
+  enabled: false
+  interval: 5
+  steps: 600
+  episodes: 1
+  print: true
+
+notes: "Straight constant-speed target tracking & shootdown experiment (autopilot mode)."

@@ -1,0 +1,141 @@
+<root main_tree_to_execute = "MainTree">
+
+  <BehaviorTree ID="MainTree">
+    <Sequence>
+      <SelectTarget name="SelectTarget" BB="{BB}"/>
+      <DirectionVectorUpdate name="DirectionVectorUpdate" BB="{BB}"/>
+      <DistanceUpdate name="DistanceUpdateService" BB="{BB}"/>
+      <CheckSight name="CheckSight" BB="{BB}"/>
+      <AngleOffUpdate name="AngleOffUpdate" BB="{BB}"/>
+      <AspectAngleUpdate name="AspectAngleUpdate" BB="{BB}"/>
+
+      <Fallback>
+        <Sequence>
+          <DECO_AltitudeCheck name="AltitudeLow" UpDown="Less" Altitude="1300" BB="{BB}"/>
+          <Task_AltitudeGuard name="Task_AltitudeGuard" MinAltitude="1300" RecoveryAltitude="2500" ForwardDistance="6000" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_DistanceCheck name="OvershootRisk" UpDown="Less" Distance="150" BB="{BB}"/>
+          <Task_OvershootGuard name="Task_OvershootGuard" LagDistance="650" SideOffset="360" LookAheadTime="0.35" MinAltitude="1150" CloseThrottle="0.64" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="LateCloseGuardTime" UpDown="Greater" Time="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="LateCloseGuardRange" UpDown="Less" Distance="305" BB="{BB}"/>
+          <Task_OvershootGuard name="Task_OvershootGuard" LagDistance="720" SideOffset="430" LookAheadTime="0.38" MinAltitude="1150" CloseThrottle="0.62" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="MergeDefenseStart" UpDown="Greater" Time="18" BB="{BB}"/>
+          <DECO_TimeCheck name="MergeDefenseEnd" UpDown="Less" Time="35" BB="{BB}"/>
+          <DECO_DistanceCheck name="MergeRange" UpDown="Less" Distance="1220" BB="{BB}"/>
+          <DECO_LOSCheck name="NotCleanShot" UpDown="Greater" InputLOS="6" BB="{BB}"/>
+          <Task_LagPursuit name="Task_LagPursuit" LagDistance="780" SideOffset="560" LookAheadTime="0.46" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="300" FarDistance="1300" MinAltitude="1300" CloseThrottle="0.72" CruiseThrottle="0.93" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_DistanceCheck name="SnapRangeLow" UpDown="Greater" Distance="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="SnapRangeHigh" UpDown="Less" Distance="915" BB="{BB}"/>
+          <DECO_LOSCheck name="SnapLOS" UpDown="Less" InputLOS="6" BB="{BB}"/>
+          <Task_AggressivePure name="Task_AggressivePure" LeadTime="0.10" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="300" FarDistance="1100" MinAltitude="1300" CloseThrottle="0.80" CruiseThrottle="0.98" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="EarlyPhase" UpDown="Less" Time="35" BB="{BB}"/>
+          <Task_AggressivePure name="Task_AggressivePure" LeadTime="0.18" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="900" FarDistance="3200" MinAltitude="1300" CloseThrottle="0.8" CruiseThrottle="0.95" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="TailWEZTime" UpDown="Greater" Time="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="TailWEZLow" UpDown="Greater" Distance="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="TailWEZHigh" UpDown="Less" Distance="915" BB="{BB}"/>
+          <DECO_LOSCheck name="TailWEZLOS" UpDown="Less" InputLOS="2.0" BB="{BB}"/>
+          <Task_WEZHold name="Task_WEZHold" MinRange="170" MaxRange="875" LeadTime="0.04" HoldOffset="45" MinAltitude="1150" CloseThrottle="0.76" CruiseThrottle="0.97" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="FinalLeadTime" UpDown="Greater" Time="170" BB="{BB}"/>
+          <DECO_DistanceCheck name="FinalLeadLow" UpDown="Greater" Distance="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="FinalLeadHigh" UpDown="Less" Distance="1220" BB="{BB}"/>
+          <DECO_LOSCheck name="FinalLeadLOS" UpDown="Less" InputLOS="3.0" BB="{BB}"/>
+          <Task_LeadPursuit name="Task_LeadPursuit" LeadTime="0.08" LeadDistance="75" MinAltitude="1150" Throttle="0.98" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="MidLeadStart" UpDown="Greater" Time="100" BB="{BB}"/>
+          <DECO_TimeCheck name="MidLeadEnd" UpDown="Less" Time="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="MidLeadLow" UpDown="Greater" Distance="915" BB="{BB}"/>
+          <DECO_DistanceCheck name="MidLeadHigh" UpDown="Less" Distance="1220" BB="{BB}"/>
+          <DECO_LOSCheck name="MidLeadLOS" UpDown="Less" InputLOS="3.0" BB="{BB}"/>
+          <Task_LeadPursuit name="Task_LeadPursuit" LeadTime="0.09" LeadDistance="85" MinAltitude="1150" Throttle="0.98" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="LatePredictTime" UpDown="Greater" Time="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="LatePredictLow" UpDown="Greater" Distance="915" BB="{BB}"/>
+          <DECO_DistanceCheck name="LatePredictHigh" UpDown="Less" Distance="1220" BB="{BB}"/>
+          <DECO_LOSCheck name="LatePredictLOS" UpDown="Less" InputLOS="3.0" BB="{BB}"/>
+          <Task_PredictivePursuit name="Task_PredictivePursuit" MinPrediction="0.4" MaxPrediction="1.05" PredictionScale="0.32" MinAltitude="1150" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="MidAttackStart" UpDown="Greater" Time="100" BB="{BB}"/>
+          <DECO_TimeCheck name="MidAttackEnd" UpDown="Less" Time="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="MidRangeLow" UpDown="Greater" Distance="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="MidRangeHigh" UpDown="Less" Distance="1067" BB="{BB}"/>
+          <DECO_LOSCheck name="MidGoodLOS" UpDown="Less" InputLOS="30" BB="{BB}"/>
+          <Task_AggressivePure name="Task_AggressivePure" LeadTime="0.11" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="300" FarDistance="1200" MinAltitude="1300" CloseThrottle="0.80" CruiseThrottle="0.98" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="LateCleanShot" UpDown="Greater" Time="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="LateGunRangeLow" UpDown="Greater" Distance="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="LateGunRangeHigh" UpDown="Less" Distance="1220" BB="{BB}"/>
+          <DECO_LOSCheck name="LateCleanLOS" UpDown="Less" InputLOS="16" BB="{BB}"/>
+          <Task_AggressivePure name="Task_AggressivePure" LeadTime="0.10" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="300" FarDistance="1300" MinAltitude="1300" CloseThrottle="0.80" CruiseThrottle="0.98" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="FinalAttack" UpDown="Greater" Time="170" BB="{BB}"/>
+          <DECO_DistanceCheck name="FinalRangeLow" UpDown="Greater" Distance="150" BB="{BB}"/>
+          <DECO_DistanceCheck name="FinalRangeHigh" UpDown="Less" Distance="1220" BB="{BB}"/>
+          <DECO_LOSCheck name="FinalAttackLOS" UpDown="Less" InputLOS="28" BB="{BB}"/>
+          <Task_AggressivePure name="Task_AggressivePure" LeadTime="0.09" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="300" FarDistance="1300" MinAltitude="1300" CloseThrottle="0.82" CruiseThrottle="0.99" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="FinalReconnect" UpDown="Greater" Time="170" BB="{BB}"/>
+          <DECO_DistanceCheck name="TooFarFinal" UpDown="Greater" Distance="1220" BB="{BB}"/>
+          <Task_Reengage name="Task_Reengage" LeadTime="0.13" LeadDistance="140" MinAltitude="1150" Throttle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="MidReconnect" UpDown="Greater" Time="35" BB="{BB}"/>
+          <DECO_DistanceCheck name="TooFarMid" UpDown="Greater" Distance="1220" BB="{BB}"/>
+          <Task_AggressivePure name="Task_AggressivePure" LeadTime="0.13" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="600" FarDistance="1700" MinAltitude="1300" CloseThrottle="0.82" CruiseThrottle="0.98" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="LatePhase" UpDown="Greater" Time="35" BB="{BB}"/>
+          <DECO_LOSCheck name="WideLOS" UpDown="Greater" InputLOS="35" BB="{BB}"/>
+          <Task_LagPursuit name="Task_LagPursuit" LagDistance="780" SideOffset="360" LookAheadTime="0.48" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="900" FarDistance="2800" MinAltitude="1300" CloseThrottle="0.72" CruiseThrottle="0.92" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <Task_AggressivePure name="Task_AggressivePure" LeadTime="0.12" MinAltitude="1150" BB="{BB}"/>
+          <Task_ThrottleControl name="Task_ThrottleControl" CloseDistance="850" FarDistance="2500" MinAltitude="1300" CloseThrottle="0.80" CruiseThrottle="0.95" FarThrottle="1.0" BB="{BB}"/>
+        </Sequence>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+
+</root>

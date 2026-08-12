@@ -1,0 +1,114 @@
+# Straight Constant-Speed Target — 강한 경사 보상 v4
+#
+# 실행:
+#   python scripts\run_experiment.py experiments\test_straight_target.yaml
+# dry-run 검증:
+#   python scripts\run_experiment.py experiments\test_straight_target.yaml --dry-run
+
+name: test_straight_target
+script: train_rllib
+
+output:
+  name: student_test
+  tag: straight_target_sac_v6
+
+env:
+  observation_mode: custom
+  observation_module: student.my_observation
+  target_mode: autopilot
+  reward_module: student.my_reward
+  max_engage_time: 60.0
+  episode_step_limit: 3600
+
+env_config:
+  step_ratio: 6
+  # 에이전트: 고도 7000m, 북쪽(0도) 방향, 속도 300m/s
+  ownship: [4000.0, 0.0, -7000.0, 0.0, 0.0, 0.0, 300.0]
+  # 타겟: 전방 2000m, 같은 고도, 북쪽(0도), 속도 250m/s
+  target: [6000.0, 0.0, -7000.0, 0.0, 0.0, 0.0, 250.0]
+  initial_scenario:
+    mode: default
+    legacy_use_random_scenario: false
+  target_autopilot:
+    heading_cmd: 0.0
+    altitude_cmd: -7000.0
+    speed_cmd: 250.0
+  wez:
+    angle_deg: 2.0
+    min_range_m: 152.4
+    max_range_m: 914.4
+  reward:
+    # ── 보상 경사 설정 (my_reward.py 기본값 오버라이드) ──
+    # 핵심: step_penalty를 최소화하고 양의 유도 신호를 강화
+    step_penalty: -0.002
+
+    approach_scale: 0.6
+    approach_max_dist: 5000.0
+
+    heading_scale: 0.5
+    tail_scale: 0.3
+
+    precision_scale: 1.5
+    precision_dist: 2500.0
+    precision_half_angle: 15.0
+
+    wez_entry_bonus: 5.0
+    damage_scale: 50.0
+
+    low_alt_penalty_scale: 0.5
+    speed_penalty_scale: 0.3
+    collision_dist_m: 100.0
+    collision_penalty_scale: 1.0
+
+    win_reward: 200.0
+    loss_reward: -100.0
+    draw_reward: -50.0
+
+algo:
+  name: sac
+  framework: torch
+  lr: 1.0e-4  # 기존: 3.0e-4 (붕괴 현상 방지를 위해 하향)
+  gamma: 0.99
+  train_batch_size: 256
+  minibatch_size: 256
+  tau: 0.001  # 기존: 0.005 (Target Network 안정성을 위해 하향)
+  target_entropy: auto
+  replay_buffer_capacity: 200000 
+  mlp:
+    enabled: true
+    fcnet_hiddens: [256, 256]
+    fcnet_activation: relu
+    head_fcnet_hiddens: []
+    head_fcnet_activation: relu
+
+runtime:
+  iterations: 5000
+  restore_checkpoint: C:/Users/idos0/Desktop/AIpilot_gemini/DogFightEnv/Release/artifacts/checkpoints/student_test/straight_target_sac_v5/checkpoint_003000
+  # init_bundle: artifacts/models/student_test/straight_target_sac_v5
+  num_env_runners: 6
+  num_envs_per_env_runner: 1
+  rollout_fragment_length: auto
+  batch_mode: truncate_episodes
+  save_lightweight_bundle: true
+  lightweight_bundle_frequency: 50
+  save_native_checkpoint: true
+  native_checkpoint_frequency: 100
+
+dashboard:
+  enabled: true
+  logdir: artifacts/dashboard
+
+policy_probe:
+  enabled: true
+  interval: 20
+  steps: 4
+  print: true
+
+engagement_log:
+  enabled: true
+  interval: 50
+  steps: 600
+  episodes: 1
+  print: true
+
+notes: "v6: v5 이어서 학습 진행. 강한 경사 보상. cos ATA 기반 전방향 유도, 접근 포텐셜 보상, step penalty 10x 감소."

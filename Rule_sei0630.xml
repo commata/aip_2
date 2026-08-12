@@ -1,0 +1,21 @@
+<root main_tree_to_execute="MainTree">
+
+  <BehaviorTree ID="MainTree">
+    <Sequence>
+       
+        <!-- 서비스 노드: 타겟 선택 및 정보 업데이트 -->
+        <Sequence>
+          <SelectTarget name="SelectTarget" BB="{BB}"/>
+          <DirectionVectorUpdate name="DirectionVectorUpdate" BB="{BB}"/>
+          <DistanceUpdate name="DistanceUpdateService" BB="{BB}"/>
+          <CheckSight name="CheckSight" BB="{BB}"/>          
+          <AngleOffUpdate name="AngleOffUpdate" BB="{BB}"/>
+          <AspectAngleUpdate name="AspectAngleUpdate" BB="{BB}"/>
+
+          <!-- 통합된 추종 알고리즘 (Task_Pursue 단일 노드) -->
+          <Task_Pursue name="Task_Pursue" BB="{BB}"/>
+        </Sequence>
+    </Sequence>
+  </BehaviorTree>
+
+</root>

@@ -1,0 +1,24 @@
+<root main_tree_to_execute="MainTree">
+
+  <BehaviorTree ID="MainTree">
+    <Sequence>
+       
+        <!-- 서비스 노드: 타겟 선택 및 정보 업데이트 -->
+        <Sequence>
+          <SelectTarget name="SelectTarget" BB="{BB}"/>
+          <DirectionVectorUpdate name="DirectionVectorUpdate" BB="{BB}"/>
+          <DistanceUpdate name="DistanceUpdateService" BB="{BB}"/>
+          <CheckSight name="CheckSight" BB="{BB}"/>          
+          <AngleOffUpdate name="AngleOffUpdate" BB="{BB}"/>
+          <AspectAngleUpdate name="AspectAngleUpdate" BB="{BB}"/>
+          <ClosingRateUpdate name="ClosingRateUpdate" BB="{BB}"/>
+
+          <!-- 헤드온 관련 분기 전면 제거 (사용자 요청) -->
+          <!-- 일반 추종 알고리즘 (이제 내부적으로 헤드온 시 요요 기동을 차단하여 순수 추종함) -->
+          <Task_Pursue name="Task_Pursue" BB="{BB}"/>
+
+        </Sequence>
+    </Sequence>
+  </BehaviorTree>
+
+</root>

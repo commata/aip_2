@@ -1,0 +1,102 @@
+# Python caches and test/tool state
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environments and package metadata
+.venv/
+venv/
+env/
+.conda/
+*.egg-info/
+
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.vs/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Ray / RLlib runtime
+ray_results/
+ray_spilled_objects/
+ray_session_*/
+session_*/
+
+# Generated reinforcement-learning outputs
+artifacts/checkpoints/
+artifacts/dashboard/
+artifacts/dashboard_yaml_smoke/
+artifacts/logs/
+artifacts/models/
+artifacts/process_logs/
+artifacts/replays/
+checkpoints/
+models/
+logs/
+replay/
+replays/
+runs/
+wandb/
+checkpoint_*/
+
+# Generated model binaries
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.safetensors
+
+# RLlib reference copies and patch-time backups. The compact patched payload is
+# retained because RLLibLstm/tools/apply_rllib_sac_lstm_patch.py consumes it.
+RLLibLstm/ray_2_54_0_original/
+RLLibLstm/tools/backups/
+
+# Logs and captured runtime streams
+*.log
+*.jsonl
+
+# Archives
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+
+# Temporary files
+tmp/
+temp/
+.runtime_tmp/
+*.tmp
+*.bak
+*.lock
+
+# C/C++ build and debug outputs
+**/Debug/
+**/x64/Debug/
+**/x64/Release/
+**/CMakeFiles/
+build/
+dist/
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.tlog
+*.ipch
+
+# Keep runtime DLLs and 3D mesh OBJ assets; do not blanket-ignore *.dll/*.obj.

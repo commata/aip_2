@@ -1,0 +1,189 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence>
+      <SelectTarget name="SelectTarget" BB="{BB}"/>
+      <DirectionVectorUpdate name="DirectionVectorUpdate" BB="{BB}"/>
+      <DistanceUpdate name="DistanceUpdate" BB="{BB}"/>
+      <CheckSight name="CheckSight" BB="{BB}"/>
+      <AngleOffUpdate name="AngleOffUpdate" BB="{BB}"/>
+      <AspectAngleUpdate name="AspectAngleUpdate" BB="{BB}"/>
+
+      <Fallback>
+        <Sequence>
+          <DECO_AltitudeCheck name="LowAltitude" UpDown="Less" Altitude="1500" BB="{BB}"/>
+          <Task_AltitudeGuard
+            name="AltitudeGuard"
+            RecoveryAltitude="2600"
+            ForwardDistance="7200"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_DistanceCheck name="RearThreatMinimum" UpDown="Greater" Distance="350" BB="{BB}"/>
+          <DECO_DistanceCheck name="RearThreatMaximum" UpDown="Less" Distance="1400" BB="{BB}"/>
+          <DECO_TargetLOSCheck name="RearThreatTargetAim" UpDown="Less" InputLOS="4" BB="{BB}"/>
+          <DECO_LOSCheck name="RearThreatMyNoseAway" UpDown="Greater" InputLOS="35" BB="{BB}"/>
+          <Task_ThreatBreak
+            name="RearThreatBreak"
+            Duration="1.10"
+            ForwardDistance="1200"
+            SideOffset="2400"
+            AltitudeOffset="250"
+            MinAltitude="1800"
+            Throttle="1.0"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="FirstPassWindow" UpDown="Less" Time="32" BB="{BB}"/>
+          <DECO_DistanceCheck name="FirstPassMinimum" UpDown="Greater" Distance="180" BB="{BB}"/>
+          <DECO_DistanceCheck name="FirstPassMaximum" UpDown="Less" Distance="1250" BB="{BB}"/>
+          <DECO_LOSCheck name="FirstPassLOS" UpDown="Less" InputLOS="12" BB="{BB}"/>
+          <Task_WEZHold
+            name="FirstPassCommit"
+            LeadTime="0.10"
+            MinAltitude="1800"
+            CloseThrottle="0.82"
+            CruiseThrottle="0.98"
+            FarThrottle="1.0"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="VerticalResetStart" UpDown="Greater" Time="30" BB="{BB}"/>
+          <DECO_TimeCheck name="VerticalResetEnd" UpDown="Less" Time="72" BB="{BB}"/>
+          <DECO_ScoreCheck name="VerticalResetTargetDamaged" Mode="TargetHealthLess" Threshold="0.82" BB="{BB}"/>
+          <DECO_ScoreCheck name="VerticalResetOwnClean" Mode="OwnHealthGreater" Threshold="0.82" BB="{BB}"/>
+          <DECO_DistanceCheck name="VerticalResetMinimum" UpDown="Greater" Distance="450" BB="{BB}"/>
+          <DECO_DistanceCheck name="VerticalResetMaximum" UpDown="Less" Distance="1700" BB="{BB}"/>
+          <DECO_TargetLOSCheck name="VerticalResetNotInEnemyNose" UpDown="Greater" InputLOS="5" BB="{BB}"/>
+          <Task_ThreatBreak
+            name="VerticalReset"
+            Duration="0.85"
+            ForwardDistance="2600"
+            SideOffset="1500"
+            AltitudeOffset="700"
+            MinAltitude="2300"
+            Throttle="1.0"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="SecondEntryStart" UpDown="Greater" Time="55" BB="{BB}"/>
+          <DECO_TimeCheck name="SecondEntryEnd" UpDown="Less" Time="130" BB="{BB}"/>
+          <DECO_ScoreCheck name="SecondEntryTargetDamaged" Mode="TargetHealthLess" Threshold="0.82" BB="{BB}"/>
+          <DECO_ScoreCheck name="SecondEntryOwnEnough" Mode="OwnHealthGreater" Threshold="0.72" BB="{BB}"/>
+          <DECO_DistanceCheck name="SecondEntryMinimum" UpDown="Greater" Distance="1300" BB="{BB}"/>
+          <DECO_DistanceCheck name="SecondEntryMaximum" UpDown="Less" Distance="3600" BB="{BB}"/>
+          <Task_Reengage
+            name="SecondEntryReengage"
+            LeadTime="0.18"
+            LeadDistance="-120"
+            MinAltitude="1900"
+            Throttle="1.0"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="TwoPhaseFinishPhase" UpDown="Greater" Time="95" BB="{BB}"/>
+          <DECO_ScoreCheck name="TwoPhaseTargetWeak" Mode="TargetHealthLess" Threshold="0.55" BB="{BB}"/>
+          <DECO_ScoreCheck name="TwoPhaseOwnSafe" Mode="OwnHealthGreater" Threshold="0.65" BB="{BB}"/>
+          <DECO_DistanceCheck name="TwoPhaseFinishMinimum" UpDown="Greater" Distance="220" BB="{BB}"/>
+          <DECO_DistanceCheck name="TwoPhaseFinishMaximum" UpDown="Less" Distance="1150" BB="{BB}"/>
+          <DECO_LOSCheck name="TwoPhaseFinishLOS" UpDown="Less" InputLOS="9" BB="{BB}"/>
+          <DECO_TargetLOSCheck name="TwoPhaseFinishNotThreatened" UpDown="Greater" InputLOS="3" BB="{BB}"/>
+          <Task_WEZHold
+            name="TwoPhaseFinishHold"
+            LeadTime="0.10"
+            MinAltitude="1800"
+            CloseThrottle="0.84"
+            CruiseThrottle="0.98"
+            FarThrottle="1.0"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="MutualFightPhase" UpDown="Greater" Time="100" BB="{BB}"/>
+          <DECO_DistanceCheck name="MutualMinimum" UpDown="Greater" Distance="450" BB="{BB}"/>
+          <DECO_DistanceCheck name="MutualMaximum" UpDown="Less" Distance="1300" BB="{BB}"/>
+          <DECO_LOSCheck name="MyMutualLOS" UpDown="Less" InputLOS="4" BB="{BB}"/>
+          <DECO_TargetLOSCheck name="TargetMutualLOS" UpDown="Less" InputLOS="4" BB="{BB}"/>
+          <Task_ThreatBreak
+            name="MutualGunBreak"
+            Duration="0.80"
+            ForwardDistance="2200"
+            SideOffset="1400"
+            AltitudeOffset="200"
+            MinAltitude="1800"
+            Throttle="1.0"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_DistanceCheck name="OvershootDistance" UpDown="Less" Distance="220" BB="{BB}"/>
+          <Task_OvershootGuard
+            name="OvershootGuard"
+            LagDistance="650"
+            SideOffset="350"
+            LookAheadTime="0.30"
+            MinAltitude="1800"
+            Throttle="0.72"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_TimeCheck name="LateEnergyPhase" UpDown="Greater" Time="160" BB="{BB}"/>
+          <DECO_DistanceCheck name="LateEnergyDistance" UpDown="Greater" Distance="1900" BB="{BB}"/>
+          <Task_EnergyReengage
+            name="LateEnergyRecovery"
+            ActivationTime="160"
+            EntrySpeed="205"
+            ExitSpeed="245"
+            LeadTime="0.14"
+            LeadDistance="180"
+            RecoveryAltitudeDrop="450"
+            MaxClimbOffset="-250"
+            MinAltitude="1500"
+            Throttle="1.0"
+            FailIfAboveEntry="true"
+            ForwardRecovery="3600"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_DistanceCheck name="WEZMinimum" UpDown="Greater" Distance="180" BB="{BB}"/>
+          <DECO_DistanceCheck name="WEZMaximum" UpDown="Less" Distance="950" BB="{BB}"/>
+          <DECO_LOSCheck name="WEZLineOfSight" UpDown="Less" InputLOS="6" BB="{BB}"/>
+          <Task_WEZHold
+            name="WEZHold"
+            LeadTime="0.08"
+            MinAltitude="1800"
+            CloseThrottle="0.78"
+            CruiseThrottle="0.94"
+            FarThrottle="1.0"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Sequence>
+          <DECO_DistanceCheck name="ReengageDistance" UpDown="Greater" Distance="1300" BB="{BB}"/>
+          <Task_EnergyReengage
+            name="EnergyAwareReengage"
+            ActivationTime="100"
+            EntrySpeed="190"
+            ExitSpeed="220"
+            LeadTime="0.16"
+            LeadDistance="220"
+            RecoveryAltitudeDrop="200"
+            MaxClimbOffset="300"
+            MinAltitude="1800"
+            Throttle="1.0"
+            FailIfAboveEntry="false"
+            ForwardRecovery="0"
+            BB="{BB}"/>
+        </Sequence>
+
+        <Task_Pursue name="DefaultPursuit" BB="{BB}"/>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>
