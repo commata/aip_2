@@ -1,0 +1,29 @@
+{
+  "mode": "offensive_residual",
+  "residual_scale": 0.10,
+  "rl_action_repeat": 6,
+  "min_throttle_blend_speed": 210.0,
+  "gate": {
+    "min_range_m": 152.4,
+    "enter_max_range_m": 1500.0,
+    "exit_max_range_m": 2000.0,
+    "enter_ata_deg": 15.0,
+    "exit_ata_deg": 25.0,
+    "enter_min_target_ata_deg": 135.0,
+    "exit_min_target_ata_deg": 110.0
+  },
+  "heldout_evidence": {
+    "scenario_seed_pairs": 6,
+    "paired_runs": 12,
+    "outcomes_preserved": 6,
+    "bt_win_rate": 0.16666666666666666,
+    "hybrid_win_rate": 0.16666666666666666,
+    "bt_crash_rate": 0.0,
+    "hybrid_crash_rate": 0.0,
+    "reward_delta_hybrid_minus_bt": 3.3724691622315675,
+    "health_margin_delta_hybrid_minus_bt": -0.003940325758894581,
+    "mean_ata_delta_deg_hybrid_minus_bt": -0.5258833893119714,
+    "surface_saturation_delta_hybrid_minus_bt": -0.014506589070584885,
+    "minimum_hybrid_altitude_m": 521.8773408
+  }
+}
