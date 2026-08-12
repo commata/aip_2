@@ -65,7 +65,7 @@ class ManeuverTelemetryLogger:
             "target": self._state_payload(target),
             "ownship_action": np.asarray(ownship_action, dtype=np.float32).tolist(),
             "target_action": np.asarray(target_action, dtype=np.float32).tolist(),
-            "hybrid": dict(ownship_action_info or {}),
+            "hybrid": _json_safe(dict(ownship_action_info or {})),
         }
         self._write(payload)
         self._frame += 1
@@ -102,3 +102,17 @@ class ManeuverTelemetryLogger:
             self._file.flush()
             self._file.close()
             self._file = None
+
+
+def _json_safe(value):
+    if isinstance(value, np.ndarray):
+        return _json_safe(value.tolist())
+    if isinstance(value, np.generic):
+        return _json_safe(value.item())
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, float) and not np.isfinite(value):
+        return None
+    return value

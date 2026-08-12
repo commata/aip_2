@@ -153,7 +153,8 @@ def _compose_residual(bt_action, rl_action, scale: float) -> tuple[np.ndarray, d
         "applied_rl_correction": correction.tolist(),
         "final_action": final.tolist(),
         "action_clipped": bool(np.any(np.abs(final - unclipped) > 1e-7)),
-        "action_saturation": bool(np.any(np.isclose(np.abs(final[:3]), 1.0)) or np.isclose(final[3], 1.0)),
+        "action_saturation": bool(np.any(np.isclose(np.abs(final[:3]), 1.0))),
+        "throttle_at_boundary": bool(np.isclose(final[3], 0.0) or np.isclose(final[3], 1.0)),
     }
 
 
@@ -237,7 +238,8 @@ class HybridActionProvider(ActionProvider):
                 "applied_rl_correction": [0.0] * 4,
                 "final_action": final.tolist(),
                 "action_clipped": False,
-                "action_saturation": bool(np.any(np.isclose(np.abs(final[:3]), 1.0)) or np.isclose(final[3], 1.0)),
+                "action_saturation": bool(np.any(np.isclose(np.abs(final[:3]), 1.0))),
+                "throttle_at_boundary": bool(np.isclose(final[3], 0.0) or np.isclose(final[3], 1.0)),
             }
             self._last_frame_info = frame
             return ActionResult(final, "hybrid", self.confidence, frame)

@@ -90,6 +90,14 @@ def backend_to_env_mode(backend: str) -> str:
     return "rl"
 
 
+def _json_default(value):
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
 def main():
     args = parse_args()
     observation_hook = load_observation_hook(args.observation_module) if args.observation_module else None
@@ -175,11 +183,12 @@ def main():
 
             if args.result_json:
                 result = {
+                    **info,
                     "seed": args.seed,
                     "terminated": terminated,
                     "truncated": truncated,
                     "total_reward": float(total_reward),
-                    "episode": info,
+                    "episode_seconds": float(info.get("ep_step_count", 0)) / 60.0,
                     "ownship_backend": args.ownship_backend,
                     "target_backend": args.target_backend,
                     "hybrid_mode": args.hybrid_mode,
@@ -187,7 +196,10 @@ def main():
                 }
                 result_path = Path(args.result_json)
                 result_path.parent.mkdir(parents=True, exist_ok=True)
-                result_path.write_text(json.dumps(result, indent=2, sort_keys=True), encoding="utf-8")
+                result_path.write_text(
+                    json.dumps(result, indent=2, sort_keys=True, default=_json_default),
+                    encoding="utf-8",
+                )
                 print(f"result_json: {result_path}")
 
             if args.save_log:

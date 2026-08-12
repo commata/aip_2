@@ -100,6 +100,7 @@ def analyze_frames(frames: list[dict[str, Any]]) -> dict[str, Any]:
         "action_saturation_ratio": _ratio(frames, _saturated),
         "mean_speed_kcas": _mean(frames, lambda f: f["ownship"]["speed_kcas"]),
         "min_speed_kcas": min(float(f["ownship"]["speed_kcas"]) for f in frames),
+        "min_altitude_m": min(float(f["ownship"]["altitude_m"]) for f in frames),
         "mean_ata_deg": _mean(frames, lambda f: f["ata_deg"]),
         "min_ata_deg": min(float(f["ata_deg"]) for f in frames),
         "mean_distance_m": _mean(frames, lambda f: f["distance_m"]),
@@ -146,7 +147,7 @@ def _saturated(frame: dict[str, Any]) -> bool:
     if hybrid_value is not None:
         return bool(hybrid_value)
     action = [float(value) for value in frame["ownship_action"]]
-    return any(math.isclose(abs(value), 1.0, abs_tol=1e-6) for value in action[:3]) or math.isclose(action[3], 1.0, abs_tol=1e-6)
+    return any(math.isclose(abs(value), 1.0, abs_tol=1e-6) for value in action[:3])
 
 
 def _mean(rows, getter) -> float:
