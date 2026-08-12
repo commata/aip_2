@@ -47,7 +47,7 @@ for p in (ROOT, SRC):
 
 from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.bt_rule_manager import activate_rule_xml
-from dogfight.ai.hybrid_action_provider import HybridActionProvider
+from dogfight.ai.hybrid_action_provider import HybridActionProvider, OffensiveGateConfig
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.rllib_utils import build_algorithm_from_bundle
 from dogfight.ai.student_hooks import load_observation_hook
@@ -88,6 +88,12 @@ COMMAND_DELAY_SEC = 0.0
 RECV_TIMEOUT_SEC = 0.2
 ACTION_REPEAT = 6          # 학습 step_ratio=6과 맞춰 6개 PlaneInfo pair마다 새 policy 호출
 DEBUG_ACTION_REPEAT = False
+
+# Validated offensive-hybrid defaults. MODE remains student-selectable above.
+OFFENSIVE_GATE = OffensiveGateConfig()
+if MODE == "hybrid":
+    HYBRID_MODE = "offensive_residual"
+    RESIDUAL_SCALE = 0.10
 
 
 # =============================================================================
@@ -136,6 +142,9 @@ def build_action_provider():
         mode=HYBRID_MODE,
         alpha=ALPHA,
         residual_scale=RESIDUAL_SCALE,
+        offensive_gate=OFFENSIVE_GATE,
+        primary_action_repeat=ACTION_REPEAT,
+        min_throttle_blend_speed=210.0,
     )
 
 
@@ -161,7 +170,11 @@ def main():
             else None,
             ownship_force_side=1,
             target_force_side=2,
-            action_repeat=ACTION_REPEAT,
+            action_repeat=(
+                1
+                if MODE == "hybrid" and HYBRID_MODE == "offensive_residual"
+                else ACTION_REPEAT
+            ),
             debug_action_repeat=DEBUG_ACTION_REPEAT,
         )
 

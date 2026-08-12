@@ -27,6 +27,8 @@ class OffensiveEvaluatorTests(unittest.TestCase):
     def test_unsafe_candidate_cannot_be_selected(self):
         args = Namespace(
             max_crash_rate_regression=0.05,
+            max_win_rate_regression=0.0,
+            max_health_margin_regression=0.05,
             max_saturation_ratio=0.20,
             max_saturation_rate_regression=0.02,
             minimum_safe_altitude_m=300.0,
@@ -39,6 +41,24 @@ class OffensiveEvaluatorTests(unittest.TestCase):
         summary = aggregate(records, args)
         self.assertFalse(summary["candidates"][1]["valid"])
         self.assertEqual(summary["best_valid_candidate"]["controller"], "hybrid_0.125")
+
+    def test_win_rate_regression_is_not_a_valid_candidate(self):
+        args = Namespace(
+            max_crash_rate_regression=0.05,
+            max_win_rate_regression=0.0,
+            max_health_margin_regression=0.05,
+            max_saturation_ratio=1.0,
+            max_saturation_rate_regression=0.02,
+            minimum_safe_altitude_m=300.0,
+        )
+        summary = aggregate(
+            [
+                record("bt", "win", 1.0, 0.5, 1000.0),
+                record("hybrid_0.2", "timeout", 0.0, 0.4, 1000.0),
+            ],
+            args,
+        )
+        self.assertIsNone(summary["best_valid_candidate"])
 
 
 if __name__ == "__main__":

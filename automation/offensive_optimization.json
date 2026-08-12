@@ -13,13 +13,13 @@
   "scales": [0.10, 0.125, 0.15, 0.175, 0.20],
   "gate_candidates": [
     {
-      "name": "default",
-      "enter_range_m": 2400.0,
-      "exit_range_m": 3000.0,
-      "enter_ata_deg": 30.0,
-      "exit_ata_deg": 45.0,
-      "enter_target_ata_deg": 105.0,
-      "exit_target_ata_deg": 80.0
+      "name": "terminal",
+      "enter_range_m": 1500.0,
+      "exit_range_m": 2000.0,
+      "enter_ata_deg": 15.0,
+      "exit_ata_deg": 25.0,
+      "enter_target_ata_deg": 135.0,
+      "exit_target_ata_deg": 110.0
     },
     {
       "name": "precision",

@@ -38,15 +38,16 @@ def parse_args():
     parser.add_argument("--observation-module", default="", help="Optional custom observation module.")
     parser.add_argument("--hybrid-mode", choices=["offensive_residual", "residual", "blend", "switch"], default="offensive_residual")
     parser.add_argument("--alpha", type=float, default=0.5)
-    parser.add_argument("--residual-scale", type=float, default=0.15)
+    parser.add_argument("--residual-scale", type=float, default=0.10)
     parser.add_argument("--rl-action-repeat", type=int, default=6, help="RL inference cadence while the offensive gate is active; BT still runs every simulator frame.")
+    parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument("--offensive-min-range-m", type=float, default=152.4)
-    parser.add_argument("--offensive-enter-range-m", type=float, default=2400.0)
-    parser.add_argument("--offensive-exit-range-m", type=float, default=3000.0)
-    parser.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
-    parser.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
-    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=105.0)
-    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=80.0)
+    parser.add_argument("--offensive-enter-range-m", type=float, default=1500.0)
+    parser.add_argument("--offensive-exit-range-m", type=float, default=2000.0)
+    parser.add_argument("--offensive-enter-ata-deg", type=float, default=15.0)
+    parser.add_argument("--offensive-exit-ata-deg", type=float, default=25.0)
+    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=135.0)
+    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--scenario-file", help="JSON file containing an initial_scenario object or a full env_config object.")
     parser.add_argument("--result-json", help="Write deterministic episode result and provider telemetry to this path.")
@@ -58,7 +59,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, offensive_gate: OffensiveGateConfig, rl_action_repeat: int):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, offensive_gate: OffensiveGateConfig, rl_action_repeat: int, min_throttle_blend_speed: float):
     if backend == "fixed":
         return None
     if backend == "bt":
@@ -80,6 +81,7 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             residual_scale=residual_scale,
             offensive_gate=offensive_gate,
             primary_action_repeat=rl_action_repeat,
+            min_throttle_blend_speed=min_throttle_blend_speed,
         )
     raise ValueError(f"Unsupported backend: {backend}")
 
@@ -122,6 +124,7 @@ def main():
         residual_scale=args.residual_scale,
         offensive_gate=offensive_gate,
         rl_action_repeat=args.rl_action_repeat,
+        min_throttle_blend_speed=args.min_throttle_blend_speed,
     )
     target_provider = build_provider(
         side="target",
@@ -134,6 +137,7 @@ def main():
         residual_scale=args.residual_scale,
         offensive_gate=offensive_gate,
         rl_action_repeat=args.rl_action_repeat,
+        min_throttle_blend_speed=args.min_throttle_blend_speed,
     )
 
     with activate_rule_xml(args.bt_rule_xml, ROOT):

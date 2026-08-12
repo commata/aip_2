@@ -87,6 +87,20 @@ class OffensiveHybridTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 HybridActionProvider(rl, bt, mode="offensive_residual", residual_scale=value)
 
+    def test_low_energy_guard_preserves_bt_throttle_reduction_authority(self) -> None:
+        rl = CountingProvider([0.4, 0.0, 0.0, 0.2], "rl")
+        bt = CountingProvider([0.3, 0.0, 0.0, 0.9], "bt")
+        provider = HybridActionProvider(rl, bt, mode="offensive_residual", residual_scale=0.15)
+        low_energy = self.own.copy()
+        low_energy[12] = 150.0
+
+        result = provider.compute_action(context(low_energy, self.target))
+
+        self.assertAlmostEqual(float(result.action[3]), 0.9, places=6)
+        self.assertAlmostEqual(float(result.action[0]), 0.36, places=6)
+        self.assertTrue(result.info["throttle_guard_active"])
+        self.assertEqual(result.info["effective_throttle_scale"], 0.0)
+
     def test_hysteresis_prevents_boundary_chatter(self) -> None:
         gate = OffensiveResidualGate(
             OffensiveGateConfig(

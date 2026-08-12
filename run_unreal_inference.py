@@ -74,14 +74,15 @@ def parse_args():
     parser.add_argument("--explore", action="store_true", help="Enable stochastic action sampling for RL inference.")
     parser.add_argument("--hybrid-mode", choices=["offensive_residual", "residual", "blend", "switch"], default="offensive_residual", help="Hybrid action composition strategy.")
     parser.add_argument("--alpha", type=float, default=0.5, help="Blend weight for hybrid blend mode.")
-    parser.add_argument("--residual-scale", type=float, default=0.15, help="Residual scaling factor; offensive mode accepts only 0.10 through 0.20.")
+    parser.add_argument("--residual-scale", type=float, default=0.10, help="Residual scaling factor; offensive mode accepts only 0.10 through 0.20.")
     parser.add_argument("--offensive-min-range-m", type=float, default=152.4)
-    parser.add_argument("--offensive-enter-range-m", type=float, default=2400.0)
-    parser.add_argument("--offensive-exit-range-m", type=float, default=3000.0)
-    parser.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
-    parser.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
-    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=105.0)
-    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=80.0)
+    parser.add_argument("--offensive-enter-range-m", type=float, default=1500.0)
+    parser.add_argument("--offensive-exit-range-m", type=float, default=2000.0)
+    parser.add_argument("--offensive-enter-ata-deg", type=float, default=15.0)
+    parser.add_argument("--offensive-exit-ata-deg", type=float, default=25.0)
+    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=135.0)
+    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
         "--ai-type",
         choices=["rule", "rl", "sl", "fusion", "etc"],
@@ -125,6 +126,7 @@ def build_action_provider(args):
             exit_min_target_ata_deg=args.offensive_exit_target_ata_deg,
         ),
         primary_action_repeat=args.action_repeat,
+        min_throttle_blend_speed=args.min_throttle_blend_speed,
     )
 
 

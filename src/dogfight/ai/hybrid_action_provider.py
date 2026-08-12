@@ -6,6 +6,7 @@ from typing import Callable
 import numpy as np
 
 from dogfight.ai.action_provider import ActionContext, ActionProvider, ActionResult, clip_action
+from dogfight.sim.state_schema import StateIndex
 
 
 def _unsigned_ata_deg(observer_state, target_state) -> float:
@@ -35,12 +36,12 @@ def _unsigned_ata_deg(observer_state, target_state) -> float:
 @dataclass(frozen=True)
 class OffensiveGateConfig:
     min_range_m: float = 152.4
-    enter_max_range_m: float = 2400.0
-    exit_max_range_m: float = 3000.0
-    enter_ata_deg: float = 30.0
-    exit_ata_deg: float = 45.0
-    enter_min_target_ata_deg: float = 105.0
-    exit_min_target_ata_deg: float = 80.0
+    enter_max_range_m: float = 1500.0
+    exit_max_range_m: float = 2000.0
+    enter_ata_deg: float = 15.0
+    exit_ata_deg: float = 25.0
+    enter_min_target_ata_deg: float = 135.0
+    exit_min_target_ata_deg: float = 110.0
 
     def validate(self) -> None:
         if self.min_range_m < 0.0:
@@ -138,13 +139,19 @@ class OffensiveResidualGate:
         }
 
 
-def _compose_residual(bt_action, rl_action, scale: float) -> tuple[np.ndarray, dict]:
+def _compose_residual(
+    bt_action, rl_action, scale: float, *, throttle_scale: float | None = None
+) -> tuple[np.ndarray, dict]:
     """Add signed surface corrections and convex-blend simulator throttle."""
     bt = clip_action(bt_action)
     rl = clip_action(rl_action)
     unclipped = bt.copy()
     unclipped[:3] = bt[:3] + scale * rl[:3]
-    unclipped[3] = (1.0 - scale) * bt[3] + scale * rl[3]
+    effective_throttle_scale = scale if throttle_scale is None else float(throttle_scale)
+    unclipped[3] = (
+        (1.0 - effective_throttle_scale) * bt[3]
+        + effective_throttle_scale * rl[3]
+    )
     final = clip_action(unclipped)
     correction = final - bt
     return final, {
@@ -155,6 +162,7 @@ def _compose_residual(bt_action, rl_action, scale: float) -> tuple[np.ndarray, d
         "action_clipped": bool(np.any(np.abs(final - unclipped) > 1e-7)),
         "action_saturation": bool(np.any(np.isclose(np.abs(final[:3]), 1.0))),
         "throttle_at_boundary": bool(np.isclose(final[3], 0.0) or np.isclose(final[3], 1.0)),
+        "effective_throttle_scale": effective_throttle_scale,
     }
 
 
@@ -168,6 +176,7 @@ class HybridActionProvider(ActionProvider):
         residual_scale: float = 0.15,
         offensive_gate: OffensiveGateConfig | dict | None = None,
         primary_action_repeat: int = 1,
+        min_throttle_blend_speed: float = 210.0,
         selector: Callable[[ActionContext, ActionResult, ActionResult], str | bool] | None = None,
         confidence: float = 0.95,
     ):
@@ -182,6 +191,7 @@ class HybridActionProvider(ActionProvider):
         self.confidence = confidence
         self.offensive_gate = OffensiveResidualGate(offensive_gate)
         self.primary_action_repeat = max(1, int(primary_action_repeat))
+        self.min_throttle_blend_speed = float(min_throttle_blend_speed)
         self.reset(None)
 
     def reset(self, context: ActionContext | None = None) -> None:
@@ -196,6 +206,7 @@ class HybridActionProvider(ActionProvider):
         self._rl_correction_abs_max = np.zeros(4, dtype=np.float64)
         self._clipped_steps = 0
         self._saturated_steps = 0
+        self._throttle_guard_steps = 0
         self._last_frame_info: dict = {}
 
     def compute_action(self, context: ActionContext) -> ActionResult:
@@ -257,8 +268,24 @@ class HybridActionProvider(ActionProvider):
             self._rl_inference_calls += 1
         else:
             primary_source = "cached_rl"
+        bt_throttle = float(clip_action(secondary.action)[3])
+        rl_throttle = float(self._cached_primary_action[3])
+        speed = (
+            float(context.ownship_state[StateIndex.KCAS])
+            if context.ownship_state is not None
+            and len(context.ownship_state) > StateIndex.KCAS
+            else float("inf")
+        )
+        throttle_guard_active = (
+            speed < self.min_throttle_blend_speed and rl_throttle < bt_throttle
+        )
+        throttle_scale = 0.0 if throttle_guard_active else self.residual_scale
+        self._throttle_guard_steps += int(throttle_guard_active)
         final, composition = _compose_residual(
-            secondary.action, self._cached_primary_action, self.residual_scale
+            secondary.action,
+            self._cached_primary_action,
+            self.residual_scale,
+            throttle_scale=throttle_scale,
         )
         correction = np.asarray(composition["applied_rl_correction"])
         self._rl_correction_steps += 1
@@ -275,6 +302,9 @@ class HybridActionProvider(ActionProvider):
             "primary_source": primary_source,
             "primary_action_refreshed": refresh,
             "primary_action_repeat": self.primary_action_repeat,
+            "speed_for_throttle_guard": speed,
+            "min_throttle_blend_speed": self.min_throttle_blend_speed,
+            "throttle_guard_active": throttle_guard_active,
             **composition,
         }
         self._last_frame_info = frame
@@ -293,6 +323,7 @@ class HybridActionProvider(ActionProvider):
                 "rl_correction_abs_max": self._rl_correction_abs_max.tolist(),
                 "action_clipped_steps": self._clipped_steps,
                 "action_saturated_steps": self._saturated_steps,
+                "throttle_guard_steps": self._throttle_guard_steps,
                 "last_frame": dict(self._last_frame_info),
             }
         )

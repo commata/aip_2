@@ -107,6 +107,7 @@ def run_match(
             "--hybrid-mode", "offensive_residual",
             "--residual-scale", str(scale),
             "--rl-action-repeat", str(args.rl_action_repeat),
+            "--min-throttle-blend-speed", str(args.min_throttle_blend_speed),
             "--offensive-min-range-m", str(args.offensive_min_range_m),
             "--offensive-enter-range-m", str(args.offensive_enter_range_m),
             "--offensive-exit-range-m", str(args.offensive_exit_range_m),
@@ -210,6 +211,8 @@ def aggregate(records: list[dict[str, Any]], args: argparse.Namespace) -> dict[s
             continue
         valid = (
             metrics["crash_rate"] <= bt.get("crash_rate", 0.0) + args.max_crash_rate_regression
+            and metrics["win_rate"] >= bt.get("win_rate", 0.0) - args.max_win_rate_regression
+            and (metrics["mean_health_margin"] or 0.0) >= (bt.get("mean_health_margin") or 0.0) - args.max_health_margin_regression
             and (metrics["mean_saturation_ratio"] or 0.0) <= (bt.get("mean_saturation_ratio") or 0.0) + args.max_saturation_rate_regression
             and (metrics["mean_saturation_ratio"] or 0.0) <= args.max_saturation_ratio
             and (metrics["minimum_altitude_m"] is None or metrics["minimum_altitude_m"] >= args.minimum_safe_altitude_m)
@@ -277,14 +280,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--episode-step-limit", type=int, default=3600)
     parser.add_argument("--timeout-seconds", type=float, default=180.0)
     parser.add_argument("--rl-action-repeat", type=int, default=6)
+    parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0)
     parser.add_argument("--offensive-min-range-m", type=float, default=152.4)
-    parser.add_argument("--offensive-enter-range-m", type=float, default=2400.0)
-    parser.add_argument("--offensive-exit-range-m", type=float, default=3000.0)
-    parser.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
-    parser.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
-    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=105.0)
-    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=80.0)
+    parser.add_argument("--offensive-enter-range-m", type=float, default=1500.0)
+    parser.add_argument("--offensive-exit-range-m", type=float, default=2000.0)
+    parser.add_argument("--offensive-enter-ata-deg", type=float, default=15.0)
+    parser.add_argument("--offensive-exit-ata-deg", type=float, default=25.0)
+    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=135.0)
+    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
     parser.add_argument("--max-crash-rate-regression", type=float, default=0.05)
+    parser.add_argument("--max-win-rate-regression", type=float, default=0.0)
+    parser.add_argument("--max-health-margin-regression", type=float, default=0.05)
     parser.add_argument("--max-saturation-ratio", type=float, default=1.0)
     parser.add_argument("--max-saturation-rate-regression", type=float, default=0.02)
     parser.add_argument("--minimum-safe-altitude-m", type=float, default=300.0)

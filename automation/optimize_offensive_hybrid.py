@@ -150,6 +150,7 @@ def main() -> None:
     state_path = output / "state.json"
     if args.resume and state_path.is_file():
         state = load_json(state_path)
+        state["status"] = "running"
     else:
         state = {"status": "running", "next_iteration": 0, "best": None, "history": [], "started_at": datetime.now(timezone.utc).isoformat()}
     trials = build_trials(config)
@@ -174,8 +175,12 @@ def main() -> None:
         evaluation = load_json(evaluation_path) if evaluation_path.is_file() else {}
         candidate = candidate_from_evaluation(evaluation, trial)
         if trial["phase"] == "heldout":
+            state["heldout_passed"] = candidate is not None
             if candidate is not None:
-                state["heldout"] = candidate
+                state["heldout"] = {
+                    **candidate,
+                    "gate": (state.get("best") or {}).get("gate"),
+                }
         elif is_better(candidate, state.get("best")):
             state["best"] = candidate
             atomic_json(output / "best_config.json", candidate)
@@ -194,7 +199,7 @@ def main() -> None:
         atomic_json(state_path, state)
         write_report(output, state)
     if state["next_iteration"] >= len(trials):
-        state["status"] = "complete"
+        state["status"] = "complete" if state.get("heldout_passed") else "heldout_failed"
     elif state["next_iteration"] >= max_iterations and state["status"] == "running":
         state["status"] = "iteration_budget_exhausted"
     state["updated_at"] = datetime.now(timezone.utc).isoformat()
