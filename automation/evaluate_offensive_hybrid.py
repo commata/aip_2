@@ -17,6 +17,7 @@ from automation.analyze_maneuvers import analyze_frames, load_frames
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_SCALES = (0.10, 0.125, 0.15, 0.175, 0.20)
+PROTECTED_RUNTIME_FILES = (ROOT / "aircraft" / "f16" / "f16_init.xml",)
 
 
 def sha256(path: Path) -> str:
@@ -114,6 +115,9 @@ def run_match(
             "--offensive-enter-target-ata-deg", str(args.offensive_enter_target_ata_deg),
             "--offensive-exit-target-ata-deg", str(args.offensive_exit_target_ata_deg),
         ]
+    protected_content = {
+        path: path.read_bytes() for path in PROTECTED_RUNTIME_FILES if path.is_file()
+    }
     started = time.monotonic()
     timed_out = False
     try:
@@ -123,6 +127,10 @@ def run_match(
     except subprocess.TimeoutExpired as error:
         returncode, timed_out = 124, True
         stdout, stderr = error.stdout or "", error.stderr or ""
+    finally:
+        for path, content in protected_content.items():
+            if path.read_bytes() != content:
+                path.write_bytes(content)
     stdout_path.write_text(str(stdout), encoding="utf-8")
     stderr_path.write_text(str(stderr), encoding="utf-8")
     duration = time.monotonic() - started
