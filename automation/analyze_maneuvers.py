@@ -162,18 +162,18 @@ def recommendations(report: dict[str, Any]) -> list[str]:
     notes = []
     occupancy = report["gate_active_ratio"]
     if occupancy < 0.01 and report["relaxed_offensive_opportunity_ratio"] > 0.02:
-        notes.append("Gate occupancy is too low relative to offensive opportunities; broaden entry range/ATA one dimension at a time.")
+        notes.append("공격 기회 대비 gate 점유율이 너무 낮습니다. 진입 거리 또는 ATA 조건을 한 번에 하나씩 완화하세요.")
     elif occupancy > 0.35:
-        notes.append("Gate occupancy is broad; tighten target-aspect or ATA entry before increasing residual scale.")
+        notes.append("Gate 점유 범위가 너무 넓습니다. residual scale을 높이기 전에 target aspect 또는 ATA 진입 조건을 강화하세요.")
     if report["gate_transitions_per_min"] > 8.0:
-        notes.append("Gate transition rate is high; widen entry/exit hysteresis.")
+        notes.append("Gate 전환 빈도가 높습니다. 진입/이탈 hysteresis 간격을 넓히세요.")
     if report["overshoot_events_while_gate_active"]:
-        notes.append("Overshoot occurred with correction active; reduce scale or shorten the gate exit range.")
+        notes.append("Correction 활성 상태에서 overshoot가 발생했습니다. Scale을 낮추거나 gate 이탈 거리를 줄이세요.")
     if report["action_saturation_ratio"] > 0.20:
-        notes.append("Control saturation exceeds 20%; reduce steering scale before changing throttle behavior.")
+        notes.append("조종면 포화율이 20%를 초과했습니다. Throttle 동작을 바꾸기 전에 조종면 scale을 낮추세요.")
     if report["missed_offensive_opportunity_ratio"] > 0.75:
-        notes.append("Most relaxed offensive opportunities were missed; inspect which entry predicate is binding.")
-    return notes or ["No strong gate or residual pathology detected in this trajectory."]
+        notes.append("완화된 공격 기회의 대부분을 놓쳤습니다. 어떤 gate 진입 조건이 병목인지 확인하세요.")
+    return notes or ["이 궤적에서는 뚜렷한 gate 또는 residual 이상이 발견되지 않았습니다."]
 
 
 def compare(baseline: dict[str, Any], hybrid: dict[str, Any]) -> dict[str, Any]:

@@ -256,12 +256,40 @@ def write_outputs(output: Path, args: argparse.Namespace, preflight_result: dict
         writer = csv.DictWriter(handle, fieldnames=list(records[0]) if records else ["run_id"])
         writer.writeheader()
         writer.writerows(records)
-    best = summary["best_valid_candidate"]
-    lines = ["# Offensive Hybrid Paired Evaluation", "", f"- Paired runs: `{len(records)}`", f"- BT baseline: `{summary['controllers'].get('bt')}`", f"- Best safe candidate: `{best['controller'] if best else 'none'}`", "", "## Candidates", ""]
-    for candidate in summary["candidates"]:
-        lines.append(f"- `{candidate['controller']}`: valid={candidate['valid']}, score={candidate['score']:.3f}, win={candidate['win_rate']:.1%}, crash={candidate['crash_rate']:.1%}, margin={candidate['mean_health_margin']}, delta_vs_bt={candidate['delta_vs_bt']}")
-    (output / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_markdown_report(output / "report.md", summary, records)
     return payload
+
+
+def write_markdown_report(path: Path, summary: dict[str, Any], records: list[dict]) -> None:
+    best = summary["best_valid_candidate"]
+    bt = summary["controllers"].get("bt", {})
+    lines = [
+        "# Offensive Hybrid Paired 평가 보고서",
+        "",
+        f"- Paired run 수: `{len(records)}`",
+        f"- BT 기준 승률: `{bt.get('win_rate', 0.0):.1%}`",
+        f"- BT 기준 crash율: `{bt.get('crash_rate', 0.0):.1%}`",
+        f"- BT 기준 평균 health margin: `{bt.get('mean_health_margin')}`",
+        f"- 최종 안전 후보: `{best['controller'] if best else '없음'}`",
+        "",
+        "## 후보별 결과",
+        "",
+    ]
+    for candidate in summary["candidates"]:
+        delta = candidate.get("delta_vs_bt", {})
+        lines.append(
+            f"- `{candidate['controller']}`: 안전 조건 통과=`{candidate['valid']}`, "
+            f"점수=`{candidate['score']:.3f}`, 승률=`{candidate['win_rate']:.1%}`, "
+            f"crash율=`{candidate['crash_rate']:.1%}`, 평균 health margin=`{candidate['mean_health_margin']}`, "
+            f"BT 대비 reward 차이=`{_format_delta(delta.get('reward'))}`, "
+            f"BT 대비 평균 ATA 차이=`{_format_delta(delta.get('mean_ata_deg'), '°')}`, "
+            f"BT 대비 포화율 차이=`{_format_delta(delta.get('saturation_ratio'))}`"
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _format_delta(value: Any, suffix: str = "") -> str:
+    return "자료 없음" if value is None else f"{float(value):+.4f}{suffix}"
 
 
 def parse_args() -> argparse.Namespace:

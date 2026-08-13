@@ -120,18 +120,43 @@ def is_better(candidate: dict[str, Any] | None, best: dict[str, Any] | None) -> 
 
 def write_report(output: Path, state: dict[str, Any]) -> None:
     best = state.get("best")
+    status_labels = {
+        "running": "실행 중",
+        "complete": "완료",
+        "budget_exhausted": "시간 예산 소진",
+        "iteration_budget_exhausted": "반복 횟수 예산 소진",
+        "no_safe_candidate": "안전 후보 없음",
+        "heldout_failed": "Held-out 검증 실패",
+    }
+    best_summary = "없음"
+    if best:
+        best_summary = (
+            f"{best.get('controller')} (점수={best.get('score')}, "
+            f"승률={best.get('win_rate')}, crash율={best.get('crash_rate')}, "
+            f"평균 health margin={best.get('mean_health_margin')})"
+        )
     lines = [
-        "# Offensive Hybrid Optimization",
+        "# Offensive Hybrid 최적화 보고서",
         "",
-        f"- Status: `{state['status']}`",
-        f"- Completed iterations: `{state['next_iteration']}`",
-        f"- Best: `{best}`",
+        f"- 상태: `{status_labels.get(state['status'], state['status'])}`",
+        f"- 완료한 반복 횟수: `{state['next_iteration']}`",
+        f"- 현재 최적 후보: `{best_summary}`",
         "",
-        "## History",
+        "## 반복 이력",
         "",
     ]
     for item in state.get("history", []):
-        lines.append(f"- `{item['iteration']}` `{item['trial']}`: returncode={item['returncode']}, candidate={item.get('candidate')}")
+        candidate = item.get("candidate")
+        candidate_summary = "안전 후보 없음"
+        if candidate:
+            candidate_summary = (
+                f"{candidate.get('controller')} "
+                f"(점수={candidate.get('score')}, 안전 조건 통과={candidate.get('valid')})"
+            )
+        lines.append(
+            f"- 반복 `{item['iteration']}` / 시험 `{item['trial']}`: "
+            f"종료 코드=`{item['returncode']}`, 후보=`{candidate_summary}`"
+        )
     (output / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
