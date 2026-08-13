@@ -1,0 +1,10 @@
+{
+  "name": "crossing_left",
+  "initial_scenario": {
+    "mode": "ref_old_random",
+    "legacy_scenario_indices": [2],
+    "legacy_use_random_scenario": false,
+    "legacy_scenario_index": 2,
+    "legacy_randomization": {"enabled": false}
+  }
+}

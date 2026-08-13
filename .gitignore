@@ -45,6 +45,10 @@ artifacts/logs/
 artifacts/models/
 artifacts/process_logs/
 artifacts/replays/
+artifacts/evaluations/
+artifacts/smoke/
+automation/state/
+automation/reports/generated/
 checkpoints/
 models/
 logs/

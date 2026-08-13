@@ -47,3 +47,15 @@ def clip_action(action, low=None, high=None) -> np.ndarray:
     # 2026-05-26: Guard native DLL outputs before they can propagate NaN/Inf.
     action_array = np.nan_to_num(action_array, nan=0.0, posinf=0.0, neginf=0.0)
     return np.clip(action_array, low, high)
+
+
+def policy_action_to_sim_action(action) -> np.ndarray:
+    """Map policy ``[-1, 1]^4`` output to simulator throttle ``[0, 1]`` once."""
+    policy = np.asarray(action, dtype=np.float32)
+    if policy.shape != (4,):
+        raise ValueError(f"expected four action axes, got shape {policy.shape}")
+    policy = np.nan_to_num(policy, nan=0.0, posinf=1.0, neginf=-1.0)
+    policy = np.clip(policy, -1.0, 1.0)
+    simulator = policy.copy()
+    simulator[3] = 0.5 * (policy[3] + 1.0)
+    return clip_action(simulator)

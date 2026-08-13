@@ -1,0 +1,48 @@
+{
+  "bundle": "artifacts/models/team01/student_sac_baseline",
+  "ownship_bt_dll": "AIP_Pastel_AggressiveFinish_v2.dll",
+  "target_bt_dll": "AIP_Pastel_AggressiveFinish_v2.dll",
+  "bt_rule_xml": "Rule_Pastel_AggressiveFinish_v2.xml",
+  "scenarios": [
+    "automation/scenarios/offensive_tail.json",
+    "automation/scenarios/crossing_left.json",
+    "automation/scenarios/crossing_right.json"
+  ],
+  "development_seeds": [101, 211],
+  "heldout_seeds": [307, 401],
+  "scales": [0.10, 0.125, 0.15, 0.175, 0.20],
+  "gate_candidates": [
+    {
+      "name": "terminal",
+      "enter_range_m": 1500.0,
+      "exit_range_m": 2000.0,
+      "enter_ata_deg": 15.0,
+      "exit_ata_deg": 25.0,
+      "enter_target_ata_deg": 135.0,
+      "exit_target_ata_deg": 110.0
+    },
+    {
+      "name": "precision",
+      "enter_range_m": 2100.0,
+      "exit_range_m": 2700.0,
+      "enter_ata_deg": 24.0,
+      "exit_ata_deg": 40.0,
+      "enter_target_ata_deg": 115.0,
+      "exit_target_ata_deg": 90.0
+    },
+    {
+      "name": "coverage",
+      "enter_range_m": 2700.0,
+      "exit_range_m": 3300.0,
+      "enter_ata_deg": 36.0,
+      "exit_ata_deg": 52.0,
+      "enter_target_ata_deg": 95.0,
+      "exit_target_ata_deg": 70.0
+    }
+  ],
+  "development_max_engage_time": 30.0,
+  "heldout_max_engage_time": 200.0,
+  "timeout_seconds": 300.0,
+  "maximum_iterations": 5,
+  "maximum_wall_seconds": 10800.0
+}
