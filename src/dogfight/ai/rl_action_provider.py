@@ -42,20 +42,23 @@ class RLActionProvider(ActionProvider):
                 raise ValueError("algorithm_factory is required when loading a lightweight bundle")
             self.metadata, weights = load_lightweight_policy_bundle(Path(bundle_dir))
             self.algorithm = algorithm_factory(self.metadata)
-            try:
+            if hasattr(self.algorithm, "set_module_state"):
+                self.algorithm.set_module_state(weights)
+            else:
+                try:
                 # Old API stack: Policy-based weight loading
-                self.algorithm.get_policy(self.policy_id).set_weights(weights)
-            except AttributeError:
-                # New API stack: load directly into the local RLModule state.
-                env_runner = getattr(self.algorithm, "env_runner", None)
-                if env_runner is not None and hasattr(env_runner, "set_state"):
-                    env_runner.set_state({"rl_module": weights})
-                elif env_runner is not None and hasattr(env_runner, "module"):
-                    env_runner.module.set_state(weights)
-                else:
-                    raise RuntimeError(
-                        "Unable to apply RLModule weights to the RLlib algorithm"
-                    )
+                    self.algorithm.get_policy(self.policy_id).set_weights(weights)
+                except AttributeError:
+                    # New API stack: load directly into the local RLModule state.
+                    env_runner = getattr(self.algorithm, "env_runner", None)
+                    if env_runner is not None and hasattr(env_runner, "set_state"):
+                        env_runner.set_state({"rl_module": weights})
+                    elif env_runner is not None and hasattr(env_runner, "module"):
+                        env_runner.module.set_state(weights)
+                    else:
+                        raise RuntimeError(
+                            "Unable to apply RLModule weights to the RLlib algorithm"
+                        )
             self._owns_algorithm = True
         else:
             raise ValueError("Either algorithm or bundle_dir must be provided")

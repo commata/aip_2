@@ -17,7 +17,7 @@ if str(SRC) not in sys.path:
 from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.bt_rule_manager import activate_rule_xml
 from dogfight.ai.hybrid_action_provider import HybridActionProvider, OffensiveGateConfig
-from dogfight.ai.rllib_utils import build_algorithm_from_bundle
+from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
 from dogfight.unreal import AIType, ProviderCommandPolicy, UnrealAIPilotUDPClient
@@ -116,7 +116,7 @@ def build_action_provider(args):
 
     rl_provider = RLActionProvider(
         bundle_dir=args.bundle_dir,
-        algorithm_factory=build_algorithm_from_bundle,
+        algorithm_factory=build_inference_module_from_bundle,
         policy_id=args.policy_id,
         explore=args.explore,
     )

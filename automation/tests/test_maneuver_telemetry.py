@@ -37,7 +37,11 @@ class ManeuverTelemetryTests(unittest.TestCase):
                 state(1000.0, 0.0, 180.0),
                 [0.1, 0.2, 0.3, 0.7],
                 [0.0, 0.0, 0.0, 0.8],
-                {"offensive_gate": {"active": True}, "native": np.array([1.0, 2.0])},
+                {
+                    "offensive_gate": {"active": True},
+                    "native": np.array([1.0, 2.0]),
+                    "bt_action": [1.0, -1.0, 0.25, 0.7],
+                },
                 target_damage=0.01,
                 in_wez=True,
             )
@@ -53,6 +57,12 @@ class ManeuverTelemetryTests(unittest.TestCase):
             self.assertEqual(summary["damage_cone_entries"], 1)
             self.assertAlmostEqual(summary["damage_cone_time_s"], 1.0 / 60.0)
             self.assertEqual(summary["time_to_first_damage_s"], 0.0)
+            self.assertEqual(summary["bt_roll_saturation_ratio"], 1.0)
+            self.assertEqual(summary["bt_pitch_saturation_ratio"], 1.0)
+            self.assertEqual(summary["final_roll_saturation_ratio"], 0.0)
+            self.assertAlmostEqual(summary["bt_roll_positive_headroom_mean"], 0.0)
+            self.assertAlmostEqual(summary["bt_pitch_negative_headroom_mean"], 0.0)
+            self.assertAlmostEqual(summary["final_roll_positive_headroom_mean"], 0.9)
 
     def test_analyzer_detects_gate_chatter_saturation_and_missed_window(self):
         frames = []

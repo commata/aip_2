@@ -12,6 +12,7 @@ from dogfight.sim.state_schema import StateIndex
 
 ALLOWED_AIM_RESIDUAL_SCALES = (0.10, 0.125, 0.15)
 RESIDUAL_COMPOSITION_MODES = ("additive", "saturation_aware")
+SURFACE_AXES = ("roll", "pitch", "yaw")
 
 
 def _compose_aim_surface_residual(
@@ -33,6 +34,125 @@ def _compose_aim_surface_residual(
     authority = np.clip(available, 0.0, 1.0)
     result[:3] = surfaces + residual_scale * requested * authority
     return result
+
+
+def _surface_authority_diagnostics(
+    bt_action: np.ndarray,
+    residual: np.ndarray | None,
+    final_action: np.ndarray,
+    residual_scale: float,
+    *,
+    active: bool,
+) -> dict:
+    """Expose clipping-independent surface headroom and realised authority."""
+    bt = np.asarray(bt_action, dtype=np.float64)[:3]
+    final = np.asarray(final_action, dtype=np.float64)[:3]
+    raw = (
+        np.asarray(residual, dtype=np.float64)[:3]
+        if residual is not None and active
+        else np.zeros(3, dtype=np.float64)
+    )
+    requested = float(residual_scale) * raw
+    applied = final - bt
+    positive = np.clip(1.0 - bt, 0.0, 2.0)
+    negative = np.clip(bt + 1.0, 0.0, 2.0)
+    directional = np.where(requested >= 0.0, positive, negative)
+    nonzero = np.abs(requested) > 1e-12
+    applied_to_requested = np.zeros(3, dtype=np.float64)
+    applied_to_requested[nonzero] = (
+        np.abs(applied[nonzero]) / np.abs(requested[nonzero])
+    )
+    requested_to_applied = np.zeros(3, dtype=np.float64)
+    realised = np.abs(applied) > 1e-12
+    requested_to_applied[realised] = (
+        np.abs(requested[realised]) / np.abs(applied[realised])
+    )
+    requested_to_applied_values = [
+        None if nonzero[index] and not realised[index] else float(requested_to_applied[index])
+        for index in range(3)
+    ]
+    return {
+        "positive_headroom": positive.tolist(),
+        "negative_headroom": negative.tolist(),
+        "directional_headroom": directional.tolist(),
+        "requested_surface_correction": requested.tolist(),
+        "applied_surface_correction": applied.tolist(),
+        "applied_to_requested_ratio": applied_to_requested.tolist(),
+        "requested_to_applied_ratio": requested_to_applied_values,
+        "request_nonzero": nonzero.tolist(),
+        "bt_surface_saturated": np.isclose(np.abs(bt), 1.0, atol=1e-6).tolist(),
+        "final_surface_saturated": np.isclose(
+            np.abs(final), 1.0, atol=1e-6
+        ).tolist(),
+    }
+
+
+def _reset_authority_counters(provider) -> None:
+    provider._bt_saturated_steps_axis = np.zeros(3, dtype=np.int64)
+    provider._final_saturated_steps_axis = np.zeros(3, dtype=np.int64)
+    provider._positive_headroom_sum = np.zeros(3, dtype=np.float64)
+    provider._negative_headroom_sum = np.zeros(3, dtype=np.float64)
+    provider._directional_headroom_sum = np.zeros(3, dtype=np.float64)
+    provider._requested_correction_abs_sum = np.zeros(3, dtype=np.float64)
+    provider._applied_correction_abs_sum = np.zeros(3, dtype=np.float64)
+    provider._authority_ratio_sum = np.zeros(3, dtype=np.float64)
+    provider._authority_ratio_count = np.zeros(3, dtype=np.int64)
+
+
+def _update_authority_counters(provider, diagnostics: dict) -> None:
+    provider._bt_saturated_steps_axis += np.asarray(
+        diagnostics["bt_surface_saturated"], dtype=np.int64
+    )
+    provider._final_saturated_steps_axis += np.asarray(
+        diagnostics["final_surface_saturated"], dtype=np.int64
+    )
+    provider._positive_headroom_sum += diagnostics["positive_headroom"]
+    provider._negative_headroom_sum += diagnostics["negative_headroom"]
+    provider._directional_headroom_sum += diagnostics["directional_headroom"]
+    provider._requested_correction_abs_sum += np.abs(
+        diagnostics["requested_surface_correction"]
+    )
+    provider._applied_correction_abs_sum += np.abs(
+        diagnostics["applied_surface_correction"]
+    )
+    nonzero = np.asarray(diagnostics["request_nonzero"], dtype=bool)
+    provider._authority_ratio_sum[nonzero] += np.asarray(
+        diagnostics["applied_to_requested_ratio"], dtype=np.float64
+    )[nonzero]
+    provider._authority_ratio_count += nonzero.astype(np.int64)
+
+
+def _authority_telemetry(provider, active_steps: int) -> dict:
+    denominator = max(1, int(active_steps))
+    ratio_denominator = np.maximum(1, provider._authority_ratio_count)
+    return {
+        "surface_axis_names": list(SURFACE_AXES),
+        "bt_surface_saturation_ratio_axis": (
+            provider._bt_saturated_steps_axis / denominator
+        ).tolist(),
+        "final_surface_saturation_ratio_axis": (
+            provider._final_saturated_steps_axis / denominator
+        ).tolist(),
+        "positive_headroom_mean_axis": (
+            provider._positive_headroom_sum / denominator
+        ).tolist(),
+        "negative_headroom_mean_axis": (
+            provider._negative_headroom_sum / denominator
+        ).tolist(),
+        "directional_headroom_mean_axis": (
+            provider._directional_headroom_sum / denominator
+        ).tolist(),
+        "requested_surface_correction_abs_mean_axis": (
+            provider._requested_correction_abs_sum / denominator
+        ).tolist(),
+        "applied_surface_correction_abs_mean_axis": (
+            provider._applied_correction_abs_sum / denominator
+        ).tolist(),
+        "applied_to_requested_ratio_mean_axis": (
+            provider._authority_ratio_sum / ratio_denominator
+        ).tolist(),
+        "authority_ratio_samples_axis": provider._authority_ratio_count.tolist(),
+    }
 
 
 def _unsigned_ata_deg(observer_state, target_state) -> float:
@@ -577,6 +697,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         self._correction_abs_max = np.zeros(4, dtype=np.float64)
         self._clipped_steps = 0
         self._saturated_steps = 0
+        _reset_authority_counters(self)
         self._last_frame: dict = {}
 
     def compute_action(self, context: ActionContext) -> ActionResult:
@@ -649,6 +770,14 @@ class ResidualInferenceActionProvider(ActionProvider):
         )
         self._clipped_steps += int(clipped)
         self._saturated_steps += int(saturated)
+        diagnostics = _surface_authority_diagnostics(
+            bt_action,
+            residual,
+            final,
+            self.residual_scale,
+            active=True,
+        )
+        _update_authority_counters(self, diagnostics)
         self._active_frames += 1
         frame = self._frame_info(
             gate_info=gate_info,
@@ -674,6 +803,13 @@ class ResidualInferenceActionProvider(ActionProvider):
         saturated: bool,
     ) -> dict:
         correction = final - bt_action
+        authority = _surface_authority_diagnostics(
+            bt_action,
+            residual,
+            final,
+            self.residual_scale,
+            active=bool(gate_info["active"]),
+        )
         return {
             "mode": "bt_residual_inference",
             "gate_kind": self.gate_kind,
@@ -688,6 +824,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             "bt_action": bt_action.tolist(),
             "raw_residual_action": residual.tolist() if residual is not None else None,
             "applied_rl_correction": correction.tolist(),
+            "surface_authority": authority,
             "final_action": final.tolist(),
             "throttle_residual_forced_zero": True,
             "action_clipped": clipped,
@@ -711,6 +848,7 @@ class ResidualInferenceActionProvider(ActionProvider):
                 "rl_correction_abs_max": self._correction_abs_max.tolist(),
                 "action_clipped_steps": self._clipped_steps,
                 "action_saturated_steps": self._saturated_steps,
+                **_authority_telemetry(self, self._correction_steps),
                 "rl_inference_latency_ms_p50": (
                     float(np.percentile(latency, 50)) if latency.size else 0.0
                 ),
@@ -780,6 +918,7 @@ class ResidualTrainingActionProvider(ActionProvider):
         self._clipped_steps = 0
         self._saturated_steps = 0
         self._requested_throttle_abs_sum = 0.0
+        _reset_authority_counters(self)
         self._last_frame: dict = {}
 
     def compute_action(self, context: ActionContext) -> ActionResult:
@@ -833,6 +972,16 @@ class ResidualTrainingActionProvider(ActionProvider):
             self._clipped_steps += int(clipped)
             self._saturated_steps += int(saturated)
 
+        authority = _surface_authority_diagnostics(
+            bt_action,
+            residual,
+            final,
+            self.residual_scale,
+            active=bool(gate_info["active"]),
+        )
+        if gate_info["active"]:
+            _update_authority_counters(self, authority)
+
         frame = {
             "mode": "bt_residual_training",
             "gate_kind": self.gate_kind,
@@ -845,6 +994,7 @@ class ResidualTrainingActionProvider(ActionProvider):
             "bt_action": bt_action.tolist(),
             "raw_residual_action": residual.tolist(),
             "applied_rl_correction": correction.tolist(),
+            "surface_authority": authority,
             "final_action": final.tolist(),
             "throttle_residual_forced_zero": True,
             "action_clipped": clipped,
@@ -871,6 +1021,7 @@ class ResidualTrainingActionProvider(ActionProvider):
                 ),
                 "action_clipped_steps": self._clipped_steps,
                 "action_saturated_steps": self._saturated_steps,
+                **_authority_telemetry(self, self._correction_steps),
                 "last_frame": dict(self._last_frame),
             }
         )

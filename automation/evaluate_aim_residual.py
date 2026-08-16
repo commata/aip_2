@@ -33,6 +33,16 @@ MANEUVER_METRICS = (
     "mean_speed_m_s",
     "min_speed_m_s",
     "min_altitude_m",
+    *(
+        f"{source}_{axis}_{metric}"
+        for source in ("bt", "final")
+        for axis in ("roll", "pitch", "yaw")
+        for metric in (
+            "saturation_ratio",
+            "positive_headroom_mean",
+            "negative_headroom_mean",
+        )
+    ),
 )
 
 
@@ -248,6 +258,24 @@ def build_record(
         "correction_roll_mean": _axis(provider, "rl_correction_abs_mean", 0),
         "correction_pitch_mean": _axis(provider, "rl_correction_abs_mean", 1),
         "correction_yaw_mean": _axis(provider, "rl_correction_abs_mean", 2),
+        "requested_roll_correction_mean": _axis(
+            provider, "requested_surface_correction_abs_mean_axis", 0
+        ),
+        "requested_pitch_correction_mean": _axis(
+            provider, "requested_surface_correction_abs_mean_axis", 1
+        ),
+        "requested_yaw_correction_mean": _axis(
+            provider, "requested_surface_correction_abs_mean_axis", 2
+        ),
+        "roll_applied_to_requested_ratio": _axis(
+            provider, "applied_to_requested_ratio_mean_axis", 0
+        ),
+        "pitch_applied_to_requested_ratio": _axis(
+            provider, "applied_to_requested_ratio_mean_axis", 1
+        ),
+        "yaw_applied_to_requested_ratio": _axis(
+            provider, "applied_to_requested_ratio_mean_axis", 2
+        ),
         "action_clipped_steps": finite(provider.get("action_clipped_steps")) or 0.0,
         "action_saturated_steps": finite(provider.get("action_saturated_steps")) or 0.0,
         "action_clipped_ratio": (
@@ -286,9 +314,13 @@ def aggregate(records: list[dict[str, Any]]) -> dict[str, Any]:
         "mean_speed_m_s", "min_speed_m_s", "min_altitude_m", "gate_active_ratio",
         "rl_inference_calls", "correction_roll_mean", "correction_pitch_mean",
         "correction_yaw_mean", "action_clipped_steps", "action_saturated_steps",
+        "requested_roll_correction_mean", "requested_pitch_correction_mean",
+        "requested_yaw_correction_mean", "roll_applied_to_requested_ratio",
+        "pitch_applied_to_requested_ratio", "yaw_applied_to_requested_ratio",
         "action_clipped_ratio", "action_saturated_ratio",
         "inference_latency_ms_p50", "inference_latency_ms_p95",
         "inference_latency_ms_p99", "inference_latency_ms_max",
+        *MANEUVER_METRICS[-18:],
     )
     by_controller: dict[str, Any] = {}
     for controller in controllers:
@@ -464,6 +496,14 @@ def write_report(path: Path, payload: dict[str, Any]) -> None:
             f"{fmt(controller_metrics.get('correction_yaw_mean'))}`",
             f"- 활성 step 중 clipping 비율: `"
             f"{fmt(controller_metrics.get('action_clipped_ratio'))}`",
+            f"- Roll/Pitch/Yaw 요청 대비 적용 비율: `"
+            f"{fmt(controller_metrics.get('roll_applied_to_requested_ratio'))} / "
+            f"{fmt(controller_metrics.get('pitch_applied_to_requested_ratio'))} / "
+            f"{fmt(controller_metrics.get('yaw_applied_to_requested_ratio'))}`",
+            f"- BT Roll/Pitch/Yaw 포화 비율: `"
+            f"{fmt(controller_metrics.get('bt_roll_saturation_ratio'))} / "
+            f"{fmt(controller_metrics.get('bt_pitch_saturation_ratio'))} / "
+            f"{fmt(controller_metrics.get('bt_yaw_saturation_ratio'))}`",
             f"- RL 추론 P95: `{fmt(controller_metrics.get('inference_latency_ms_p95'))}ms`",
             "",
         ]
@@ -511,6 +551,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aim-exit-range-margin-m", type=float, default=550.0)
     parser.add_argument("--aim-min-hold-steps", type=int, default=12)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--quiet", action="store_true", help="요약 JSON stdout 출력을 생략한다.")
     return parser.parse_args()
 
 
@@ -535,7 +576,8 @@ def main() -> None:
             )
             write_outputs(output, args, preflight_result, records)
     payload = write_outputs(output, args, preflight_result, records)
-    print(json.dumps(payload["summary"], indent=2, ensure_ascii=False))
+    if not args.quiet:
+        print(json.dumps(payload["summary"], indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

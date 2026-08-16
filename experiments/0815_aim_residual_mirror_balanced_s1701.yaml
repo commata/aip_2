@@ -1,0 +1,139 @@
+name: 0815_aim_residual_mirror_balanced_s1701
+script: train_rllib
+
+output:
+  name: 0815_hybrid_aim_symmetry
+  tag: h7_mirror10_s1701
+
+env:
+  observation_mode: aim_residual10_v2
+  target_mode: autopilot
+  bt_rule_xml: 'C:\Users\shy66\Downloads\aip_final_0815\aip_final_0815\Rule_DCS_GDCC_0815.xml'
+  bt_rule_aliases: [Rule_DCS_GDCC_0815.xml]
+  max_engage_time: 30.0
+  episode_step_limit: 1800
+
+env_config:
+  sim_hz: 60
+  step_ratio: 6
+  min_altitude: 300.0
+  ownship_control_mode: bt_residual
+  ownship_behavior_dll: 'C:\Users\shy66\Downloads\aip_final_0815\aip_final_0815\AIP_DCS_GDCC_0815.dll'
+  initial_scenario:
+    mode: aim_residual_curriculum
+    variants:
+      - name: lateral_left
+        ownship: [0.0, 0.0, -5000.0, 0.0, 0.0, 0.0, 230.0]
+        target: [1100.0, -350.0, -5000.0, 0.0, 0.0, 5.0, 225.0]
+        target_autopilot: {heading_cmd: 5.0, altitude_cmd: 5000.0, speed_cmd: 225.0}
+      - name: lateral_right
+        ownship: [0.0, 0.0, -5000.0, -0.0, 0.0, 0.0, 230.0]
+        target: [1100.0, 350.0, -5000.0, -0.0, 0.0, 355.0, 225.0]
+        target_autopilot: {heading_cmd: 355.0, altitude_cmd: 5000.0, speed_cmd: 225.0}
+      - name: crossing_left
+        ownship: [0.0, 0.0, -5000.0, 0.0, 0.0, 0.0, 230.0]
+        target: [1300.0, -300.0, -5000.0, 0.0, 0.0, 15.0, 230.0]
+        target_autopilot: {heading_cmd: 15.0, altitude_cmd: 5000.0, speed_cmd: 230.0}
+      - name: crossing_right
+        ownship: [0.0, 0.0, -5000.0, -0.0, 0.0, 0.0, 230.0]
+        target: [1300.0, 300.0, -5000.0, -0.0, 0.0, 345.0, 230.0]
+        target_autopilot: {heading_cmd: 345.0, altitude_cmd: 5000.0, speed_cmd: 230.0}
+      - name: vertical_high
+        ownship: [0.0, 0.0, -5000.0, 0.0, 0.0, 0.0, 230.0]
+        target: [1100.0, 0.0, -5300.0, 0.0, 0.0, 0.0, 225.0]
+        target_autopilot: {heading_cmd: 0.0, altitude_cmd: 5300.0, speed_cmd: 225.0}
+      - name: vertical_low
+        ownship: [0.0, 0.0, -5000.0, -0.0, -0.0, 0.0, 230.0]
+        target: [1100.0, 0.0, -4700.0, -0.0, -0.0, 0.0, 225.0]
+        target_autopilot: {heading_cmd: 0.0, altitude_cmd: 4700.0, speed_cmd: 225.0}
+  ownship_randomization:
+    enabled: true
+    radius: 40.0
+    r_roll: 1.0
+    r_pitch: 1.0
+    r_heading: 2.0
+  target_randomization:
+    enabled: true
+    radius: 30.0
+    r_roll: 1.0
+    r_pitch: 1.0
+    r_heading: 2.0
+  residual_training:
+    scale: 0.125
+    gate_kind: aim
+    composition_mode: saturation_aware
+    aim_gate:
+      min_range_m: 152.4
+      enter_angle_margin_deg: 7.0
+      exit_angle_margin_deg: 10.0
+      enter_range_margin_m: 300.0
+      exit_range_margin_m: 550.0
+      min_hold_steps: 12
+  reward:
+    mode: aim_residual
+    aim_residual:
+      step_penalty: -0.001
+      aim_progress_scale: 1.0
+      aim_quality_scale: 0.02
+      los_rate_penalty_scale: 0.05
+      cone_dwell_scale: 0.08
+      damage_scale: 20.0
+      residual_l2_penalty_scale: 0.02
+      residual_smooth_penalty_scale: 0.03
+      clipping_penalty: 0.05
+      saturation_penalty: 0.02
+      minimum_safe_speed_m_s: 170.0
+      low_speed_penalty_scale: 0.05
+      minimum_safe_altitude_m: 600.0
+      low_altitude_penalty_scale: 0.10
+      win_reward: 5.0
+      loss_reward: -5.0
+      crash_reward: -20.0
+  wez:
+    angle_deg: 2.0
+    min_range_m: 152.4
+    max_range_m: 914.4
+
+algo:
+  name: sac
+  framework: torch
+  lr: 3.0e-4
+  gamma: 0.99
+  train_batch_size: 128
+  minibatch_size: 128
+  tau: 0.005
+  target_entropy: auto
+  replay_buffer_capacity: 15000
+  learning_starts: 256
+  mlp:
+    enabled: true
+    fcnet_hiddens: [128, 128]
+    fcnet_activation: relu
+    head_fcnet_hiddens: []
+    head_fcnet_activation: relu
+
+runtime:
+  seed: 1701
+  iterations: 30
+  num_env_runners: 0
+  num_envs_per_env_runner: 1
+  rollout_fragment_length: 128
+  batch_mode: truncate_episodes
+  save_lightweight_bundle: true
+  lightweight_bundle_frequency: 5
+  save_native_checkpoint: true
+  native_checkpoint_frequency: 10
+
+dashboard:
+  enabled: false
+
+policy_probe:
+  enabled: true
+  interval: 2
+  steps: 4
+  print: false
+
+engagement_log:
+  enabled: false
+
+notes: "H7: H6 설정을 고정하고 scenario distribution만 정확한 좌우/상하 mirror 6종으로 균형화한 10D 독립 seed 1701 학습."

@@ -1,0 +1,14 @@
+{
+  "name": "0815_aim_mirror_holdout_vertical_high",
+  "mirror_axis": "vertical",
+  "mirror_pair": "vertical_low",
+  "mirror_down_origin_m": -5100.0,
+  "env_config": {
+    "ownship": [0.0, 0.0, -5100.0, 0.0, 0.0, 0.0, 235.0],
+    "target": [1250.0, 0.0, -5450.0, 0.0, 0.0, 4.0, 228.0],
+    "initial_scenario": {"mode": "default", "legacy_use_random_scenario": false},
+    "ownship_randomization": {"enabled": false},
+    "target_randomization": {"enabled": false},
+    "target_autopilot": {"heading_cmd": 4.0, "altitude_cmd": 5450.0, "speed_cmd": 228.0}
+  }
+}

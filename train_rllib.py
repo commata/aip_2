@@ -5,11 +5,13 @@ from contextlib import ExitStack
 import csv
 import json
 import math
+import random
 import os
 from pathlib import Path
 import sys
 from typing import Any
 
+import numpy as np
 from ray.tune.registry import register_env
 
 ROOT = Path(__file__).resolve().parent
@@ -31,6 +33,7 @@ from dogfight.ai.checkpoint_io import (
     save_lightweight_policy_bundle,
 )
 from dogfight.ai.bt_rule_manager import activate_rule_xml
+from dogfight.ai.callbacks import aim_variant_metric_name
 from dogfight.ai.dashboard_logger import (
     DashboardJsonlLogger,
     copy_experiment_yaml,
@@ -337,7 +340,7 @@ def _extract_custom_metrics(result: dict) -> dict:
                     return metrics[key]
         return default
 
-    return {
+    extracted = {
         "win_rate":             metric("win"),
         "loss_rate":            metric("loss"),
         "timeout_rate":         metric("timeout"),
@@ -413,6 +416,12 @@ def _extract_custom_metrics(result: dict) -> dict:
             )
         },
     }
+    for metrics in (cm, result.get("custom_metrics", {})):
+        for raw_key, value in metrics.items():
+            key = raw_key[:-5] if raw_key.endswith("_mean") else raw_key
+            if key.startswith("aim_variant_fraction_") and value is not None:
+                extracted.setdefault(key, value)
+    return extracted
 
 
 def _extract_progress_metrics(result: dict) -> dict:
@@ -562,6 +571,12 @@ def parse_args():
         type=int,
         default=1,
         help="Number of RLlib env runners.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Independent training seed for Python, NumPy, Torch, RLlib, and env runners.",
     )
     parser.add_argument(
         "--num-envs-per-env-runner",
@@ -890,6 +905,7 @@ def _build_algorithm_args(args) -> dict:
         "lstm_cell_size": args.lstm_cell_size,
         "max_seq_len": args.max_seq_len,
         "debug_io": args.debug_io,
+        "seed": args.seed,
     }
 
 
@@ -1073,6 +1089,7 @@ def _build_bundle_metadata(
         "network_spec": (
             json.loads(args.network_spec_json) if args.network_spec_json else None
         ),
+        "training_seed": args.seed,
     }
     if extra:
         metadata.update(extra)
@@ -1225,7 +1242,20 @@ def _run_with_tune(args, algorithm_name: str, config, env_config: dict) -> None:
     _save_tune_outputs(args, algorithm_name, config, env_config, result_grid)
 
 
+def _seed_training_runtime(seed: int | None) -> None:
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+        try:
+            import torch
+
+            torch.manual_seed(seed)
+        except ImportError:  # pragma: no cover - Torch is present for RLlib runs.
+            pass
+
+
 def _run_training(args):
+    _seed_training_runtime(args.seed)
     algorithm_name = normalize_algorithm_name(args.algorithm)
     if args.use_tune and (args.restore_checkpoint or args.init_bundle):
         raise RuntimeError(
@@ -1329,6 +1359,13 @@ def _run_training(args):
         "replay_buffer_size", "replay_buffer_memory_mb", "env_steps_per_sec",
         "learner_steps_per_sec", "iteration_time_s",
     ]
+    scenario_variants = (
+        env_config.get("initial_scenario", {}).get("variants", [])
+    )
+    _CSV_FIELDS.extend(
+        aim_variant_metric_name(variant.get("name", index))
+        for index, variant in enumerate(scenario_variants)
+    )
     csv_file = open(csv_path, "w", newline="", encoding="utf-8")
     csv_writer = csv.DictWriter(csv_file, fieldnames=_CSV_FIELDS)
     csv_writer.writeheader()
@@ -1550,6 +1587,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

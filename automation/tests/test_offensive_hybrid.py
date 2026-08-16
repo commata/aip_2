@@ -307,6 +307,28 @@ class OffensiveHybridTests(unittest.TestCase):
             provider.telemetry()["residual_composition_mode"],
             "saturation_aware",
         )
+        telemetry = provider.telemetry()
+        np.testing.assert_allclose(
+            telemetry["bt_surface_saturation_ratio_axis"],
+            [1.0, 1.0, 0.0],
+        )
+        np.testing.assert_allclose(
+            telemetry["requested_surface_correction_abs_mean_axis"],
+            [0.125, 0.125, 0.125],
+        )
+        np.testing.assert_allclose(
+            telemetry["applied_to_requested_ratio_mean_axis"],
+            [0.5, 0.5, 0.55],
+            atol=1e-6,
+        )
+        authority = inward.info["surface_authority"]
+        np.testing.assert_allclose(
+            authority["positive_headroom"], [0.0, 2.0, 0.1], atol=1e-7
+        )
+        np.testing.assert_allclose(
+            authority["negative_headroom"], [2.0, 0.0, 1.9], atol=1e-7
+        )
+        np.testing.assert_allclose(authority["applied_to_requested_ratio"], [1.0, 1.0, 1.0])
 
 
 if __name__ == "__main__":
