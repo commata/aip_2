@@ -58,8 +58,10 @@ def _resolve_rule_xml_source(
 def _resolve_rule_targets(
     workspace_root: Path,
     aliases: list[str] | tuple[str, ...] | None,
+    *,
+    include_default: bool,
 ) -> list[Path]:
-    names = [RULE_XML_NAME, *(aliases or ())]
+    names = ([RULE_XML_NAME] if include_default else []) + list(aliases or ())
     targets: list[Path] = []
     for name in names:
         candidate = Path(name)
@@ -77,11 +79,18 @@ def activate_rule_xml(
     workspace_root: str | Path,
     *,
     aliases: list[str] | tuple[str, ...] | None = None,
+    include_default: bool = True,
 ) -> Iterator[None]:
     """Temporarily activate a BT rule XML under every DLL-required filename."""
     workspace_root = Path(workspace_root).resolve()
     source = _resolve_rule_xml_source(rule_xml_path, workspace_root)
-    targets = _resolve_rule_targets(workspace_root, aliases)
+    targets = _resolve_rule_targets(
+        workspace_root,
+        aliases,
+        include_default=include_default,
+    )
+    if not targets:
+        raise ValueError("at least one Rule XML target must be enabled")
     snapshots: dict[Path, bytes | None] = {}
     activated: list[Path] = []
     for target in targets:

@@ -76,6 +76,7 @@ def main() -> None:
                 args.bt_xml,
                 ROOT,
                 aliases=["Rule_DCS_GDCC_0815.xml"],
+                include_default=False,
             )
         )
         stack.enter_context(
@@ -83,6 +84,7 @@ def main() -> None:
                 args.target_xml,
                 ROOT,
                 aliases=["Rule_sei_AIP2_default.xml"],
+                include_default=False,
             )
         )
         env = DogFightEnv(config)

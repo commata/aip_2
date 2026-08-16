@@ -41,6 +41,29 @@ class BTRuleManagerTests(unittest.TestCase):
                 with activate_rule_xml(source, root, aliases=["../outside.xml"]):
                     pass
 
+    def test_alias_only_mode_preserves_default_rule(self) -> None:
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            root = Path(directory)
+            source = root / "official.xml"
+            source.write_text("<root>official</root>", encoding="utf-8")
+            existing = root / RULE_XML_NAME
+            existing.write_text("<root>previous</root>", encoding="utf-8")
+            alias = root / "Rule_DCS_GDCC_0815.xml"
+
+            with activate_rule_xml(
+                source,
+                root,
+                aliases=[alias.name],
+                include_default=False,
+            ):
+                self.assertEqual(
+                    existing.read_text(encoding="utf-8"),
+                    "<root>previous</root>",
+                )
+                self.assertEqual(alias.read_bytes(), source.read_bytes())
+
+            self.assertFalse(alias.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
