@@ -5,6 +5,7 @@ from contextlib import ExitStack
 import csv
 import json
 import math
+import random
 import os
 from pathlib import Path
 import sys
@@ -564,6 +565,12 @@ def parse_args():
         help="Number of RLlib env runners.",
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Independent training seed for Python, NumPy, Torch, RLlib, and env runners.",
+    )
+    parser.add_argument(
         "--num-envs-per-env-runner",
         type=int,
         default=1,
@@ -890,6 +897,7 @@ def _build_algorithm_args(args) -> dict:
         "lstm_cell_size": args.lstm_cell_size,
         "max_seq_len": args.max_seq_len,
         "debug_io": args.debug_io,
+        "seed": args.seed,
     }
 
 
@@ -1073,6 +1081,7 @@ def _build_bundle_metadata(
         "network_spec": (
             json.loads(args.network_spec_json) if args.network_spec_json else None
         ),
+        "training_seed": args.seed,
     }
     if extra:
         metadata.update(extra)
@@ -1226,6 +1235,15 @@ def _run_with_tune(args, algorithm_name: str, config, env_config: dict) -> None:
 
 
 def _run_training(args):
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        try:
+            import torch
+
+            torch.manual_seed(args.seed)
+        except ImportError:  # pragma: no cover - Torch is present for RLlib runs.
+            pass
     algorithm_name = normalize_algorithm_name(args.algorithm)
     if args.use_tune and (args.restore_checkpoint or args.init_bundle):
         raise RuntimeError(
@@ -1550,6 +1568,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 

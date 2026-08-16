@@ -88,6 +88,7 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
         _add_optional(argv, "--episode-step-limit", env, "episode_step_limit")
 
     _add_optional(argv, "--num-env-runners", runtime, "num_env_runners")
+    _add_optional(argv, "--seed", runtime, "seed")
     if script_name != "train_curriculum":
         _add_optional(
             argv,
