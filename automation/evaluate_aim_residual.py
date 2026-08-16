@@ -113,6 +113,13 @@ def controller_specs(scales: list[float]) -> list[tuple[str, float | None]]:
     ]
 
 
+def controller_observation_mode(bundle_mode: str, controller: str) -> str:
+    """Keep Pure BT observation-free when evaluating a BT-aware policy."""
+    if controller == "pure_0815" and bundle_mode == "aim_residual13_btaware":
+        return "aim_residual10_v2"
+    return bundle_mode
+
+
 def run_match(
     args: argparse.Namespace,
     output: Path,
@@ -148,7 +155,8 @@ def run_match(
         "--bt-rule-xml", str(Path(args.bt_rule_xml).resolve()),
         "--bt-rule-alias-only",
         "--bt-turn-throttle-mode", "raw",
-        "--observation-mode", args.observation_mode,
+        "--observation-mode",
+        controller_observation_mode(args.observation_mode, controller),
         "--scenario-file", str(Path(args.scenario).resolve()),
         "--seed", str(seed),
         "--max-engage-time", str(args.max_engage_time),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from automation.evaluate_aim_residual import aggregate
+from automation.evaluate_aim_residual import aggregate, controller_observation_mode
 
 
 def record(controller: str, seed: int, variant: str, los: float = 2.0):
@@ -25,6 +25,22 @@ def record(controller: str, seed: int, variant: str, los: float = 2.0):
 
 
 class AimEvaluatorQualityTests(unittest.TestCase):
+    def test_btaware_bundle_does_not_pre_tick_pure_bt_baseline(self) -> None:
+        self.assertEqual(
+            controller_observation_mode(
+                "aim_residual13_btaware",
+                "pure_0815",
+            ),
+            "aim_residual10_v2",
+        )
+        self.assertEqual(
+            controller_observation_mode(
+                "aim_residual13_btaware",
+                "hybrid_0.125",
+            ),
+            "aim_residual13_btaware",
+        )
+
     def test_duplicate_seed_results_are_not_counted_as_unique(self) -> None:
         rows = [
             record("pure_0815", 1, "fixed"),
