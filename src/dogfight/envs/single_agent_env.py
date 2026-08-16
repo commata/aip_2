@@ -253,6 +253,7 @@ class DogFightEnv(gym.Env):
             gate_kind=str(residual.get("gate_kind", "aim")),
             aim_gate=residual.get("aim_gate") or None,
             offensive_gate=residual.get("offensive_gate") or None,
+            composition_mode=str(residual.get("composition_mode", "additive")),
         )
 
     def _build_ownship_ai(self):

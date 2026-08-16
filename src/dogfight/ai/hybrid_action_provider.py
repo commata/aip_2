@@ -11,6 +11,28 @@ from dogfight.sim.state_schema import StateIndex
 
 
 ALLOWED_AIM_RESIDUAL_SCALES = (0.10, 0.125, 0.15)
+RESIDUAL_COMPOSITION_MODES = ("additive", "saturation_aware")
+
+
+def _compose_aim_surface_residual(
+    bt_action: np.ndarray,
+    residual: np.ndarray,
+    residual_scale: float,
+    composition_mode: str,
+) -> np.ndarray:
+    """Return an unclipped surface command while bounding correction by scale."""
+    result = np.asarray(bt_action, dtype=np.float32).copy()
+    if composition_mode == "additive":
+        result[:3] = result[:3] + residual_scale * residual[:3]
+        return result
+    if composition_mode != "saturation_aware":
+        raise ValueError(f"unsupported residual composition: {composition_mode!r}")
+    surfaces = result[:3]
+    requested = np.asarray(residual[:3], dtype=np.float32)
+    available = np.where(requested >= 0.0, 1.0 - surfaces, surfaces + 1.0)
+    authority = np.clip(available, 0.0, 1.0)
+    result[:3] = surfaces + residual_scale * requested * authority
+    return result
 
 
 def _unsigned_ata_deg(observer_state, target_state) -> float:
@@ -516,6 +538,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         aim_gate: AimGateConfig | dict | None = None,
         offensive_gate: OffensiveGateConfig | dict | None = None,
         rl_action_repeat: int = 6,
+        composition_mode: str = "additive",
         confidence: float = 0.95,
     ):
         if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
@@ -532,6 +555,9 @@ class ResidualInferenceActionProvider(ActionProvider):
         self.bt_provider = bt_provider
         self.residual_provider = residual_provider
         self.residual_scale = float(residual_scale)
+        if composition_mode not in RESIDUAL_COMPOSITION_MODES:
+            raise ValueError(f"unsupported residual composition: {composition_mode!r}")
+        self.composition_mode = composition_mode
         self.gate_kind = gate_kind
         self.gate = gate
         self.rl_action_repeat = max(1, int(rl_action_repeat))
@@ -604,8 +630,12 @@ class ResidualInferenceActionProvider(ActionProvider):
             self._rl_inference_calls += 1
 
         residual = np.asarray(self._cached_residual, dtype=np.float32)
-        unclipped = bt_action.copy()
-        unclipped[:3] = bt_action[:3] + self.residual_scale * residual[:3]
+        unclipped = _compose_aim_surface_residual(
+            bt_action,
+            residual,
+            self.residual_scale,
+            self.composition_mode,
+        )
         final = clip_action(unclipped)
         final[3] = bt_action[3]
         correction = final - bt_action
@@ -652,6 +682,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             "effective_residual_scale": (
                 self.residual_scale if gate_info["active"] else 0.0
             ),
+            "residual_composition_mode": self.composition_mode,
             "rl_action_repeat": self.rl_action_repeat,
             "rl_action_refreshed": refreshed,
             "bt_action": bt_action.tolist(),
@@ -670,6 +701,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             {
                 "residual_inference_gate_kind": self.gate_kind,
                 "residual_scale": self.residual_scale,
+                "residual_composition_mode": self.composition_mode,
                 "rl_inference_calls": self._rl_inference_calls,
                 "rl_action_repeat": self.rl_action_repeat,
                 "rl_correction_steps": self._correction_steps,
@@ -715,6 +747,7 @@ class ResidualTrainingActionProvider(ActionProvider):
         gate_kind: str = "aim",
         aim_gate: AimGateConfig | dict | None = None,
         offensive_gate: OffensiveGateConfig | dict | None = None,
+        composition_mode: str = "additive",
         confidence: float = 0.95,
     ):
         if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
@@ -730,6 +763,9 @@ class ResidualTrainingActionProvider(ActionProvider):
             raise ValueError(f"unsupported residual training gate: {gate_kind!r}")
         self.bt_provider = bt_provider
         self.residual_scale = float(residual_scale)
+        if composition_mode not in RESIDUAL_COMPOSITION_MODES:
+            raise ValueError(f"unsupported residual composition: {composition_mode!r}")
+        self.composition_mode = composition_mode
         self.gate_kind = gate_kind
         self.gate = gate
         self.confidence = float(confidence)
@@ -776,8 +812,11 @@ class ResidualTrainingActionProvider(ActionProvider):
 
         unclipped = bt_action.copy()
         if gate_info["active"]:
-            unclipped[:3] = (
-                bt_action[:3] + self.residual_scale * residual[:3]
+            unclipped = _compose_aim_surface_residual(
+                bt_action,
+                residual,
+                self.residual_scale,
+                self.composition_mode,
             )
         final = clip_action(unclipped)
         final[3] = bt_action[3]
@@ -802,6 +841,7 @@ class ResidualTrainingActionProvider(ActionProvider):
             "effective_residual_scale": (
                 self.residual_scale if gate_info["active"] else 0.0
             ),
+            "residual_composition_mode": self.composition_mode,
             "bt_action": bt_action.tolist(),
             "raw_residual_action": residual.tolist(),
             "applied_rl_correction": correction.tolist(),
@@ -820,6 +860,7 @@ class ResidualTrainingActionProvider(ActionProvider):
             {
                 "residual_training_gate_kind": self.gate_kind,
                 "residual_scale": self.residual_scale,
+                "residual_composition_mode": self.composition_mode,
                 "rl_correction_steps": self._correction_steps,
                 "rl_correction_abs_mean": (
                     self._correction_abs_sum / max(1, self._correction_steps)

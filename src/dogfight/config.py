@@ -21,6 +21,7 @@ DEFAULT_ENV_CONFIG = {
     "residual_training": {
         "scale": 0.125,
         "gate_kind": "aim",
+        "composition_mode": "additive",
         "aim_gate": {},
         "offensive_gate": {},
     },

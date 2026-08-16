@@ -262,6 +262,52 @@ class OffensiveHybridTests(unittest.TestCase):
         self.assertEqual(telemetry["rl_action_repeat"], 3)
         self.assertAlmostEqual(telemetry["rl_inference_over_166_7ms_ratio"], 0.0)
 
+    def test_saturation_aware_training_residual_respects_headroom(self) -> None:
+        bt = CountingProvider([1.0, -1.0, 0.9, 0.77], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+            composition_mode="saturation_aware",
+        )
+
+        outward = provider.compute_action(
+            context(
+                self.own,
+                self.target,
+                residual=[1.0, -1.0, 1.0, -1.0],
+                sim_time_s=0.0,
+            )
+        )
+        np.testing.assert_allclose(
+            outward.action,
+            [1.0, -1.0, 0.9125, 0.77],
+            atol=1e-6,
+        )
+        self.assertFalse(outward.info["action_clipped"])
+
+        inward = provider.compute_action(
+            context(
+                self.own,
+                self.target,
+                residual=[-1.0, 1.0, -1.0, 1.0],
+                sim_time_s=0.0,
+            )
+        )
+        np.testing.assert_allclose(
+            inward.action,
+            [0.875, -0.875, 0.775, 0.77],
+            atol=1e-6,
+        )
+        self.assertLessEqual(
+            max(abs(value) for value in inward.info["applied_rl_correction"][:3]),
+            0.125,
+        )
+        self.assertEqual(
+            provider.telemetry()["residual_composition_mode"],
+            "saturation_aware",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
