@@ -147,6 +147,7 @@ def run_match(
         cmd += [
             "--ownship-bundle-dir", str(Path(args.bundle).resolve()),
             "--residual-gate", args.gate_kind,
+            "--residual-composition", args.composition_mode,
             "--residual-scale", str(scale),
             "--rl-action-repeat", str(args.rl_action_repeat),
             "--aim-min-range-m", str(args.aim_min_range_m),
@@ -488,6 +489,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seeds", nargs="+", type=int, default=[1201, 1202, 1203])
     parser.add_argument("--scales", nargs="+", type=float, default=[0.125])
     parser.add_argument("--gate-kind", choices=["aim", "offensive"], default="aim")
+    parser.add_argument(
+        "--composition-mode",
+        choices=["additive", "saturation_aware"],
+        default="additive",
+    )
     parser.add_argument("--ownship-bt-dll", required=True)
     parser.add_argument("--target-backend", choices=["autopilot", "bt"], default="autopilot")
     parser.add_argument("--target-bt-dll", default=str(ROOT / "AIP_BASE_target.dll"))

@@ -61,6 +61,11 @@ def parse_args():
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--residual-scale", type=float, default=0.10)
     parser.add_argument("--residual-gate", choices=["aim", "offensive"], default="aim")
+    parser.add_argument(
+        "--residual-composition",
+        choices=["additive", "saturation_aware"],
+        default="additive",
+    )
     parser.add_argument("--rl-action-repeat", type=int, default=6, help="RL inference cadence while the offensive gate is active; BT still runs every simulator frame.")
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
@@ -93,7 +98,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -146,6 +151,7 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             aim_gate=aim_gate,
             offensive_gate=offensive_gate,
             rl_action_repeat=rl_action_repeat,
+            composition_mode=residual_composition,
         )
     raise ValueError(f"Unsupported backend: {backend}")
 
@@ -195,6 +201,7 @@ def main():
         alpha=args.alpha,
         residual_scale=args.residual_scale,
         residual_gate=args.residual_gate,
+        residual_composition=args.residual_composition,
         aim_gate=aim_gate,
         offensive_gate=offensive_gate,
         rl_action_repeat=args.rl_action_repeat,
@@ -211,6 +218,7 @@ def main():
         alpha=args.alpha,
         residual_scale=args.residual_scale,
         residual_gate=args.residual_gate,
+        residual_composition=args.residual_composition,
         aim_gate=aim_gate,
         offensive_gate=offensive_gate,
         rl_action_repeat=args.rl_action_repeat,
