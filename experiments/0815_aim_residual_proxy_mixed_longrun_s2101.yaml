@@ -1,7 +1,7 @@
 name: 0815_aim_residual_proxy_mixed_longrun_s2101
 script: train_rllib
 
-output: {name: 0815_hybrid_aim_proxy_longrun, tag: mixed10_longrun_s2101_resume1200}
+output: {name: 0815_hybrid_aim_proxy_longrun, tag: mixed10_longrun_s2101_resume1200_r1}
 
 env:
   observation_mode: aim_residual10_v2
