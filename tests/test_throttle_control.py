@@ -4,8 +4,12 @@ import unittest
 
 import numpy as np
 
-from dogfight.ai.action_provider import ActionProvider, ActionResult
-from dogfight.ai.bt_action_provider import TurnThrottleConfig, optimize_full_turn_throttle
+from dogfight.ai.action_provider import ActionContext, ActionProvider, ActionResult
+from dogfight.ai.bt_action_provider import (
+    BTActionProvider,
+    TurnThrottleConfig,
+    optimize_full_turn_throttle,
+)
 from dogfight.ai.hybrid_action_provider import HybridActionProvider
 
 
@@ -33,6 +37,24 @@ class _FixedProvider(ActionProvider):
 
 
 class ThrottleControlTests(unittest.TestCase):
+    def test_raw_bt_mode_preserves_native_throttle(self) -> None:
+        state = np.zeros(51, dtype=np.float32)
+        state[12] = 300.0
+        state[44] = 7000.0
+        context = ActionContext(None, None, state, state.copy(), np.zeros(16), {})
+        provider = BTActionProvider(
+            ai_pilot=object(),
+            enable_turn_throttle_optimization=False,
+        )
+
+        throttle, info = provider._optimize_turn_throttle(
+            context,
+            np.asarray([1.0, -1.0, 0.0, 1.0], dtype=np.float32),
+        )
+
+        self.assertEqual(throttle, 1.0)
+        self.assertEqual(info["reason"], "raw_bt")
+
     def test_tactical_throttle_is_preserved(self) -> None:
         throttle, info = _optimized(0.72, 1.0, -1.0, 300.0)
         self.assertEqual(throttle, 0.72)

@@ -69,12 +69,24 @@ def parse_args():
             "Rule_team01.xml."
         ),
     )
+    parser.add_argument(
+        "--bt-rule-alias",
+        action="append",
+        default=[],
+        help="Additional hard-coded Rule XML filename required by the BT DLL.",
+    )
     parser.add_argument("--bundle-dir", help="Lightweight RL bundle directory created by train_rllib.py.")
     parser.add_argument("--policy-id", default="default_policy", help="RLlib policy id to load from the lightweight bundle.")
     parser.add_argument("--explore", action="store_true", help="Enable stochastic action sampling for RL inference.")
     parser.add_argument("--hybrid-mode", choices=["offensive_residual", "residual", "blend", "switch"], default="offensive_residual", help="Hybrid action composition strategy.")
     parser.add_argument("--alpha", type=float, default=0.5, help="Blend weight for hybrid blend mode.")
     parser.add_argument("--residual-scale", type=float, default=0.10, help="Residual scaling factor; offensive mode accepts only 0.10 through 0.20.")
+    parser.add_argument(
+        "--bt-turn-throttle-mode",
+        choices=["raw", "optimized"],
+        default="optimized",
+        help="Use raw native-BT throttle or the legacy aggressive-turn optimization.",
+    )
     parser.add_argument("--offensive-min-range-m", type=float, default=152.4)
     parser.add_argument("--offensive-enter-range-m", type=float, default=1500.0)
     parser.add_argument("--offensive-exit-range-m", type=float, default=2000.0)
@@ -94,7 +106,10 @@ def parse_args():
 
 def build_action_provider(args):
     if args.mode == "bt":
-        return BTActionProvider(dll_name=args.bt_dll)
+        return BTActionProvider(
+            dll_name=args.bt_dll,
+            enable_turn_throttle_optimization=args.bt_turn_throttle_mode == "optimized",
+        )
 
     if args.bundle_dir is None:
         raise ValueError("--bundle-dir is required for rl and hybrid modes")
@@ -109,7 +124,10 @@ def build_action_provider(args):
     if args.mode == "rl":
         return rl_provider
 
-    bt_provider = BTActionProvider(dll_name=args.bt_dll)
+    bt_provider = BTActionProvider(
+        dll_name=args.bt_dll,
+        enable_turn_throttle_optimization=args.bt_turn_throttle_mode == "optimized",
+    )
     return HybridActionProvider(
         primary_provider=rl_provider,
         secondary_provider=bt_provider,
@@ -144,7 +162,7 @@ def parse_ai_type(value: str) -> AIType:
 def main():
     args = parse_args()
     observation_hook = load_observation_hook(args.observation_module) if args.observation_module else None
-    with activate_rule_xml(args.bt_rule_xml, ROOT):
+    with activate_rule_xml(args.bt_rule_xml, ROOT, aliases=args.bt_rule_alias):
         action_provider = build_action_provider(args)
         command_policy = ProviderCommandPolicy(
             action_provider=action_provider,

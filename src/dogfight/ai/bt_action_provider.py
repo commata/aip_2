@@ -108,10 +108,14 @@ class BTActionProvider(ActionProvider):
         ai_pilot: AIPilot | None = None,
         confidence: float = 0.85,
         turn_throttle_config: TurnThrottleConfig | None = None,
+        enable_turn_throttle_optimization: bool = True,
     ):
         self.ai_pilot = ai_pilot if ai_pilot is not None else AIPilot(dll_name)
         self.confidence = confidence
         self.turn_throttle_config = turn_throttle_config or TurnThrottleConfig()
+        self.enable_turn_throttle_optimization = bool(
+            enable_turn_throttle_optimization
+        )
         self._registered_fighter_ids: dict[int, int] = {}
 
     def reset(self, context: ActionContext | None = None) -> None:
@@ -249,6 +253,12 @@ class BTActionProvider(ActionProvider):
         context: ActionContext,
         action: np.ndarray,
     ) -> tuple[float, dict[str, float | bool | str]]:
+        if not self.enable_turn_throttle_optimization:
+            return float(action[3]), {
+                "active": False,
+                "reason": "raw_bt",
+                "raw_throttle": float(action[3]),
+            }
         state = context.ownship_state
         if state is None or len(state) <= StateIndex.ALT:
             return float(action[3]), {

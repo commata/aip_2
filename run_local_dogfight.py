@@ -47,6 +47,12 @@ def parse_args():
     parser.add_argument("--residual-scale", type=float, default=0.10)
     parser.add_argument("--rl-action-repeat", type=int, default=6, help="RL inference cadence while the offensive gate is active; BT still runs every simulator frame.")
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
+    parser.add_argument(
+        "--bt-turn-throttle-mode",
+        choices=["raw", "optimized"],
+        default="optimized",
+        help="Use raw native-BT throttle for an immutable baseline or the legacy turn optimization.",
+    )
     parser.add_argument("--offensive-min-range-m", type=float, default=152.4)
     parser.add_argument("--offensive-enter-range-m", type=float, default=1500.0)
     parser.add_argument("--offensive-exit-range-m", type=float, default=2000.0)
@@ -65,11 +71,14 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, offensive_gate: OffensiveGateConfig, rl_action_repeat: int, min_throttle_blend_speed: float):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, offensive_gate: OffensiveGateConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str):
     if backend == "fixed":
         return None
     if backend == "bt":
-        return BTActionProvider(dll_name=bt_dll)
+        return BTActionProvider(
+            dll_name=bt_dll,
+            enable_turn_throttle_optimization=bt_turn_throttle_mode == "optimized",
+        )
     if backend == "rl":
         if not bundle_dir:
             raise ValueError(f"--{side}-bundle-dir is required when {side}-backend=rl")
@@ -78,7 +87,10 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
         if not bundle_dir:
             raise ValueError(f"--{side}-bundle-dir is required when {side}-backend=hybrid")
         rl_provider = RLActionProvider(bundle_dir=bundle_dir, algorithm_factory=build_algorithm_from_bundle, policy_id=policy_id)
-        bt_provider = BTActionProvider(dll_name=bt_dll)
+        bt_provider = BTActionProvider(
+            dll_name=bt_dll,
+            enable_turn_throttle_optimization=bt_turn_throttle_mode == "optimized",
+        )
         return HybridActionProvider(
             primary_provider=rl_provider,
             secondary_provider=bt_provider,
@@ -131,6 +143,7 @@ def main():
         offensive_gate=offensive_gate,
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
+        bt_turn_throttle_mode=args.bt_turn_throttle_mode,
     )
     target_provider = build_provider(
         side="target",
@@ -144,6 +157,7 @@ def main():
         offensive_gate=offensive_gate,
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
+        bt_turn_throttle_mode=args.bt_turn_throttle_mode,
     )
 
     with activate_rule_xml(args.bt_rule_xml, ROOT, aliases=args.bt_rule_alias):
