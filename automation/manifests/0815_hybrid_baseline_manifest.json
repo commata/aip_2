@@ -60,5 +60,31 @@
     "ownship_control_mode": "rl",
     "max_engage_time_seconds": 300.0,
     "action_dim": 4
+  },
+  "research_bundles": {
+    "stage1_aim_s0125_r01_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_s0125_r01",
+      "metadata_bytes": 20411,
+      "metadata_sha256": "E93EEAA98E88629E0257FCEAD2028872356223659E9CA8A0488D3486B486A6EF",
+      "weights_bytes": 70212,
+      "weights_sha256": "52C0D56BF99EC497DF638FA3DE4F31A8D72DBAE0AD736794E428F5A907328F08",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "status": "ROLLBACK",
+      "reason": "3-pair 평가에서 Pure 0815 대비 유의미한 조준 또는 Damage 개선이 없고 Gate 점유율이 95.3%임"
+    },
+    "stage1_aim_s0125_r01_iteration_5": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_s0125_r01/bundle_000005",
+      "metadata_bytes": 20432,
+      "metadata_sha256": "27A42F790AA2304B4B770817435736CD3AAE39BF6BCE7B2BCFAFF446DD7D6FAB",
+      "weights_bytes": 70218,
+      "weights_sha256": "20F7D09F1A6EDB2DDDF325D7148ED9A3D5945BFAA8659EE29383D335B7DCD64B",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "status": "ROLLBACK",
+      "reason": "3-pair에서 median LOS는 감소했지만 평균 LOS와 LOS rate가 악화되고 seed별 Damage 부호가 불일치함"
+    }
   }
 }
