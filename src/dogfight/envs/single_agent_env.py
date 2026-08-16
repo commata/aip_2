@@ -454,6 +454,9 @@ class DogFightEnv(gym.Env):
                 self._sim.action,
                 self._target_sim.action,
                 self._last_ownship_action_info,
+                ownship_damage=self.ownship_damage,
+                target_damage=self.target_damage,
+                in_wez=self._in_wez,
             )
 
         self.ownship_damage = ownship_damage_total
