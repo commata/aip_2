@@ -46,6 +46,7 @@ artifacts/models/
 artifacts/process_logs/
 artifacts/replays/
 artifacts/evaluations/
+artifacts/analysis/
 artifacts/smoke/
 automation/state/
 automation/reports/generated/
