@@ -1,0 +1,64 @@
+{
+  "repository": {
+    "remote": "https://github.com/commata/aip_2.git",
+    "main_sha": "f443cca9a9ab4e0f79c3f5f61378bb944cede56e",
+    "work_branch": "codex/0815-hybrid-aim-training"
+  },
+  "models": {
+    "0815": {
+      "dll": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip_final_0815\\aip_final_0815\\AIP_DCS_GDCC_0815.dll",
+        "bytes": 337408,
+        "sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9"
+      },
+      "xml": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip_final_0815\\aip_final_0815\\Rule_DCS_GDCC_0815.xml",
+        "bytes": 811,
+        "sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+      },
+      "task_pursue_sha256": "22F4A6D0BADEFD4C6C09CAB0E6E61AD8E70BC50F2388E5D220E03FA31D579F4F",
+      "controller_sha256": "4EE4BDA7C518C5329E79F09C9A4E421E4BF27FD3F6F732F27F1AE0CF807331EB",
+      "hardcoded_rule_filename": "Rule_DCS_GDCC_0815.xml"
+    },
+    "AIP2": {
+      "dll": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip2\\aip2\\AIP_DCS_new.dll",
+        "bytes": 338944,
+        "sha256": "3AD96D6A43C256FBDAD26643CB846AF55D40603F3C4170D9C0B58968A43B007E"
+      },
+      "xml": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip2\\aip2\\Rule_sei_AIP2_default.xml",
+        "bytes": 811,
+        "sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+      },
+      "task_pursue_sha256": "DD89D991E91A0C228FEB1D27E2147BFB140B10891F3348BE48544ECFA9CB0177",
+      "controller_sha256": "4EE4BDA7C518C5329E79F09C9A4E421E4BF27FD3F6F732F27F1AE0CF807331EB",
+      "hardcoded_rule_filename": "Rule_sei_AIP2_default.xml"
+    },
+    "AIP3": {
+      "dll": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip3\\aip3\\AIP_DCS_new3.dll",
+        "bytes": 338944,
+        "sha256": "815B28647964BC9AAC393157C55F88936D3A5AF3EA411652EA38E085EE1DB4A8"
+      },
+      "xml": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip3\\aip3\\Rule_sei_AIP3_default.xml",
+        "bytes": 811,
+        "sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+      },
+      "task_pursue_sha256": "7AC35C3F25FE0E09A0F9AC04EDB5ABE2549AE21127C3FB55185F2B222DD73C2B",
+      "controller_sha256": "4EE4BDA7C518C5329E79F09C9A4E421E4BF27FD3F6F732F27F1AE0CF807331EB",
+      "hardcoded_rule_filename": "Rule_sei_AIP2_default.xml"
+    }
+  },
+  "existing_offensive_rl_bundle": {
+    "path": "artifacts/models/team01/student_sac_baseline",
+    "metadata_sha256": "F705B9EC7C33FA423AEDDB41420CF83E628495EC37F96ED4CD928E999A9BA2A1",
+    "weights_sha256": "9B0B20A762C6555E691BC42C3BDD9986E0BE7CC169378A72735958BFF4649F8C",
+    "algorithm": "SAC",
+    "observation": "tactical16",
+    "ownship_control_mode": "rl",
+    "max_engage_time_seconds": 300.0,
+    "action_dim": 4
+  }
+}
