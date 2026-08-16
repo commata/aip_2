@@ -85,6 +85,30 @@
       "residual_scale": 0.125,
       "status": "ROLLBACK",
       "reason": "3-pair에서 median LOS는 감소했지만 평균 LOS와 LOS rate가 악화되고 seed별 Damage 부호가 불일치함"
+    },
+    "stage1_curriculum_s0125_r02_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_curriculum_s0125_r02",
+      "metadata_bytes": 22603,
+      "metadata_sha256": "7BFE3BC037F8280F5D36CB303F937170EBAC0DB605DC06FF1D31524971840DD9",
+      "weights_bytes": 70230,
+      "weights_sha256": "8DF2E35785CABC4636A7696E1AE9C733BCC679F7FFF4E7C7232259D5160345A5",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "status": "ROLLBACK",
+      "reason": "lateral-right probe에서 최초 Damage 지연, Cone 및 Damage 감소와 66.1% clipping이 발생함"
+    },
+    "stage1_curriculum_s0125_r02_iteration_10": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_curriculum_s0125_r02/bundle_000010",
+      "metadata_bytes": 22625,
+      "metadata_sha256": "ECD0A63E91CF1E0F375026E2F1834337459C1DCBB9A3FC6BF8C3D92DA886723B",
+      "weights_bytes": 70211,
+      "weights_sha256": "911AE7A688CD8E0B539AD4E85A9AE3123D40FCD3B107F8109F3D004746334631",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "status": "ROLLBACK",
+      "reason": "5개 고유 validation pair에서 최초 Damage +0.263초, 평균/P95 LOS 악화, 정상 격추 Damage 비퇴행 미확인"
     }
   }
 }
