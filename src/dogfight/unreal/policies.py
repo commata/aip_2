@@ -10,7 +10,7 @@ from dogfight.ai.native_bt import AIPilot
 from GeoMathUtil import GeometryInfo
 from dogfight.ai.action_provider import ActionContext
 from dogfight.ai.rl_action_provider import RLActionProvider
-from dogfight.envs.observation import build_observation
+from dogfight.envs.observation import body_to_ned_rotation, build_observation
 from dogfight.unreal.client import RemoteClientContext
 from dogfight.unreal.protocol import CMD
 
@@ -291,9 +291,12 @@ def plane_info_to_state(plane_info) -> np.ndarray:
     state[3] = plane_info.rotation.roll
     state[4] = plane_info.rotation.pitch
     state[5] = plane_info.rotation.yaw
-    state[6] = plane_info.velocity.x
-    state[7] = plane_info.velocity.y
-    state[8] = plane_info.velocity.z
+    velocity_ned = np.array(
+        [plane_info.velocity.x, plane_info.velocity.y, -plane_info.velocity.z],
+        dtype=np.float64,
+    )
+    rotation = body_to_ned_rotation(state[3:6])
+    state[6:9] = rotation.T @ velocity_ned
     
     # [HOTFIX] RL State 매핑 누락 복구
     # 인덱스 12 (KCAS, 속도): 언리얼의 속도 벡터 크기를 계산
