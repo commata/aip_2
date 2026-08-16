@@ -215,6 +215,8 @@ def build_record(
     record = {
         "run_id": run_id,
         "seed": seed,
+        "variant_index": finite(result.get("aim_curriculum_variant_index")),
+        "variant_name": result.get("aim_curriculum_variant_name"),
         "controller": controller,
         "scale": scale,
         "gate_kind": provider.get("residual_inference_gate_kind"),
@@ -291,6 +293,7 @@ def aggregate(records: list[dict[str, Any]]) -> dict[str, Any]:
         rows = [row for row in records if row["controller"] == controller]
         by_controller[controller] = {
             "episodes": len(rows),
+            "unique_result_signatures": len({_result_signature(row) for row in rows}),
             "wins": sum(row["outcome"] == "win" for row in rows),
             "ownship_crashes": sum(row["ownship_crash"] for row in rows),
             "target_crashes": sum(row["target_crash"] for row in rows),
@@ -320,8 +323,61 @@ def aggregate(records: list[dict[str, Any]]) -> dict[str, Any]:
                 for metric, values in deltas.items()
             },
             "per_seed": deltas,
+            "unique_delta_signatures": len(
+                {
+                    tuple(
+                        None if values[index] is None else round(values[index], 12)
+                        for values in deltas.values()
+                        if index < len(values)
+                    )
+                    for index in range(max((len(values) for values in deltas.values()), default=0))
+                }
+            ),
         }
-    return {"controllers": by_controller, "paired": paired}
+    warnings = []
+    for controller, values in by_controller.items():
+        if values["unique_result_signatures"] < values["episodes"]:
+            warnings.append(
+                f"{controller}: {values['episodes']}회 중 고유 결과는 "
+                f"{values['unique_result_signatures']}개이므로 반복 seed를 독립 근거로 세지 않음"
+            )
+    pure_variants = {
+        row["seed"]: row.get("variant_name")
+        for row in records
+        if row["controller"] == "pure_0815"
+    }
+    for row in records:
+        if row["controller"] == "pure_0815":
+            continue
+        if pure_variants.get(row["seed"]) != row.get("variant_name"):
+            warnings.append(
+                f"seed {row['seed']}: Pure/Hybrid variant 불일치 "
+                f"({pure_variants.get(row['seed'])!r} != {row.get('variant_name')!r})"
+            )
+    return {
+        "controllers": by_controller,
+        "paired": paired,
+        "data_quality_warnings": warnings,
+    }
+
+
+def _result_signature(row: dict[str, Any]) -> tuple[Any, ...]:
+    keys = (
+        "outcome",
+        "end_condition",
+        "variant_name",
+        "episode_seconds",
+        "damage_dealt",
+        "mean_los_deg",
+        "los_rate_rms_deg_s",
+        "damage_cone_time_s",
+        "time_to_first_damage_s",
+        "min_altitude_m",
+    )
+    return tuple(
+        round(float(row[key]), 12) if isinstance(row.get(key), (int, float)) else row.get(key)
+        for key in keys
+    )
 
 
 def write_outputs(
@@ -373,6 +429,7 @@ def write_report(path: Path, payload: dict[str, Any]) -> None:
         "- 차이 정의: Hybrid - Pure 0815",
         "- 학습 episode는 평가 근거에 포함하지 않음",
         f"- Pure 0815 episode 수: `{pure.get('episodes', 0)}`",
+        f"- Pure 0815 고유 결과 수: `{pure.get('unique_result_signatures', 0)}`",
         "",
         "## 기준선",
         "",
@@ -409,6 +466,13 @@ def write_report(path: Path, payload: dict[str, Any]) -> None:
             "",
         ]
     lines += [
+        "## 데이터 품질 경고",
+        "",
+        *(
+            [f"- {warning}" for warning in summary["data_quality_warnings"]]
+            or ["- 탐지된 중복 결과 없음"]
+        ),
+        "",
         "## 판단 제한",
         "",
         "10 pair 미만 결과는 smoke 근거이며 PROMOTE에 사용하지 않는다.",
