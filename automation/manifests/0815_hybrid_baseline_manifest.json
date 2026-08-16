@@ -135,6 +135,20 @@
       "composition_mode": "saturation_aware",
       "status": "ROLLBACK",
       "reason": "클리핑은 제거됐지만 평균/P95 LOS와 최초 Damage가 악화되고 정상 격추 3건 Damage 합이 감소함"
+    },
+    "stage1_offensive_headroom_s0125_r04_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_offensive_headroom_s0125_r04",
+      "metadata_bytes": 22709,
+      "metadata_sha256": "8E0B70FBBDA1BA0C700FAEED0ECBE79424E87BDB6917F814D34D2D96C78C4AE1",
+      "weights_bytes": 70204,
+      "weights_sha256": "20D7407B50B2FCB9855968F1AAD1450A943AFDAAC0B7A8AF431F8BDC254262FA",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "gate_kind": "offensive",
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "Gate 활성률 95.0%, 최초 Damage +0.270초, 평균/P95 LOS 악화이며 전체 Damage 증가는 target crash 한 건에 의존함"
     }
   }
 }
