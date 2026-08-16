@@ -1,0 +1,10 @@
+{
+  "name": "0815_aim_probe_crossing_right_high",
+  "env_config": {
+    "ownship": [0.0, 0.0, -5000.0, 0.0, 0.0, 0.0, 230.0],
+    "target": [1400.0, 350.0, -5200.0, 0.0, 0.0, 345.0, 240.0],
+    "initial_scenario": {"mode": "default", "legacy_use_random_scenario": false},
+    "ownship_randomization": {"enabled": false},
+    "target_autopilot": {"heading_cmd": 345.0, "altitude_cmd": 5200.0, "speed_cmd": 240.0}
+  }
+}
