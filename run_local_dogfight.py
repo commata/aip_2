@@ -32,6 +32,12 @@ def parse_args():
     parser.add_argument("--ownship-bt-dll", default="AIP_DCS_ownship.dll")
     parser.add_argument("--target-bt-dll", default="AIP_BASE_target.dll")
     parser.add_argument("--bt-rule-xml", help="Optional Rule.xml source to activate while the simulation runs.")
+    parser.add_argument(
+        "--bt-rule-alias",
+        action="append",
+        default=[],
+        help="Additional hard-coded Rule XML filename required by a native BT DLL; repeat as needed.",
+    )
     parser.add_argument("--ownship-policy-id", default="default_policy")
     parser.add_argument("--target-policy-id", default="default_policy")
     parser.add_argument("--observation-mode", default="tactical16", choices=["classic12", "relative14", "tactical16", "custom"])
@@ -140,7 +146,7 @@ def main():
         min_throttle_blend_speed=args.min_throttle_blend_speed,
     )
 
-    with activate_rule_xml(args.bt_rule_xml, ROOT):
+    with activate_rule_xml(args.bt_rule_xml, ROOT, aliases=args.bt_rule_alias):
         env_config = {
                 "observation_mode": observation_hook["mode"] if observation_hook else args.observation_mode,
                 "observation_module": args.observation_module,
