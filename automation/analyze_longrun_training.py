@@ -43,7 +43,10 @@ def analyze_rows(rows: list[dict[str, str]]) -> dict[str, Any]:
         prefix: {column.removeprefix(prefix): 0.0 for column in columns}
         for prefix, columns in fraction_columns.items()
     }
-    previous_episodes = 0.0
+    # RLlib restores lifetime counters from native checkpoints.  The first row
+    # is therefore the run-local baseline, not newly completed evidence.
+    episode_lifetime_offset = finite(rows[0].get("episodes")) or 0.0
+    previous_episodes = episode_lifetime_offset
     counted_episodes = {prefix: 0.0 for prefix in fraction_prefixes}
     crash_episodes = 0.0
     completed_episode_delta = 0.0
@@ -86,6 +89,7 @@ def analyze_rows(rows: list[dict[str, str]]) -> dict[str, Any]:
         "sampled_steps": finite(last.get("sampled_steps")),
         "learner_steps": finite(last.get("learner_steps")),
         "episodes": finite(last.get("episodes")),
+        "episode_lifetime_offset": episode_lifetime_offset,
         "effective_learner_time_s": finite(last.get("effective_learner_time_s")),
         "completed_episode_delta": completed_episode_delta,
         "estimated_crash_episodes": crash_episodes,
@@ -122,6 +126,8 @@ def render_report(payload: dict[str, Any], source: Path) -> str:
         f"- sampled steps: {payload['sampled_steps']}",
         f"- learner steps: {payload['learner_steps']}",
         f"- effective learner time: {payload['effective_learner_time_s']}s",
+        f"- episode lifetime offset: {payload['episode_lifetime_offset']}",
+        f"- completed episodes in this log: {payload['completed_episode_delta']}",
         f"- estimated crash episodes: {payload['estimated_crash_episodes']}",
         f"- critical NaN rows: {payload['critical_nan_rows']}",
         "",
