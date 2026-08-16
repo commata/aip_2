@@ -33,6 +33,12 @@ def parse_args() -> argparse.Namespace:
         default=["bt_0815", "bt_aip2", "bt_aip3"],
     )
     parser.add_argument("--seeds", nargs="+", type=int, default=list(range(2201, 2206)))
+    parser.add_argument(
+        "--scenario-files",
+        nargs="*",
+        default=[],
+        help="각 seed와 교차 실행할 명시적 scenario JSON",
+    )
     parser.add_argument("--max-engage-time", type=float, default=30.0)
     parser.add_argument("--output", required=True)
     return parser.parse_args()
@@ -160,8 +166,10 @@ def run_profile(
     seed: int,
     output: Path,
     max_engage_time: float,
+    scenario_path: Path | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    run_id = f"{profile['profile_id']}_s{seed}"
+    scenario_id = scenario_path.stem if scenario_path else "default"
+    run_id = f"{profile['profile_id']}_{scenario_id}_s{seed}"
     summary_path = output / "summaries" / f"{run_id}.json"
     telemetry_path = output / "telemetry" / f"{run_id}.jsonl"
     stdout_path = output / "raw" / f"{run_id}.stdout.txt"
@@ -194,6 +202,8 @@ def run_profile(
     ]
     for alias in aliases:
         command.extend(("--bt-rule-alias", alias))
+    if scenario_path is not None:
+        command.extend(("--scenario-file", str(scenario_path.resolve())))
     completed = subprocess.run(
         command,
         cwd=ROOT,
@@ -214,6 +224,7 @@ def run_profile(
         "profile_id": profile["profile_id"],
         "behavior_cluster_declared": profile["behavior_cluster"],
         "seed": seed,
+        "scenario": scenario_id,
         "end_condition": result.get("end_condition"),
         "outcome": result.get("outcome"),
         "ownship_health": result.get("ownship_health"),
@@ -235,30 +246,50 @@ def main() -> int:
 
     rows: list[dict[str, Any]] = []
     trajectories: dict[tuple[str, int], list[dict[str, Any]]] = {}
-    for seed in args.seeds:
+    scenario_paths = [Path(value).resolve() for value in args.scenario_files]
+    conditions = [
+        (seed, scenario_path)
+        for seed in args.seeds
+        for scenario_path in (scenario_paths or [None])
+    ]
+    for seed, scenario_path in conditions:
         for profile in profiles:
-            print(f"[proxy-target] profile={profile['profile_id']} seed={seed}")
+            scenario_id = scenario_path.stem if scenario_path else "default"
+            print(
+                f"[proxy-target] profile={profile['profile_id']} "
+                f"scenario={scenario_id} seed={seed}"
+            )
             row, frames = run_profile(
-                profile, ownship, seed, output, args.max_engage_time
+                profile,
+                ownship,
+                seed,
+                output,
+                args.max_engage_time,
+                scenario_path,
             )
             rows.append(row)
-            trajectories[(profile["profile_id"], seed)] = frames
+            trajectories[(profile["profile_id"], seed, scenario_id)] = frames
 
     pairwise: list[dict[str, Any]] = []
     for index, left in enumerate(profiles):
         for right in profiles[index + 1 :]:
             comparisons = [
                 compare_frames(
-                    trajectories[(left["profile_id"], seed)],
-                    trajectories[(right["profile_id"], seed)],
+                    trajectories[(left["profile_id"], seed, scenario_id)],
+                    trajectories[(right["profile_id"], seed, scenario_id)],
                 )
-                for seed in args.seeds
+                for seed, scenario_path in conditions
+                for scenario_id in [scenario_path.stem if scenario_path else "default"]
             ]
             pairwise.append(
                 {
                     "left": left["profile_id"],
                     "right": right["profile_id"],
                     "seeds": args.seeds,
+                    "scenarios": [
+                        scenario_path.stem if scenario_path else "default"
+                        for _, scenario_path in conditions
+                    ],
                     **{
                         key: statistics.fmean(float(item[key]) for item in comparisons)
                         for key in (
@@ -275,6 +306,7 @@ def main() -> int:
     payload = {
         "profiles": [profile["profile_id"] for profile in profiles],
         "seeds": args.seeds,
+        "scenario_files": [str(path) for path in scenario_paths],
         "max_engage_time": args.max_engage_time,
         "runs": rows,
         "pairwise": pairwise,
@@ -292,4 +324,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
