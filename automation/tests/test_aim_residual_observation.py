@@ -59,6 +59,34 @@ class AimResidualObservationTests(unittest.TestCase):
         self.assertTrue(np.all(np.abs(v2) <= 1.0))
         self.assertGreater(abs(float(v2[0])), abs(float(v1[0])) * 5.0)
 
+    def test_btaware_observation_appends_exact_surface_commands(self) -> None:
+        own = state(0.0, 0.0, -5000.0, 0.0, (230.0, 0.0, 0.0))
+        target = state(1000.0, 100.0, -5000.0, 0.0, (225.0, 0.0, 0.0))
+        bt_action = np.array([0.25, -0.5, 0.75, 0.8], dtype=np.float32)
+
+        observation = build_observation(
+            "aim_residual13_btaware",
+            own,
+            target,
+            None,
+            bt_action=bt_action,
+        )
+
+        self.assertEqual(observation_size("aim_residual13_btaware"), 13)
+        self.assertEqual(observation.shape, (13,))
+        np.testing.assert_allclose(
+            observation[:10],
+            build_observation("aim_residual10_v2", own, target, None),
+        )
+        np.testing.assert_array_equal(observation[10:], bt_action[:3])
+
+    def test_btaware_observation_requires_same_frame_bt_action(self) -> None:
+        own = state(0.0, 0.0, -5000.0, 0.0, (230.0, 0.0, 0.0))
+        target = state(1000.0, 100.0, -5000.0, 0.0, (225.0, 0.0, 0.0))
+
+        with self.assertRaisesRegex(ValueError, "bt_action"):
+            build_observation("aim_residual13_btaware", own, target, None)
+
 
 if __name__ == "__main__":
     unittest.main()

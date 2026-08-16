@@ -1006,6 +1006,7 @@ class ResidualTrainingActionProvider(ActionProvider):
     def reset(self, context: ActionContext | None = None) -> None:
         self.bt_provider.reset(context)
         self.gate.reset()
+        self._prepared_bt_result: ActionResult | None = None
         self._correction_steps = 0
         self._correction_abs_sum = np.zeros(4, dtype=np.float64)
         self._correction_abs_max = np.zeros(4, dtype=np.float64)
@@ -1015,8 +1016,33 @@ class ResidualTrainingActionProvider(ActionProvider):
         _reset_authority_counters(self)
         self._last_frame: dict = {}
 
+    @property
+    def prepared_bt_action(self) -> np.ndarray | None:
+        if self._prepared_bt_result is None:
+            return None
+        return clip_action(self._prepared_bt_result.action).copy()
+
+    def prepare_bt_action(self, context: ActionContext) -> np.ndarray:
+        """Tick BT once and cache the command for observation and composition."""
+        if self._prepared_bt_result is None:
+            result = self.bt_provider.compute_action(context)
+            self._prepared_bt_result = ActionResult(
+                clip_action(result.action),
+                result.source,
+                result.confidence,
+                dict(result.info),
+            )
+        return clip_action(self._prepared_bt_result.action).copy()
+
+    def _consume_bt_result(self, context: ActionContext) -> ActionResult:
+        if self._prepared_bt_result is None:
+            return self.bt_provider.compute_action(context)
+        result = self._prepared_bt_result
+        self._prepared_bt_result = None
+        return result
+
     def compute_action(self, context: ActionContext) -> ActionResult:
-        bt_result = self.bt_provider.compute_action(context)
+        bt_result = self._consume_bt_result(context)
         bt_action = clip_action(bt_result.action)
         residual = np.asarray(
             context.info.get("residual_action", np.zeros(4)),

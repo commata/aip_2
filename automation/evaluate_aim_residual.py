@@ -77,7 +77,11 @@ def preflight(args: argparse.Namespace) -> dict[str, Any]:
         payload.get("metadata", {}).get("obs_mode")
         or payload.get("algorithm_config", {}).get("env_config", {}).get("observation_mode")
     )
-    if obs_mode not in ("aim_residual10", "aim_residual10_v2"):
+    if obs_mode not in (
+        "aim_residual10",
+        "aim_residual10_v2",
+        "aim_residual13_btaware",
+    ):
         raise ValueError(f"bundle observation 불일치: {obs_mode!r}")
     args.observation_mode = obs_mode
     invalid = [scale for scale in args.scales if scale not in ALLOWED_SCALES]

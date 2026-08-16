@@ -60,6 +60,7 @@ def parse_args():
             "tactical16",
             "aim_residual10",
             "aim_residual10_v2",
+            "aim_residual13_btaware",
             "custom",
         ],
     )

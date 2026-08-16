@@ -364,6 +364,49 @@ class OffensiveHybridTests(unittest.TestCase):
         )
         np.testing.assert_allclose(authority["applied_to_requested_ratio"], [1.0, 1.0, 1.0])
 
+    def test_btaware_prepare_is_consumed_once_by_residual_composition(self) -> None:
+        bt = CountingProvider([0.25, -0.5, 0.75, 0.8], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+        ctx = context(
+            self.own,
+            self.target,
+            residual=np.zeros(4, dtype=np.float32),
+            sim_time_s=0.0,
+        )
+
+        prepared = provider.prepare_bt_action(ctx)
+        prepared_again = provider.prepare_bt_action(ctx)
+        self.assertEqual(bt.calls, 1)
+        np.testing.assert_array_equal(prepared, prepared_again)
+        np.testing.assert_array_equal(provider.prepared_bt_action, prepared)
+
+        result = provider.compute_action(ctx)
+        self.assertEqual(bt.calls, 1)
+        self.assertIsNone(provider.prepared_bt_action)
+        np.testing.assert_array_equal(result.info["bt_action"], prepared)
+        np.testing.assert_array_equal(result.action, prepared)
+
+        provider.compute_action(ctx)
+        self.assertEqual(bt.calls, 2)
+
+    def test_btaware_reset_discards_unconsumed_cache(self) -> None:
+        bt = CountingProvider([0.1, 0.2, 0.3, 0.9], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+        ctx = context(self.own, self.target, sim_time_s=0.0)
+
+        provider.prepare_bt_action(ctx)
+        self.assertIsNotNone(provider.prepared_bt_action)
+        provider.reset(ctx)
+        self.assertIsNone(provider.prepared_bt_action)
+
 
 if __name__ == "__main__":
     unittest.main()
