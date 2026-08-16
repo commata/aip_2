@@ -1385,6 +1385,14 @@ def _seed_training_runtime(seed: int | None) -> None:
             pass
 
 
+def _resolve_restore_checkpoint(value: str | Path) -> Path:
+    """Return an absolute existing checkpoint path accepted by pyarrow."""
+    checkpoint_path = Path(value).expanduser().resolve()
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"restore checkpoint not found: {checkpoint_path}")
+    return checkpoint_path
+
+
 def _run_training(args):
     _runtime_stage("training_seed_start", training_seed=args.seed)
     _seed_training_runtime(args.seed)
@@ -1461,9 +1469,7 @@ def _run_training(args):
     )
     _runtime_stage("algorithm_build_done", algorithm=algorithm_name)
     if args.restore_checkpoint:
-        checkpoint_path = Path(args.restore_checkpoint)
-        if not checkpoint_path.exists():
-            raise FileNotFoundError(f"restore checkpoint not found: {checkpoint_path}")
+        checkpoint_path = _resolve_restore_checkpoint(args.restore_checkpoint)
         print(f"restoring native RLlib checkpoint from {checkpoint_path}")
         algorithm.restore(str(checkpoint_path))
     elif args.init_bundle:

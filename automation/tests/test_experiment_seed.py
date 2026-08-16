@@ -14,6 +14,12 @@ import train_rllib
 
 
 class ExperimentSeedTests(unittest.TestCase):
+    def test_restore_checkpoint_path_is_absolute_for_pyarrow(self) -> None:
+        checkpoint = train_rllib._resolve_restore_checkpoint(".")
+
+        self.assertTrue(checkpoint.is_absolute())
+        self.assertEqual(checkpoint, Path.cwd().resolve())
+
     def test_runtime_seed_is_forwarded_to_training_cli(self) -> None:
         experiment = {
             "script": "train_rllib",
