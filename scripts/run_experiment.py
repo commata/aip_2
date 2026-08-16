@@ -76,6 +76,10 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
     _add_optional(argv, "--observation-mode", env, "observation_mode")
     _add_optional(argv, "--observation-module", env, "observation_module")
     _add_optional(argv, "--target-behavior-dll", env, "target_behavior_dll")
+    _add_optional(argv, "--bt-rule-xml", env, "bt_rule_xml")
+    _add_repeatable(argv, "--bt-rule-alias", env.get("bt_rule_aliases"))
+    _add_optional(argv, "--target-rule-xml", env, "target_rule_xml")
+    _add_repeatable(argv, "--target-rule-alias", env.get("target_rule_aliases"))
     _add_optional(argv, "--reward-module", env, "reward_module")
     if script_name != "train_curriculum":
         _add_optional(argv, "--target-mode", env, "target_mode")
@@ -170,6 +174,17 @@ def _add_optional(
 ) -> None:
     value = section.get(key)
     if value is not None:
+        argv += [flag, str(value)]
+
+
+def _add_repeatable(argv: list[str], flag: str, values) -> None:
+    if values is None:
+        return
+    if isinstance(values, str):
+        values = [values]
+    if not isinstance(values, (list, tuple)):
+        raise ExperimentError(f"{flag} values must be a list")
+    for value in values:
         argv += [flag, str(value)]
 
 

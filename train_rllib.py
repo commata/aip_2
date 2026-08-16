@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import csv
 import json
 import math
@@ -29,6 +30,7 @@ from dogfight.ai.checkpoint_io import (
     apply_lightweight_policy_bundle,
     save_lightweight_policy_bundle,
 )
+from dogfight.ai.bt_rule_manager import activate_rule_xml
 from dogfight.ai.dashboard_logger import (
     DashboardJsonlLogger,
     copy_experiment_yaml,
@@ -534,7 +536,13 @@ def parse_args():
     parser.add_argument(
         "--observation-mode",
         default="tactical16",
-        choices=["classic12", "relative14", "tactical16", "custom"],
+        choices=[
+            "classic12",
+            "relative14",
+            "tactical16",
+            "aim_residual10",
+            "custom",
+        ],
     )
     parser.add_argument(
         "--observation-module",
@@ -547,6 +555,10 @@ def parse_args():
         choices=["behavior_tree", "fixed", "loiter", "autopilot"],
     )
     parser.add_argument("--target-behavior-dll", default="AIP_BASE_target.dll")
+    parser.add_argument("--bt-rule-xml", default="")
+    parser.add_argument("--bt-rule-alias", action="append", default=[])
+    parser.add_argument("--target-rule-xml", default="")
+    parser.add_argument("--target-rule-alias", action="append", default=[])
     parser.add_argument(
         "--reward-module",
         default="",
@@ -1159,8 +1171,7 @@ def _run_with_tune(args, algorithm_name: str, config, env_config: dict) -> None:
     _save_tune_outputs(args, algorithm_name, config, env_config, result_grid)
 
 
-def main():
-    args = parse_args()
+def _run_training(args):
     algorithm_name = normalize_algorithm_name(args.algorithm)
     if args.use_tune and (args.restore_checkpoint or args.init_bundle):
         raise RuntimeError(
@@ -1443,6 +1454,28 @@ def main():
                 f"{engagement_replay_logger.jsonl_path}"
             )
         algorithm.stop()
+
+
+def main():
+    args = parse_args()
+    with ExitStack() as stack:
+        if args.bt_rule_xml:
+            stack.enter_context(
+                activate_rule_xml(
+                    args.bt_rule_xml,
+                    ROOT,
+                    aliases=args.bt_rule_alias,
+                )
+            )
+        if args.target_rule_xml:
+            stack.enter_context(
+                activate_rule_xml(
+                    args.target_rule_xml,
+                    ROOT,
+                    aliases=args.target_rule_alias,
+                )
+            )
+        _run_training(args)
 
 
 if __name__ == "__main__":
