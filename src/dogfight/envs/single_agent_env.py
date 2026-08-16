@@ -401,6 +401,15 @@ class DogFightEnv(gym.Env):
                 self._ownship_state, self._target_state, True
             ))),
             "headon_guard_fail": end_condition == "two circle headon guard fail",
+            "ownship_crash": end_condition in (
+                "ownship altitude below min",
+                "Ownship FDM output Fall",
+                "FDM Update Fail",
+            ),
+            "target_crash": end_condition in (
+                "target altitude below min",
+                "Target FDM output Fall",
+            ),
             "ownship_action_info": dict(self._last_ownship_action_info),
             "target_action_info": dict(self._last_target_action_info),
             "ownship_provider_telemetry": self._provider_telemetry(
@@ -430,14 +439,22 @@ class DogFightEnv(gym.Env):
         for _ in range(int(self._step_ratio)):
             self._step_controlled_aircraft(action)
             if np.isnan(self._sim.get_state()).any():
-                info = {"end_condition": "Ownship FDM output Fall", "outcome": "crash"}
+                info = {
+                    "end_condition": "Ownship FDM output Fall",
+                    "outcome": "crash",
+                    "ownship_crash": True,
+                }
                 self._ep_step_count += 1
                 self._print_episode_termination(info["end_condition"])
                 return np.array(self.pre_obs, dtype=np.float32), 0.0, True, False, info
 
             self._step_target_aircraft()
             if np.isnan(self._target_sim.get_state()).any():
-                info = {"end_condition": "Target FDM output Fall", "outcome": "other"}
+                info = {
+                    "end_condition": "Target FDM output Fall",
+                    "outcome": "win",
+                    "target_crash": True,
+                }
                 self._ep_step_count += 1
                 self._print_episode_termination(info["end_condition"])
                 return np.array(self.pre_obs, dtype=np.float32), 0.0, True, False, info
@@ -479,6 +496,8 @@ class DogFightEnv(gym.Env):
                 return "loss"
             if end_condition in ("ownship altitude below min", "FDM Update Fail"):
                 return "crash"
+            if end_condition == "target altitude below min":
+                return "win"
             if end_condition == "two circle headon guard fail":
                 return "loss"
             return "draw"
