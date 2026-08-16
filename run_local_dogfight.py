@@ -17,7 +17,12 @@ if str(SRC) not in sys.path:
 from DogFightEnvWrapper import DogFightWrapper
 from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.bt_rule_manager import activate_rule_xml
-from dogfight.ai.hybrid_action_provider import HybridActionProvider, OffensiveGateConfig
+from dogfight.ai.hybrid_action_provider import (
+    AimGateConfig,
+    HybridActionProvider,
+    OffensiveGateConfig,
+    ResidualInferenceActionProvider,
+)
 from dogfight.ai.rllib_utils import build_algorithm_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
@@ -25,8 +30,9 @@ from dogfight.ai.student_hooks import load_observation_hook
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run local dogfight simulation between two inference backends.")
-    parser.add_argument("--ownship-backend", choices=["rl", "bt", "hybrid", "fixed"], required=True)
-    parser.add_argument("--target-backend", choices=["rl", "bt", "hybrid", "fixed"], required=True)
+    backend_choices = ["rl", "bt", "hybrid", "residual_hybrid", "fixed", "autopilot"]
+    parser.add_argument("--ownship-backend", choices=backend_choices, required=True)
+    parser.add_argument("--target-backend", choices=backend_choices, required=True)
     parser.add_argument("--ownship-bundle-dir")
     parser.add_argument("--target-bundle-dir")
     parser.add_argument("--ownship-bt-dll", default="AIP_DCS_ownship.dll")
@@ -38,13 +44,23 @@ def parse_args():
         default=[],
         help="Additional hard-coded Rule XML filename required by a native BT DLL; repeat as needed.",
     )
+    parser.add_argument(
+        "--bt-rule-alias-only",
+        action="store_true",
+        help="Activate only hard-coded aliases and leave Rule_forTraining.xml untouched.",
+    )
     parser.add_argument("--ownship-policy-id", default="default_policy")
     parser.add_argument("--target-policy-id", default="default_policy")
-    parser.add_argument("--observation-mode", default="tactical16", choices=["classic12", "relative14", "tactical16", "custom"])
+    parser.add_argument(
+        "--observation-mode",
+        default="tactical16",
+        choices=["classic12", "relative14", "tactical16", "aim_residual10", "custom"],
+    )
     parser.add_argument("--observation-module", default="", help="Optional custom observation module.")
     parser.add_argument("--hybrid-mode", choices=["offensive_residual", "residual", "blend", "switch"], default="offensive_residual")
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--residual-scale", type=float, default=0.10)
+    parser.add_argument("--residual-gate", choices=["aim", "offensive"], default="aim")
     parser.add_argument("--rl-action-repeat", type=int, default=6, help="RL inference cadence while the offensive gate is active; BT still runs every simulator frame.")
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
@@ -60,6 +76,12 @@ def parse_args():
     parser.add_argument("--offensive-exit-ata-deg", type=float, default=25.0)
     parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=135.0)
     parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--aim-min-range-m", type=float, default=152.4)
+    parser.add_argument("--aim-enter-angle-margin-deg", type=float, default=7.0)
+    parser.add_argument("--aim-exit-angle-margin-deg", type=float, default=10.0)
+    parser.add_argument("--aim-enter-range-margin-m", type=float, default=300.0)
+    parser.add_argument("--aim-exit-range-margin-m", type=float, default=550.0)
+    parser.add_argument("--aim-min-hold-steps", type=int, default=12)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--scenario-file", help="JSON file containing an initial_scenario object or a full env_config object.")
     parser.add_argument("--result-json", help="Write deterministic episode result and provider telemetry to this path.")
@@ -71,8 +93,8 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, offensive_gate: OffensiveGateConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str):
-    if backend == "fixed":
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str):
+    if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
         return BTActionProvider(
@@ -101,12 +123,36 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             primary_action_repeat=rl_action_repeat,
             min_throttle_blend_speed=min_throttle_blend_speed,
         )
+    if backend == "residual_hybrid":
+        if not bundle_dir:
+            raise ValueError(
+                f"--{side}-bundle-dir is required when {side}-backend=residual_hybrid"
+            )
+        residual_provider = RLActionProvider(
+            bundle_dir=bundle_dir,
+            algorithm_factory=build_algorithm_from_bundle,
+            policy_id=policy_id,
+            explore=False,
+        )
+        bt_provider = BTActionProvider(
+            dll_name=bt_dll,
+            enable_turn_throttle_optimization=bt_turn_throttle_mode == "optimized",
+        )
+        return ResidualInferenceActionProvider(
+            bt_provider,
+            residual_provider,
+            residual_scale=residual_scale,
+            gate_kind=residual_gate,
+            aim_gate=aim_gate,
+            offensive_gate=offensive_gate,
+            rl_action_repeat=rl_action_repeat,
+        )
     raise ValueError(f"Unsupported backend: {backend}")
 
 
 def backend_to_env_mode(backend: str) -> str:
-    if backend == "fixed":
-        return "fixed"
+    if backend in ("fixed", "autopilot"):
+        return backend
     return "rl"
 
 
@@ -130,6 +176,14 @@ def main():
         enter_min_target_ata_deg=args.offensive_enter_target_ata_deg,
         exit_min_target_ata_deg=args.offensive_exit_target_ata_deg,
     )
+    aim_gate = AimGateConfig(
+        min_range_m=args.aim_min_range_m,
+        enter_angle_margin_deg=args.aim_enter_angle_margin_deg,
+        exit_angle_margin_deg=args.aim_exit_angle_margin_deg,
+        enter_range_margin_m=args.aim_enter_range_margin_m,
+        exit_range_margin_m=args.aim_exit_range_margin_m,
+        min_hold_steps=args.aim_min_hold_steps,
+    )
 
     ownship_provider = build_provider(
         side="ownship",
@@ -140,6 +194,8 @@ def main():
         hybrid_mode=args.hybrid_mode,
         alpha=args.alpha,
         residual_scale=args.residual_scale,
+        residual_gate=args.residual_gate,
+        aim_gate=aim_gate,
         offensive_gate=offensive_gate,
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
@@ -154,13 +210,20 @@ def main():
         hybrid_mode=args.hybrid_mode,
         alpha=args.alpha,
         residual_scale=args.residual_scale,
+        residual_gate=args.residual_gate,
+        aim_gate=aim_gate,
         offensive_gate=offensive_gate,
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
         bt_turn_throttle_mode=args.bt_turn_throttle_mode,
     )
 
-    with activate_rule_xml(args.bt_rule_xml, ROOT, aliases=args.bt_rule_alias):
+    with activate_rule_xml(
+        args.bt_rule_xml,
+        ROOT,
+        aliases=args.bt_rule_alias,
+        include_default=not args.bt_rule_alias_only,
+    ):
         env_config = {
                 "observation_mode": observation_hook["mode"] if observation_hook else args.observation_mode,
                 "observation_module": args.observation_module,
