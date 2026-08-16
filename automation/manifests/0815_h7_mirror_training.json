@@ -1,0 +1,56 @@
+{
+  "research_issue": 5,
+  "branch": "codex/0817-hybrid-aim-symmetry-research",
+  "parent_main": "6b95bd9bda5767e2f41b779a45150a77a6d06e56",
+  "hypothesis": "H7 mirror-balanced 10D",
+  "fixed_contract": {
+    "algorithm": "SAC",
+    "observation_mode": "aim_residual10_v2",
+    "gate": "aim",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "rl_action_repeat": 6,
+    "throttle_residual": false,
+    "training_iterations": 30
+  },
+  "runs": [
+    {
+      "training_seed": 1701,
+      "config": "experiments/0815_aim_residual_mirror_balanced_s1701.yaml",
+      "config_sha256": "6C81A72ECDE3CD0AB73F9D4F9C1D89825424B888DDA6AC31E57FE681309900CD",
+      "bundle": "artifacts/models/0815_hybrid_aim_symmetry/h7_mirror10_s1701",
+      "weights_sha256": "31229A7DB673A4344B417384EDA881ECAD61E599614D3730C5AC1BD40DF1559D",
+      "metadata_sha256": "7E727AFB23981B28260D3353580D92DF97E8D94D64AF806B3A069F3A5FA8BA44",
+      "sampled_steps": 7424
+    },
+    {
+      "training_seed": 1702,
+      "config": "experiments/0815_aim_residual_mirror_balanced_s1702.yaml",
+      "config_sha256": "BBC534CEC7486CA5FA7A1D3A63969EE641253120FF9D558FD53BBAEDCB3738CC",
+      "bundle": "artifacts/models/0815_hybrid_aim_symmetry/h7_mirror10_s1702",
+      "weights_sha256": "DCC1C67ADEE085FB096CC0F4116E7BFF3A4E79F21D1A57B363845EE1569BF846",
+      "metadata_sha256": "8CE08128E2DFB806D5014E2D6E02EE0736F26EB8B94E99749A8A8FA0767D5E62"
+    }
+  ],
+  "evaluation": {
+    "exact_mirror_prefixes": [
+      "h7_s1701_exact_module_",
+      "h7_s1702_exact_module_"
+    ],
+    "unseen_holdout_prefixes": [
+      "h7_s1701_holdout15_module_",
+      "h7_s1702_holdout15_module_"
+    ],
+    "invalid_timeout_prefixes": [
+      "h7_s1701_holdout_",
+      "h7_s1702_holdout_",
+      "h7_s1701_holdout15_"
+    ],
+    "invalid_reason": "Hybrid subprocess return code 124와 telemetry 부재",
+    "exact_seed": 1801,
+    "holdout_seed_label": 1901,
+    "holdout_seed_limit": "scenario가 결정론적이므로 독립성은 seed label이 아니라 새로운 geometry와 독립 training seed에서만 주장한다"
+  },
+  "decision": "NEED_MORE_EVIDENCE",
+  "h8_transition": false
+}
