@@ -149,6 +149,34 @@
       "composition_mode": "saturation_aware",
       "status": "ROLLBACK",
       "reason": "Gate 활성률 95.0%, 최초 Damage +0.270초, 평균/P95 LOS 악화이며 전체 Damage 증가는 target crash 한 건에 의존함"
+    },
+    "stage1_aim_localobs_s0125_r05_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_localobs_s0125_r05",
+      "metadata_bytes": 22663,
+      "metadata_sha256": "578E42D3ED5E1DE2F781335CDCBB2899A90EC3FB9B98F08F8CC430EB6CF93B9D",
+      "weights_bytes": 70213,
+      "weights_sha256": "80F294B66D9AD36D97543717E29180A5F57CA54BCEF31FC205349ECB14089C52",
+      "algorithm": "SAC",
+      "observation": "aim_residual10_v2",
+      "residual_scale": 0.125,
+      "gate_kind": "aim",
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "5개 mixed pair에서 평균/P95 LOS, LOS rate와 최초 Damage가 악화되고 lateral-right 최초 Damage가 1.283초 늦어짐"
+    },
+    "stage1_aim_localobs_s0125_r05_iteration_10": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_localobs_s0125_r05/bundle_000010",
+      "metadata_bytes": 22685,
+      "metadata_sha256": "B8360D8CED52CB4E1D7CFC8A2A214964D2195A881C10A89ADE076CD4BE88CCE0",
+      "weights_bytes": 70203,
+      "weights_sha256": "F58786BF9E65AF2823EB8BC679D033E159BA3198C8F015689074A53B8F666F2F",
+      "algorithm": "SAC",
+      "observation": "aim_residual10_v2",
+      "residual_scale": 0.125,
+      "gate_kind": "aim",
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "선별 정상 격추에서 lateral-right 최초 Damage가 1.300초 늦어 final 악화가 후반 과학습 때문이 아님"
     }
   }
 }
