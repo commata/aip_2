@@ -89,6 +89,79 @@ class DogFightCallbacks(DefaultCallbacks):
             float(bool(info.get("headon_guard_fail", False))),
         )
 
+        # ── Aim and hybrid telemetry ─────────────────────────────────────
+        maneuver = info.get("maneuver_telemetry", {}) or {}
+        for key in (
+            "mean_los_deg",
+            "median_los_deg",
+            "p95_los_deg",
+            "min_los_deg",
+            "los_rate_rms_deg_s",
+            "mean_ata_deg",
+            "min_ata_deg",
+            "mean_target_ata_deg",
+            "damage_cone_entries",
+            "damage_cone_time_s",
+            "phase1_cone_time_s",
+            "phase2_cone_time_s",
+            "phase3_cone_time_s",
+            "time_to_first_wez_s",
+            "time_to_first_damage_s",
+            "mean_speed_m_s",
+            "min_speed_m_s",
+            "min_altitude_m",
+        ):
+            value = maneuver.get(key)
+            if value is not None:
+                self._record_metric(episode, metrics_logger, key, float(value))
+
+        provider = info.get("ownship_provider_telemetry", {}) or {}
+        gate_kind = provider.get("residual_training_gate_kind")
+        if gate_kind in ("aim", "offensive"):
+            prefix = f"{gate_kind}_gate"
+            sim_hz = max(1.0, float(maneuver.get("sim_hz", 60)))
+            gate_steps = float(provider.get(f"{prefix}_steps", 0))
+            correction_steps = float(provider.get("rl_correction_steps", 0))
+            hybrid_metrics = {
+                "gate_active_ratio": provider.get(f"{prefix}_active_ratio", 0.0),
+                "gate_entries": provider.get(f"{prefix}_entries", 0),
+                "gate_exits": provider.get(f"{prefix}_exits", 0),
+                "gate_mean_active_s": provider.get(
+                    f"{prefix}_mean_active_steps", 0
+                )
+                / sim_hz,
+                "gate_min_active_s": provider.get(
+                    f"{prefix}_min_active_steps", 0
+                )
+                / sim_hz,
+                "rl_correction_steps": correction_steps,
+                "rl_correction_ratio": correction_steps / max(1.0, gate_steps),
+                "action_clipping_ratio": float(
+                    provider.get("action_clipped_steps", 0)
+                )
+                / max(1.0, correction_steps),
+                "action_saturation_ratio": float(
+                    provider.get("action_saturated_steps", 0)
+                )
+                / max(1.0, correction_steps),
+                "requested_throttle_residual_abs_mean": provider.get(
+                    "requested_throttle_residual_abs_mean", 0.0
+                ),
+            }
+            for key, value in hybrid_metrics.items():
+                self._record_metric(episode, metrics_logger, key, float(value))
+            for metric_name, values in (
+                ("residual_abs_mean", provider.get("rl_correction_abs_mean", [])),
+                ("residual_abs_max", provider.get("rl_correction_abs_max", [])),
+            ):
+                for axis, value in zip(("roll", "pitch", "yaw"), values):
+                    self._record_metric(
+                        episode,
+                        metrics_logger,
+                        f"{axis}_{metric_name}",
+                        float(value),
+                    )
+
         # ── Action distribution ───────────────────────────────────────────
         actions = self._episode_data(episode).get("actions", [])
         if actions:

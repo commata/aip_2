@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 
 from dogfight.ai.hybrid_action_provider import _unsigned_ata_deg
+from dogfight.envs.observation import aim_residual_geometry
 from dogfight.sim.state_schema import StateIndex
 
 
@@ -21,6 +22,7 @@ class ManeuverTelemetryLogger:
         self._episode = -1
         self._frame = 0
         self._records = 0
+        self._reset_summary()
 
     @property
     def enabled(self) -> bool:
@@ -29,6 +31,7 @@ class ManeuverTelemetryLogger:
     def start_episode(self, *, seed: int | None = None) -> None:
         self._episode += 1
         self._frame = 0
+        self._reset_summary()
         if not self.enabled:
             return
         if self._file is None:
@@ -44,14 +47,27 @@ class ManeuverTelemetryLogger:
         ownship_action,
         target_action,
         ownship_action_info: dict[str, Any] | None = None,
+        *,
+        ownship_damage: float = 0.0,
+        target_damage: float = 0.0,
+        in_wez: bool = False,
     ) -> None:
-        if not self.enabled:
-            return
         own = np.asarray(ownship_state, dtype=np.float64)
         target = np.asarray(target_state, dtype=np.float64)
         distance = float(np.linalg.norm(target[:3] - own[:3]))
         ata = _unsigned_ata_deg(own, target)
         target_ata = _unsigned_ata_deg(target, own)
+        aim = aim_residual_geometry(own, target)
+        self._update_summary(
+            own,
+            target,
+            aim,
+            in_wez=bool(in_wez),
+            target_damage=float(target_damage),
+        )
+        if not self.enabled:
+            self._frame += 1
+            return
         payload = {
             "record_type": "frame",
             "episode": self._episode,
@@ -61,6 +77,14 @@ class ManeuverTelemetryLogger:
             "ata_deg": ata,
             "target_ata_deg": target_ata,
             "aa_deg": abs(180.0 - target_ata),
+            "aim_azimuth_deg": aim["aim_azimuth_deg"],
+            "aim_elevation_deg": aim["aim_elevation_deg"],
+            "los_azimuth_rate_deg_s": aim["los_azimuth_rate_deg_s"],
+            "los_elevation_rate_deg_s": aim["los_elevation_rate_deg_s"],
+            "closing_rate_m_s": aim["closing_rate_m_s"],
+            "ownship_damage": float(ownship_damage),
+            "target_damage": float(target_damage),
+            "in_wez": bool(in_wez),
             "ownship": self._state_payload(own),
             "target": self._state_payload(target),
             "ownship_action": np.asarray(ownship_action, dtype=np.float32).tolist(),
@@ -69,6 +93,56 @@ class ManeuverTelemetryLogger:
         }
         self._write(payload)
         self._frame += 1
+
+    def _reset_summary(self) -> None:
+        self._ata_values: list[float] = []
+        self._target_ata_values: list[float] = []
+        self._los_rate_values: list[float] = []
+        self._distance_values: list[float] = []
+        self._speed_values: list[float] = []
+        self._altitude_values: list[float] = []
+        self._cone_entries = 0
+        self._cone_steps = 0
+        self._phase_cone_steps = {1: 0, 2: 0, 3: 0}
+        self._previous_in_wez = False
+        self._time_to_first_wez_s: float | None = None
+        self._time_to_first_damage_s: float | None = None
+
+    def _update_summary(
+        self,
+        own: np.ndarray,
+        target: np.ndarray,
+        aim: dict[str, float],
+        *,
+        in_wez: bool,
+        target_damage: float,
+    ) -> None:
+        sim_time_s = self._frame / max(1, self.sim_hz)
+        ata = float(aim["ata_deg"])
+        self._ata_values.append(ata)
+        self._target_ata_values.append(float(aim["target_ata_deg"]))
+        self._los_rate_values.append(
+            float(
+                np.hypot(
+                    aim["los_azimuth_rate_deg_s"],
+                    aim["los_elevation_rate_deg_s"],
+                )
+            )
+        )
+        self._distance_values.append(float(aim["distance_m"]))
+        self._speed_values.append(float(own[StateIndex.KCAS]))
+        self._altitude_values.append(float(own[StateIndex.ALT]))
+        if in_wez:
+            self._cone_steps += 1
+            phase = 1 if sim_time_s <= 100.0 else 2 if sim_time_s <= 150.0 else 3
+            self._phase_cone_steps[phase] += 1
+            if not self._previous_in_wez:
+                self._cone_entries += 1
+            if self._time_to_first_wez_s is None:
+                self._time_to_first_wez_s = sim_time_s
+        if target_damage > 0.0 and self._time_to_first_damage_s is None:
+            self._time_to_first_damage_s = sim_time_s
+        self._previous_in_wez = in_wez
 
     @staticmethod
     def _state_payload(state: np.ndarray) -> dict[str, Any]:
@@ -88,6 +162,11 @@ class ManeuverTelemetryLogger:
             self._file.flush()
 
     def summary(self) -> dict[str, Any]:
+        ata = np.asarray(self._ata_values, dtype=np.float64)
+        los_rate = np.asarray(self._los_rate_values, dtype=np.float64)
+        speed = np.asarray(self._speed_values, dtype=np.float64)
+        altitude = np.asarray(self._altitude_values, dtype=np.float64)
+        target_ata = np.asarray(self._target_ata_values, dtype=np.float64)
         return {
             "enabled": self.enabled,
             "path": str(self.path) if self.path else "",
@@ -95,6 +174,28 @@ class ManeuverTelemetryLogger:
             "frames": self._frame,
             "records": self._records,
             "sim_hz": self.sim_hz,
+            "mean_los_deg": float(np.mean(ata)) if ata.size else 0.0,
+            "median_los_deg": float(np.median(ata)) if ata.size else 0.0,
+            "p95_los_deg": float(np.percentile(ata, 95)) if ata.size else 0.0,
+            "min_los_deg": float(np.min(ata)) if ata.size else 0.0,
+            "los_rate_rms_deg_s": (
+                float(np.sqrt(np.mean(np.square(los_rate)))) if los_rate.size else 0.0
+            ),
+            "mean_ata_deg": float(np.mean(ata)) if ata.size else 0.0,
+            "min_ata_deg": float(np.min(ata)) if ata.size else 0.0,
+            "mean_target_ata_deg": (
+                float(np.mean(target_ata)) if target_ata.size else 0.0
+            ),
+            "damage_cone_entries": self._cone_entries,
+            "damage_cone_time_s": self._cone_steps / max(1, self.sim_hz),
+            "phase1_cone_time_s": self._phase_cone_steps[1] / max(1, self.sim_hz),
+            "phase2_cone_time_s": self._phase_cone_steps[2] / max(1, self.sim_hz),
+            "phase3_cone_time_s": self._phase_cone_steps[3] / max(1, self.sim_hz),
+            "time_to_first_wez_s": self._time_to_first_wez_s,
+            "time_to_first_damage_s": self._time_to_first_damage_s,
+            "mean_speed_m_s": float(np.mean(speed)) if speed.size else 0.0,
+            "min_speed_m_s": float(np.min(speed)) if speed.size else 0.0,
+            "min_altitude_m": float(np.min(altitude)) if altitude.size else 0.0,
         }
 
     def close(self) -> None:

@@ -38,6 +38,8 @@ class ManeuverTelemetryTests(unittest.TestCase):
                 [0.1, 0.2, 0.3, 0.7],
                 [0.0, 0.0, 0.0, 0.8],
                 {"offensive_gate": {"active": True}, "native": np.array([1.0, 2.0])},
+                target_damage=0.01,
+                in_wez=True,
             )
             records = [json.loads(line) for line in buffer.getvalue().splitlines()]
             frames = [record for record in records if record.get("record_type") == "frame"]
@@ -47,6 +49,10 @@ class ManeuverTelemetryTests(unittest.TestCase):
             self.assertTrue(frames[0]["hybrid"]["offensive_gate"]["active"])
             self.assertEqual(frames[0]["hybrid"]["native"], [1.0, 2.0])
             self.assertEqual(records[0]["seed"], 7)
+            summary = logger.summary()
+            self.assertEqual(summary["damage_cone_entries"], 1)
+            self.assertAlmostEqual(summary["damage_cone_time_s"], 1.0 / 60.0)
+            self.assertEqual(summary["time_to_first_damage_s"], 0.0)
 
     def test_analyzer_detects_gate_chatter_saturation_and_missed_window(self):
         frames = []

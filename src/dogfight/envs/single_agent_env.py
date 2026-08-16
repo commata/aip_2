@@ -18,6 +18,8 @@ import FighterSim
 import JSBSimWrapper
 from GeoMathUtil import GeometryInfo
 from dogfight.ai.action_provider import ActionContext
+from dogfight.ai.bt_action_provider import BTActionProvider
+from dogfight.ai.hybrid_action_provider import ResidualTrainingActionProvider
 from dogfight.ai.maneuver_telemetry_logger import ManeuverTelemetryLogger
 from dogfight.ai.native_bt import AIPilot
 from dogfight.config import FEET_TO_METER, METER_TO_FEET, merge_env_config
@@ -26,7 +28,7 @@ from dogfight.envs.observation import (
     normalize,
     observation_size as builtin_observation_size,
 )
-from dogfight.envs.reward import compute_reward
+from dogfight.envs.reward import compute_aim_residual_reward, compute_reward
 from dogfight.envs.termination import evaluate_termination
 from dogfight.sim.state_schema import StateIndex
 
@@ -94,6 +96,11 @@ class DogFightEnv(gym.Env):
         self._target_action_provider = target_action_provider
 
         self.config = merge_env_config(env_config)
+        if (
+            self._ownship_action_provider is None
+            and self.config["ownship_control_mode"] == "bt_residual"
+        ):
+            self._ownship_action_provider = self._build_residual_training_provider()
         self._runner_index = self.config.get("_runner_index", "local")
         self._env_index = self.config.get("_env_index", 0)
         self._geo_info = GeometryInfo()
@@ -139,7 +146,11 @@ class DogFightEnv(gym.Env):
                 shape=(self.num_observation,),
                 dtype=np.float32,
             )
-        elif self._observation_mode == "tactical16":
+        elif self._observation_mode in (
+            "tactical16",
+            "aim_residual10",
+            "aim_residual10_v2",
+        ):
             self.observation_space = gym.spaces.Box(
                 low=-1.0, high=1.0, shape=(self.num_observation,), dtype=np.float32
             )
@@ -211,6 +222,8 @@ class DogFightEnv(gym.Env):
         self._initial_scenario_metrics: Dict[str, float] = {}
         self._last_ownship_action_info: Dict[str, object] = {}
         self._last_target_action_info: Dict[str, object] = {}
+        self._previous_aim_geometry: Dict[str, float] | None = None
+        self._previous_residual_correction = np.zeros(4, dtype=np.float64)
 
     # Sim expects throttle in [0, 1]; RL policy outputs throttle in [-1, 1].
     _SIM_ACTION_LOW  = np.array([-1., -1., -1., 0.], dtype=np.float32)
@@ -226,6 +239,26 @@ class DogFightEnv(gym.Env):
         if not dll_name:
             return None
         return AIPilot(dll_name)
+
+    def _build_residual_training_provider(self):
+        dll_name = self.config.get("ownship_behavior_dll")
+        if not dll_name:
+            raise ValueError(
+                "ownship_behavior_dll is required for bt_residual control mode"
+            )
+        residual = self.config.get("residual_training", {})
+        bt_provider = BTActionProvider(
+            dll_name=dll_name,
+            enable_turn_throttle_optimization=False,
+        )
+        return ResidualTrainingActionProvider(
+            bt_provider,
+            residual_scale=float(residual.get("scale", 0.125)),
+            gate_kind=str(residual.get("gate_kind", "aim")),
+            aim_gate=residual.get("aim_gate") or None,
+            offensive_gate=residual.get("offensive_gate") or None,
+            composition_mode=str(residual.get("composition_mode", "additive")),
+        )
 
     def _build_ownship_ai(self):
         if self._ownship_action_provider is not None:
@@ -255,6 +288,8 @@ class DogFightEnv(gym.Env):
             self._apply_two_circle_headon_initial_scenario(scenario)
         elif scenario_mode == "ref_old_random":
             self._apply_ref_old_random_initial_scenario(scenario)
+        elif scenario_mode == "aim_residual_curriculum":
+            self._apply_aim_residual_initial_scenario(scenario)
         else:
             self._initial_scenario_metrics = {}
 
@@ -267,6 +302,15 @@ class DogFightEnv(gym.Env):
                 r_roll=float(rand.get("r_roll", 0)),
                 r_pitch=float(rand.get("r_pitch", 0)),
                 r_heading=float(rand.get("r_heading", 0)),
+            )
+        target_rand = self.config.get("target_randomization", {})
+        if scenario_mode != "two_circle_headon" and target_rand.get("enabled", False):
+            self.add_random_init_position(
+                "target",
+                radius=float(target_rand.get("radius", 0)),
+                r_roll=float(target_rand.get("r_roll", 0)),
+                r_pitch=float(target_rand.get("r_pitch", 0)),
+                r_heading=float(target_rand.get("r_heading", 0)),
             )
 
         JSBSimWrapper.Reset(self.battle_space_id)
@@ -293,6 +337,8 @@ class DogFightEnv(gym.Env):
         self._ep_action_sq_sum = np.zeros(self.num_action, dtype=np.float64)
         self._last_ownship_action_info = {}
         self._last_target_action_info = {}
+        self._previous_aim_geometry = None
+        self._previous_residual_correction = np.zeros(4, dtype=np.float64)
         self._maneuver_telemetry.start_episode(seed=seed)
         return np.array(self.pre_obs, dtype=np.float32), dict(self.info)
 
@@ -371,6 +417,15 @@ class DogFightEnv(gym.Env):
                 self._ownship_state, self._target_state, True
             ))),
             "headon_guard_fail": end_condition == "two circle headon guard fail",
+            "ownship_crash": end_condition in (
+                "ownship altitude below min",
+                "Ownship FDM output Fall",
+                "FDM Update Fail",
+            ),
+            "target_crash": end_condition in (
+                "target altitude below min",
+                "Target FDM output Fall",
+            ),
             "ownship_action_info": dict(self._last_ownship_action_info),
             "target_action_info": dict(self._last_target_action_info),
             "ownship_provider_telemetry": self._provider_telemetry(
@@ -400,14 +455,22 @@ class DogFightEnv(gym.Env):
         for _ in range(int(self._step_ratio)):
             self._step_controlled_aircraft(action)
             if np.isnan(self._sim.get_state()).any():
-                info = {"end_condition": "Ownship FDM output Fall", "outcome": "crash"}
+                info = {
+                    "end_condition": "Ownship FDM output Fall",
+                    "outcome": "crash",
+                    "ownship_crash": True,
+                }
                 self._ep_step_count += 1
                 self._print_episode_termination(info["end_condition"])
                 return np.array(self.pre_obs, dtype=np.float32), 0.0, True, False, info
 
             self._step_target_aircraft()
             if np.isnan(self._target_sim.get_state()).any():
-                info = {"end_condition": "Target FDM output Fall", "outcome": "other"}
+                info = {
+                    "end_condition": "Target FDM output Fall",
+                    "outcome": "win",
+                    "target_crash": True,
+                }
                 self._ep_step_count += 1
                 self._print_episode_termination(info["end_condition"])
                 return np.array(self.pre_obs, dtype=np.float32), 0.0, True, False, info
@@ -424,6 +487,9 @@ class DogFightEnv(gym.Env):
                 self._sim.action,
                 self._target_sim.action,
                 self._last_ownship_action_info,
+                ownship_damage=self.ownship_damage,
+                target_damage=self.target_damage,
+                in_wez=self._in_wez,
             )
 
         self.ownship_damage = ownship_damage_total
@@ -446,6 +512,8 @@ class DogFightEnv(gym.Env):
                 return "loss"
             if end_condition in ("ownship altitude below min", "FDM Update Fail"):
                 return "crash"
+            if end_condition == "target altitude below min":
+                return "win"
             if end_condition == "two circle headon guard fail":
                 return "loss"
             return "draw"
@@ -459,6 +527,26 @@ class DogFightEnv(gym.Env):
         truncated: bool,
         end_condition: str,
     ) -> tuple[float, dict]:
+        if (
+            self._reward_fn is None
+            and self._reward_config.get("mode") == "aim_residual"
+        ):
+            reward, components, geometry, correction = compute_aim_residual_reward(
+                self._ownship_state,
+                self._target_state,
+                self.ownship_damage,
+                self.target_damage,
+                self._reward_config,
+                terminated,
+                truncated,
+                end_condition,
+                previous_geometry=self._previous_aim_geometry,
+                action_info=self._last_ownship_action_info,
+                previous_correction=self._previous_residual_correction,
+            )
+            self._previous_aim_geometry = geometry
+            self._previous_residual_correction = correction
+            return reward, components
         _reward_fn = self._reward_fn if self._reward_fn is not None else compute_reward
         return _reward_fn(
             self._ownship_state,
@@ -521,6 +609,10 @@ class DogFightEnv(gym.Env):
                 self._ownship_state,
                 self._target_state,
                 self.pre_obs,
+                info={
+                    "residual_action": np.asarray(action, dtype=np.float32),
+                    "sim_time_s": float(self._ownship_state[StateIndex.SIM_TIME]),
+                },
             )
             result = self._ownship_action_provider.compute_action(context)
             self._last_ownship_action_info = {
@@ -794,6 +886,50 @@ class DogFightEnv(gym.Env):
             "initial_distance_m": separation_m,
         }
 
+    def _apply_aim_residual_initial_scenario(self, scenario: dict) -> None:
+        """Select one bounded offensive geometry for residual curriculum training."""
+        variants = list(scenario.get("variants", []))
+        if not variants:
+            raise ValueError("aim_residual_curriculum requires at least one variant")
+        index = int(self.np_random.integers(0, len(variants)))
+        variant = variants[index]
+        ownship = list(variant.get("ownship", []))
+        target = list(variant.get("target", []))
+        if len(ownship) != 7 or len(target) != 7:
+            raise ValueError(
+                "aim residual variant ownship/target must each contain seven values"
+            )
+        self.change_init_position(
+            "ownship",
+            init_n=ownship[0],
+            init_e=ownship[1],
+            init_d=ownship[2],
+            init_roll=ownship[3],
+            init_pitch=ownship[4],
+            init_heading=ownship[5],
+            init_speed=ownship[6],
+        )
+        self.change_init_position(
+            "target",
+            init_n=target[0],
+            init_e=target[1],
+            init_d=target[2],
+            init_roll=target[3],
+            init_pitch=target[4],
+            init_heading=target[5],
+            init_speed=target[6],
+        )
+        target_autopilot = variant.get("target_autopilot")
+        if target_autopilot:
+            self.config["target_autopilot"] = {
+                **self.config.get("target_autopilot", {}),
+                **dict(target_autopilot),
+            }
+        self._initial_scenario_metrics = {
+            "aim_curriculum_variant_index": float(index),
+            "aim_curriculum_variant_name": str(variant.get("name", index)),
+        }
+
     def _apply_ref_old_random_initial_scenario(self, scenario: dict) -> None:
         """Apply ref_oldDogFightEnv 1vs1 mixed BT/loiter initial scenarios."""
         indices = list(scenario.get("legacy_scenario_indices", [0]))
@@ -922,7 +1058,11 @@ class DogFightEnv(gym.Env):
             fighter._init_pos_alt = lla[2]
 
     def _update_initial_geometry_metrics(self, scenario_mode: str) -> None:
-        if scenario_mode not in ("two_circle_headon", "ref_old_random"):
+        if scenario_mode not in (
+            "two_circle_headon",
+            "ref_old_random",
+            "aim_residual_curriculum",
+        ):
             return
         ata = abs(float(self._geo_info._get_antenna_train_angle(
             self._ownship_state, self._target_state, True
@@ -1011,7 +1151,16 @@ class DogFightEnv(gym.Env):
             ]
         )
 
-    def _build_action_context(self, sim, opponent_sim, ownship_state, target_state, observation) -> ActionContext:
+    def _build_action_context(
+        self,
+        sim,
+        opponent_sim,
+        ownship_state,
+        target_state,
+        observation,
+        *,
+        info: dict | None = None,
+    ) -> ActionContext:
         if ownship_state is not None and target_state is not None:
             observation = self._build_observation_for(
                 np.array(ownship_state, copy=True),
@@ -1023,7 +1172,7 @@ class DogFightEnv(gym.Env):
             ownship_state=np.array(ownship_state, copy=True) if ownship_state is not None else None,
             target_state=np.array(target_state, copy=True) if target_state is not None else None,
             observation=np.array(observation, copy=True) if observation is not None else None,
-            info={"timestep": self.current_timestep},
+            info={"timestep": self.current_timestep, **dict(info or {})},
         )
 
     def _reset_action_providers(self) -> None:

@@ -78,6 +78,10 @@ def build_algorithm_config(algorithm_name: str, env_name: str, env_config: dict,
         }
         if replay_buffer_config:
             training_args["replay_buffer_config"] = replay_buffer_config
+        if args.get("learning_starts") is not None:
+            training_args["num_steps_sampled_before_learning_starts"] = int(
+                args["learning_starts"]
+            )
         config = config.training(**training_args)
         if args.get("use_lstm_sac"):
             config = _apply_lstm_sac_model_config(config, args)

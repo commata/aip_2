@@ -11,9 +11,13 @@ from dogfight.ai.action_provider import (
     policy_action_to_sim_action,
 )
 from dogfight.ai.hybrid_action_provider import (
+    AimGateConfig,
+    AimResidualGate,
     HybridActionProvider,
     OffensiveGateConfig,
     OffensiveResidualGate,
+    ResidualInferenceActionProvider,
+    ResidualTrainingActionProvider,
 )
 
 
@@ -28,8 +32,13 @@ def state(n: float, e: float, yaw: float) -> np.ndarray:
     return value
 
 
-def context(own=None, target=None) -> ActionContext:
-    return ActionContext(None, None, own, target, np.zeros(16), {})
+def context(own=None, target=None, *, residual=None, sim_time_s=None) -> ActionContext:
+    info = {}
+    if residual is not None:
+        info["residual_action"] = residual
+    if sim_time_s is not None:
+        info["sim_time_s"] = sim_time_s
+    return ActionContext(None, None, own, target, np.zeros(16), info)
 
 
 class CountingProvider(ActionProvider):
@@ -144,6 +153,160 @@ class OffensiveHybridTests(unittest.TestCase):
         self.assertEqual(telemetry["rl_inference_calls"], 0)
         self.assertEqual(telemetry["offensive_gate_entries"], 0)
         self.assertEqual(telemetry["rl_correction_steps"], 0)
+
+    def test_aim_gate_uses_phase_half_angles_and_hysteresis(self) -> None:
+        gate = AimResidualGate(
+            AimGateConfig(
+                enter_angle_margin_deg=1.0,
+                exit_angle_margin_deg=3.0,
+                enter_range_margin_m=0.0,
+                exit_range_margin_m=200.0,
+                min_hold_steps=0,
+            )
+        )
+        phase1_target = state(900.0, 20.0, 0.0)
+        entered = gate.update(self.own, phase1_target, sim_time_s=50.0)
+        self.assertEqual(entered["phase"], 1)
+        self.assertTrue(entered["active"])
+
+        hysteresis_target = state(1000.0, 50.0, 0.0)
+        held = gate.update(self.own, hysteresis_target, sim_time_s=50.0)
+        self.assertTrue(held["active"])
+
+        exited = gate.update(
+            self.own,
+            state(1000.0, 200.0, 0.0),
+            sim_time_s=50.0,
+        )
+        self.assertFalse(exited["active"])
+        self.assertEqual(gate.entries, 1)
+        self.assertEqual(gate.exits, 1)
+
+    def test_training_residual_forces_bt_throttle_and_gate_off_equality(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+        off_target = state(0.0, 3000.0, 0.0)
+
+        off = provider.compute_action(
+            context(
+                self.own,
+                off_target,
+                residual=[1.0, 1.0, 1.0, -1.0],
+                sim_time_s=0.0,
+            )
+        )
+        np.testing.assert_array_equal(off.action, bt.action)
+
+        on = provider.compute_action(
+            context(
+                self.own,
+                self.target,
+                residual=[0.8, -0.4, 0.2, -1.0],
+                sim_time_s=0.0,
+            )
+        )
+        np.testing.assert_allclose(on.action[:3], [0.3, -0.35, 0.125], atol=1e-6)
+        self.assertAlmostEqual(float(on.action[3]), 0.77, places=6)
+        self.assertTrue(on.info["throttle_residual_forced_zero"])
+
+    def test_inference_residual_gate_off_is_exact_bt_and_skips_policy(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+
+        result = provider.compute_action(
+            context(self.own, state(0.0, 3000.0, 0.0), sim_time_s=0.0)
+        )
+
+        np.testing.assert_array_equal(result.action, bt.action)
+        self.assertEqual(rl.calls, 0)
+        self.assertEqual(provider.telemetry()["rl_inference_calls"], 0)
+
+    def test_inference_residual_runs_bt_each_frame_and_holds_policy(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="aim",
+            rl_action_repeat=3,
+        )
+
+        results = [
+            provider.compute_action(
+                context(self.own, self.target, sim_time_s=0.0)
+            )
+            for _ in range(5)
+        ]
+
+        self.assertEqual(bt.calls, 5)
+        self.assertEqual(rl.calls, 2)
+        for result in results:
+            np.testing.assert_allclose(
+                result.action,
+                [0.3, -0.35, 0.125, 0.77],
+                atol=1e-6,
+            )
+        telemetry = provider.telemetry()
+        self.assertEqual(telemetry["rl_correction_steps"], 5)
+        self.assertEqual(telemetry["rl_action_repeat"], 3)
+        self.assertAlmostEqual(telemetry["rl_inference_over_166_7ms_ratio"], 0.0)
+
+    def test_saturation_aware_training_residual_respects_headroom(self) -> None:
+        bt = CountingProvider([1.0, -1.0, 0.9, 0.77], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+            composition_mode="saturation_aware",
+        )
+
+        outward = provider.compute_action(
+            context(
+                self.own,
+                self.target,
+                residual=[1.0, -1.0, 1.0, -1.0],
+                sim_time_s=0.0,
+            )
+        )
+        np.testing.assert_allclose(
+            outward.action,
+            [1.0, -1.0, 0.9125, 0.77],
+            atol=1e-6,
+        )
+        self.assertFalse(outward.info["action_clipped"])
+
+        inward = provider.compute_action(
+            context(
+                self.own,
+                self.target,
+                residual=[-1.0, 1.0, -1.0, 1.0],
+                sim_time_s=0.0,
+            )
+        )
+        np.testing.assert_allclose(
+            inward.action,
+            [0.875, -0.875, 0.775, 0.77],
+            atol=1e-6,
+        )
+        self.assertLessEqual(
+            max(abs(value) for value in inward.info["applied_rl_correction"][:3]),
+            0.125,
+        )
+        self.assertEqual(
+            provider.telemetry()["residual_composition_mode"],
+            "saturation_aware",
+        )
 
 
 if __name__ == "__main__":

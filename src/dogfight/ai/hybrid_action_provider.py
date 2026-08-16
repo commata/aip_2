@@ -1,12 +1,38 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from time import perf_counter
 from typing import Callable
 
 import numpy as np
 
 from dogfight.ai.action_provider import ActionContext, ActionProvider, ActionResult, clip_action
 from dogfight.sim.state_schema import StateIndex
+
+
+ALLOWED_AIM_RESIDUAL_SCALES = (0.10, 0.125, 0.15)
+RESIDUAL_COMPOSITION_MODES = ("additive", "saturation_aware")
+
+
+def _compose_aim_surface_residual(
+    bt_action: np.ndarray,
+    residual: np.ndarray,
+    residual_scale: float,
+    composition_mode: str,
+) -> np.ndarray:
+    """Return an unclipped surface command while bounding correction by scale."""
+    result = np.asarray(bt_action, dtype=np.float32).copy()
+    if composition_mode == "additive":
+        result[:3] = result[:3] + residual_scale * residual[:3]
+        return result
+    if composition_mode != "saturation_aware":
+        raise ValueError(f"unsupported residual composition: {composition_mode!r}")
+    surfaces = result[:3]
+    requested = np.asarray(residual[:3], dtype=np.float32)
+    available = np.where(requested >= 0.0, 1.0 - surfaces, surfaces + 1.0)
+    authority = np.clip(available, 0.0, 1.0)
+    result[:3] = surfaces + residual_scale * requested * authority
+    return result
 
 
 def _unsigned_ata_deg(observer_state, target_state) -> float:
@@ -76,6 +102,8 @@ class OffensiveResidualGate:
         self.active_steps = 0
         self.entries = 0
         self.exits = 0
+        self._current_active_steps = 0
+        self._completed_active_steps: list[int] = []
         self.last_geometry: dict[str, float | bool] = {
             "distance_m": float("nan"),
             "ata_deg": float("nan"),
@@ -117,6 +145,11 @@ class OffensiveResidualGate:
         self.active = bool(next_active)
         self.steps += 1
         self.active_steps += int(self.active)
+        if self.active:
+            self._current_active_steps += 1
+        elif exit_event:
+            self._completed_active_steps.append(self._current_active_steps)
+            self._current_active_steps = 0
         self.last_geometry = {
             "distance_m": distance,
             "ata_deg": ata,
@@ -128,6 +161,9 @@ class OffensiveResidualGate:
         return dict(self.last_geometry)
 
     def telemetry(self) -> dict[str, int | float | bool | dict]:
+        durations = list(self._completed_active_steps)
+        if self.active and self._current_active_steps:
+            durations.append(self._current_active_steps)
         return {
             "offensive_gate_config": asdict(self.config),
             "offensive_gate_steps": self.steps,
@@ -136,6 +172,161 @@ class OffensiveResidualGate:
             "offensive_gate_entries": self.entries,
             "offensive_gate_exits": self.exits,
             "offensive_gate_active_final": self.active,
+            "offensive_gate_mean_active_steps": (
+                float(np.mean(durations)) if durations else 0.0
+            ),
+            "offensive_gate_min_active_steps": min(durations) if durations else 0,
+        }
+
+
+@dataclass(frozen=True)
+class AimGateConfig:
+    """Phase-aware pre-aim gate expressed in official half-angle semantics."""
+
+    min_range_m: float = 152.4
+    enter_angle_margin_deg: float = 7.0
+    exit_angle_margin_deg: float = 10.0
+    enter_range_margin_m: float = 300.0
+    exit_range_margin_m: float = 550.0
+    min_hold_steps: int = 12
+
+    def validate(self) -> None:
+        if self.min_range_m < 0.0:
+            raise ValueError("aim min range must be non-negative")
+        if not 0.0 <= self.enter_angle_margin_deg <= self.exit_angle_margin_deg:
+            raise ValueError("aim angle margins must satisfy 0 <= enter <= exit")
+        if not 0.0 <= self.enter_range_margin_m <= self.exit_range_margin_m:
+            raise ValueError("aim range margins must satisfy 0 <= enter <= exit")
+        if self.min_hold_steps < 0:
+            raise ValueError("aim minimum hold steps must be non-negative")
+
+
+class AimResidualGate:
+    """Hysteretic pre-aim gate aligned with the three official damage phases."""
+
+    _PHASES = (
+        (1, 100.0, 1.0, 3000.0 * 0.3048),
+        (2, 150.0, 2.0, 3500.0 * 0.3048),
+        (3, float("inf"), 3.0, 4000.0 * 0.3048),
+    )
+
+    def __init__(self, config: AimGateConfig | dict | None = None):
+        if config is None:
+            config = AimGateConfig()
+        elif isinstance(config, dict):
+            config = AimGateConfig(**config)
+        config.validate()
+        self.config = config
+        self.reset()
+
+    def reset(self) -> None:
+        self.active = False
+        self.steps = 0
+        self.active_steps = 0
+        self.entries = 0
+        self.exits = 0
+        self._current_active_steps = 0
+        self._completed_active_steps: list[int] = []
+        self.last_geometry: dict[str, float | int | bool] = {
+            "distance_m": float("nan"),
+            "aim_error_deg": float("nan"),
+            "target_ata_deg": float("nan"),
+            "phase": 1,
+            "active": False,
+            "entry": False,
+            "exit": False,
+        }
+
+    @classmethod
+    def phase_limits(cls, sim_time_s: float) -> tuple[int, float, float]:
+        for phase, end_s, half_angle_deg, max_range_m in cls._PHASES:
+            if sim_time_s <= end_s:
+                return phase, half_angle_deg, max_range_m
+        raise AssertionError("phase table must have an infinite final interval")
+
+    def update(
+        self,
+        ownship_state,
+        target_state,
+        *,
+        sim_time_s: float | None = None,
+    ) -> dict[str, float | int | bool]:
+        previous = self.active
+        if ownship_state is None or target_state is None:
+            next_active = False
+            distance = aim_error = target_ata = float("nan")
+            phase, half_angle, phase_range = self.phase_limits(sim_time_s or 0.0)
+        else:
+            own = np.asarray(ownship_state, dtype=np.float64)
+            target = np.asarray(target_state, dtype=np.float64)
+            distance = float(np.linalg.norm(target[:3] - own[:3]))
+            aim_error = _unsigned_ata_deg(own, target)
+            target_ata = _unsigned_ata_deg(target, own)
+            if sim_time_s is None:
+                sim_time_s = (
+                    float(own[StateIndex.SIM_TIME])
+                    if len(own) > StateIndex.SIM_TIME
+                    else 0.0
+                )
+            phase, half_angle, phase_range = self.phase_limits(float(sim_time_s))
+            cfg = self.config
+            enter = (
+                cfg.min_range_m <= distance <= phase_range + cfg.enter_range_margin_m
+                and aim_error <= half_angle + cfg.enter_angle_margin_deg
+            )
+            remain = (
+                cfg.min_range_m <= distance <= phase_range + cfg.exit_range_margin_m
+                and aim_error <= half_angle + cfg.exit_angle_margin_deg
+            )
+            minimum_hold = (
+                previous
+                and self._current_active_steps < cfg.min_hold_steps
+                and np.isfinite(distance)
+                and distance >= cfg.min_range_m
+            )
+            next_active = remain or minimum_hold if previous else enter
+
+        entry = bool(next_active and not previous)
+        exit_event = bool(previous and not next_active)
+        self.entries += int(entry)
+        self.exits += int(exit_event)
+        self.active = bool(next_active)
+        self.steps += 1
+        self.active_steps += int(self.active)
+        if self.active:
+            self._current_active_steps += 1
+        elif exit_event:
+            self._completed_active_steps.append(self._current_active_steps)
+            self._current_active_steps = 0
+        self.last_geometry = {
+            "distance_m": distance,
+            "aim_error_deg": aim_error,
+            "target_ata_deg": target_ata,
+            "phase": phase,
+            "phase_half_angle_deg": half_angle,
+            "phase_max_range_m": phase_range,
+            "active": self.active,
+            "entry": entry,
+            "exit": exit_event,
+        }
+        return dict(self.last_geometry)
+
+    def telemetry(self) -> dict[str, int | float | bool | dict]:
+        durations = list(self._completed_active_steps)
+        if self.active and self._current_active_steps:
+            durations.append(self._current_active_steps)
+        return {
+            "aim_gate_config": asdict(self.config),
+            "aim_gate_steps": self.steps,
+            "aim_gate_active_steps": self.active_steps,
+            "aim_gate_active_ratio": self.active_steps / max(1, self.steps),
+            "aim_gate_entries": self.entries,
+            "aim_gate_exits": self.exits,
+            "aim_gate_active_final": self.active,
+            "aim_gate_mean_active_steps": (
+                float(np.mean(durations)) if durations else 0.0
+            ),
+            "aim_gate_min_active_steps": min(durations) if durations else 0,
         }
 
 
@@ -332,3 +523,358 @@ class HybridActionProvider(ActionProvider):
     def close(self) -> None:
         self.primary_provider.close()
         self.secondary_provider.close()
+
+
+class ResidualInferenceActionProvider(ActionProvider):
+    """Run raw BT every frame and apply a held policy residual only inside a gate."""
+
+    def __init__(
+        self,
+        bt_provider: ActionProvider,
+        residual_provider: ActionProvider,
+        *,
+        residual_scale: float,
+        gate_kind: str = "aim",
+        aim_gate: AimGateConfig | dict | None = None,
+        offensive_gate: OffensiveGateConfig | dict | None = None,
+        rl_action_repeat: int = 6,
+        composition_mode: str = "additive",
+        confidence: float = 0.95,
+    ):
+        if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
+            raise ValueError(
+                "aim residual scale must be one of "
+                f"{ALLOWED_AIM_RESIDUAL_SCALES}, got {residual_scale}"
+            )
+        if gate_kind == "aim":
+            gate = AimResidualGate(aim_gate)
+        elif gate_kind == "offensive":
+            gate = OffensiveResidualGate(offensive_gate)
+        else:
+            raise ValueError(f"unsupported residual inference gate: {gate_kind!r}")
+        self.bt_provider = bt_provider
+        self.residual_provider = residual_provider
+        self.residual_scale = float(residual_scale)
+        if composition_mode not in RESIDUAL_COMPOSITION_MODES:
+            raise ValueError(f"unsupported residual composition: {composition_mode!r}")
+        self.composition_mode = composition_mode
+        self.gate_kind = gate_kind
+        self.gate = gate
+        self.rl_action_repeat = max(1, int(rl_action_repeat))
+        self.confidence = float(confidence)
+        self.reset(None)
+
+    def reset(self, context: ActionContext | None = None) -> None:
+        self.bt_provider.reset(context)
+        self.residual_provider.reset(context)
+        self.gate.reset()
+        self._active_frames = 0
+        self._cached_residual: np.ndarray | None = None
+        self._rl_inference_calls = 0
+        self._rl_inference_latency_ms: list[float] = []
+        self._correction_steps = 0
+        self._correction_abs_sum = np.zeros(4, dtype=np.float64)
+        self._correction_abs_max = np.zeros(4, dtype=np.float64)
+        self._clipped_steps = 0
+        self._saturated_steps = 0
+        self._last_frame: dict = {}
+
+    def compute_action(self, context: ActionContext) -> ActionResult:
+        bt_result = self.bt_provider.compute_action(context)
+        bt_action = clip_action(bt_result.action)
+        if self.gate_kind == "aim":
+            gate_info = self.gate.update(
+                context.ownship_state,
+                context.target_state,
+                sim_time_s=context.info.get("sim_time_s"),
+            )
+        else:
+            gate_info = self.gate.update(
+                context.ownship_state,
+                context.target_state,
+            )
+
+        if not gate_info["active"]:
+            self._cached_residual = None
+            self._active_frames = 0
+            frame = self._frame_info(
+                gate_info=gate_info,
+                bt_action=bt_action,
+                residual=None,
+                final=bt_action.copy(),
+                refreshed=False,
+                clipped=False,
+                saturated=False,
+            )
+            self._last_frame = frame
+            return ActionResult(bt_action.copy(), "bt_residual_inference", self.confidence, frame)
+
+        if gate_info["entry"]:
+            self.residual_provider.reset(context)
+        refreshed = (
+            self._cached_residual is None
+            or self._active_frames % self.rl_action_repeat == 0
+        )
+        if refreshed:
+            start = perf_counter()
+            residual_result = self.residual_provider.compute_action(context)
+            self._rl_inference_latency_ms.append((perf_counter() - start) * 1000.0)
+            residual = np.asarray(residual_result.action, dtype=np.float32)
+            if residual.shape != (4,):
+                raise ValueError(f"expected four residual axes, got shape {residual.shape}")
+            self._cached_residual = np.clip(
+                np.nan_to_num(residual, nan=0.0, posinf=1.0, neginf=-1.0),
+                -1.0,
+                1.0,
+            )
+            self._rl_inference_calls += 1
+
+        residual = np.asarray(self._cached_residual, dtype=np.float32)
+        unclipped = _compose_aim_surface_residual(
+            bt_action,
+            residual,
+            self.residual_scale,
+            self.composition_mode,
+        )
+        final = clip_action(unclipped)
+        final[3] = bt_action[3]
+        correction = final - bt_action
+        clipped = bool(np.any(np.abs(final[:3] - unclipped[:3]) > 1e-7))
+        saturated = bool(np.any(np.isclose(np.abs(final[:3]), 1.0)))
+        self._correction_steps += 1
+        self._correction_abs_sum += np.abs(correction)
+        self._correction_abs_max = np.maximum(
+            self._correction_abs_max,
+            np.abs(correction),
+        )
+        self._clipped_steps += int(clipped)
+        self._saturated_steps += int(saturated)
+        self._active_frames += 1
+        frame = self._frame_info(
+            gate_info=gate_info,
+            bt_action=bt_action,
+            residual=residual,
+            final=final,
+            refreshed=refreshed,
+            clipped=clipped,
+            saturated=saturated,
+        )
+        self._last_frame = frame
+        return ActionResult(final, "bt_residual_inference", self.confidence, frame)
+
+    def _frame_info(
+        self,
+        *,
+        gate_info: dict,
+        bt_action: np.ndarray,
+        residual: np.ndarray | None,
+        final: np.ndarray,
+        refreshed: bool,
+        clipped: bool,
+        saturated: bool,
+    ) -> dict:
+        correction = final - bt_action
+        return {
+            "mode": "bt_residual_inference",
+            "gate_kind": self.gate_kind,
+            "gate": gate_info,
+            f"{self.gate_kind}_gate": gate_info,
+            "effective_residual_scale": (
+                self.residual_scale if gate_info["active"] else 0.0
+            ),
+            "residual_composition_mode": self.composition_mode,
+            "rl_action_repeat": self.rl_action_repeat,
+            "rl_action_refreshed": refreshed,
+            "bt_action": bt_action.tolist(),
+            "raw_residual_action": residual.tolist() if residual is not None else None,
+            "applied_rl_correction": correction.tolist(),
+            "final_action": final.tolist(),
+            "throttle_residual_forced_zero": True,
+            "action_clipped": clipped,
+            "action_saturation": saturated,
+        }
+
+    def telemetry(self) -> dict:
+        result = self.gate.telemetry()
+        latency = np.asarray(self._rl_inference_latency_ms, dtype=np.float64)
+        result.update(
+            {
+                "residual_inference_gate_kind": self.gate_kind,
+                "residual_scale": self.residual_scale,
+                "residual_composition_mode": self.composition_mode,
+                "rl_inference_calls": self._rl_inference_calls,
+                "rl_action_repeat": self.rl_action_repeat,
+                "rl_correction_steps": self._correction_steps,
+                "rl_correction_abs_mean": (
+                    self._correction_abs_sum / max(1, self._correction_steps)
+                ).tolist(),
+                "rl_correction_abs_max": self._correction_abs_max.tolist(),
+                "action_clipped_steps": self._clipped_steps,
+                "action_saturated_steps": self._saturated_steps,
+                "rl_inference_latency_ms_p50": (
+                    float(np.percentile(latency, 50)) if latency.size else 0.0
+                ),
+                "rl_inference_latency_ms_p95": (
+                    float(np.percentile(latency, 95)) if latency.size else 0.0
+                ),
+                "rl_inference_latency_ms_p99": (
+                    float(np.percentile(latency, 99)) if latency.size else 0.0
+                ),
+                "rl_inference_latency_ms_max": (
+                    float(np.max(latency)) if latency.size else 0.0
+                ),
+                "rl_inference_over_166_7ms_ratio": (
+                    float(np.mean(latency > 166.7)) if latency.size else 0.0
+                ),
+                "last_frame": dict(self._last_frame),
+            }
+        )
+        return result
+
+    def close(self) -> None:
+        self.bt_provider.close()
+        self.residual_provider.close()
+
+
+class ResidualTrainingActionProvider(ActionProvider):
+    """Compose policy residuals with raw BT actions inside the training loop."""
+
+    def __init__(
+        self,
+        bt_provider: ActionProvider,
+        *,
+        residual_scale: float,
+        gate_kind: str = "aim",
+        aim_gate: AimGateConfig | dict | None = None,
+        offensive_gate: OffensiveGateConfig | dict | None = None,
+        composition_mode: str = "additive",
+        confidence: float = 0.95,
+    ):
+        if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
+            raise ValueError(
+                "aim residual scale must be one of "
+                f"{ALLOWED_AIM_RESIDUAL_SCALES}, got {residual_scale}"
+            )
+        if gate_kind == "aim":
+            gate = AimResidualGate(aim_gate)
+        elif gate_kind == "offensive":
+            gate = OffensiveResidualGate(offensive_gate)
+        else:
+            raise ValueError(f"unsupported residual training gate: {gate_kind!r}")
+        self.bt_provider = bt_provider
+        self.residual_scale = float(residual_scale)
+        if composition_mode not in RESIDUAL_COMPOSITION_MODES:
+            raise ValueError(f"unsupported residual composition: {composition_mode!r}")
+        self.composition_mode = composition_mode
+        self.gate_kind = gate_kind
+        self.gate = gate
+        self.confidence = float(confidence)
+        self.reset(None)
+
+    def reset(self, context: ActionContext | None = None) -> None:
+        self.bt_provider.reset(context)
+        self.gate.reset()
+        self._correction_steps = 0
+        self._correction_abs_sum = np.zeros(4, dtype=np.float64)
+        self._correction_abs_max = np.zeros(4, dtype=np.float64)
+        self._clipped_steps = 0
+        self._saturated_steps = 0
+        self._requested_throttle_abs_sum = 0.0
+        self._last_frame: dict = {}
+
+    def compute_action(self, context: ActionContext) -> ActionResult:
+        bt_result = self.bt_provider.compute_action(context)
+        bt_action = clip_action(bt_result.action)
+        residual = np.asarray(
+            context.info.get("residual_action", np.zeros(4)),
+            dtype=np.float32,
+        )
+        if residual.shape != (4,):
+            raise ValueError(f"expected four residual axes, got shape {residual.shape}")
+        residual = np.clip(
+            np.nan_to_num(residual, nan=0.0, posinf=1.0, neginf=-1.0),
+            -1.0,
+            1.0,
+        )
+        self._requested_throttle_abs_sum += abs(float(residual[3]))
+
+        if self.gate_kind == "aim":
+            gate_info = self.gate.update(
+                context.ownship_state,
+                context.target_state,
+                sim_time_s=context.info.get("sim_time_s"),
+            )
+        else:
+            gate_info = self.gate.update(
+                context.ownship_state,
+                context.target_state,
+            )
+
+        unclipped = bt_action.copy()
+        if gate_info["active"]:
+            unclipped = _compose_aim_surface_residual(
+                bt_action,
+                residual,
+                self.residual_scale,
+                self.composition_mode,
+            )
+        final = clip_action(unclipped)
+        final[3] = bt_action[3]
+        correction = final - bt_action
+        clipped = bool(np.any(np.abs(final[:3] - unclipped[:3]) > 1e-7))
+        saturated = bool(np.any(np.isclose(np.abs(final[:3]), 1.0)))
+        if gate_info["active"]:
+            self._correction_steps += 1
+            self._correction_abs_sum += np.abs(correction)
+            self._correction_abs_max = np.maximum(
+                self._correction_abs_max,
+                np.abs(correction),
+            )
+            self._clipped_steps += int(clipped)
+            self._saturated_steps += int(saturated)
+
+        frame = {
+            "mode": "bt_residual_training",
+            "gate_kind": self.gate_kind,
+            "gate": gate_info,
+            f"{self.gate_kind}_gate": gate_info,
+            "effective_residual_scale": (
+                self.residual_scale if gate_info["active"] else 0.0
+            ),
+            "residual_composition_mode": self.composition_mode,
+            "bt_action": bt_action.tolist(),
+            "raw_residual_action": residual.tolist(),
+            "applied_rl_correction": correction.tolist(),
+            "final_action": final.tolist(),
+            "throttle_residual_forced_zero": True,
+            "action_clipped": clipped,
+            "action_saturation": saturated,
+        }
+        self._last_frame = frame
+        return ActionResult(final, "bt_residual_training", self.confidence, frame)
+
+    def telemetry(self) -> dict:
+        result = self.gate.telemetry()
+        gate_steps = int(result.get(f"{self.gate_kind}_gate_steps", 0))
+        result.update(
+            {
+                "residual_training_gate_kind": self.gate_kind,
+                "residual_scale": self.residual_scale,
+                "residual_composition_mode": self.composition_mode,
+                "rl_correction_steps": self._correction_steps,
+                "rl_correction_abs_mean": (
+                    self._correction_abs_sum / max(1, self._correction_steps)
+                ).tolist(),
+                "rl_correction_abs_max": self._correction_abs_max.tolist(),
+                "requested_throttle_residual_abs_mean": (
+                    self._requested_throttle_abs_sum / max(1, gate_steps)
+                ),
+                "action_clipped_steps": self._clipped_steps,
+                "action_saturated_steps": self._saturated_steps,
+                "last_frame": dict(self._last_frame),
+            }
+        )
+        return result
+
+    def close(self) -> None:
+        self.bt_provider.close()

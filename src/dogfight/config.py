@@ -18,6 +18,13 @@ DEFAULT_ENV_CONFIG = {
     "ownship_control_mode": "rl",
     "target_mode": "behavior_tree",
     "ownship_behavior_dll": None,
+    "residual_training": {
+        "scale": 0.125,
+        "gate_kind": "aim",
+        "composition_mode": "additive",
+        "aim_gate": {},
+        "offensive_gate": {},
+    },
     "target_behavior_dll": "AIP_BASE_target.dll",
     "target_loiter": {"enabled": True, "bank": 30.0, "pitch": 0.0},
     "target_autopilot": {"heading_cmd": 180.0, "altitude_cmd": 7000.0, "speed_cmd": 250.0},
@@ -32,6 +39,25 @@ DEFAULT_ENV_CONFIG = {
         "loss_reward": -100.0,
         "draw_reward": -30.0,
         "guard_fail_penalty": -50.0,
+        "aim_residual": {
+            "step_penalty": -0.001,
+            "aim_progress_scale": 0.40,
+            "aim_quality_scale": 0.01,
+            "los_rate_penalty_scale": 0.02,
+            "cone_dwell_scale": 0.02,
+            "damage_scale": 80.0,
+            "residual_l2_penalty_scale": 0.02,
+            "residual_smooth_penalty_scale": 0.03,
+            "clipping_penalty": 0.05,
+            "saturation_penalty": 0.02,
+            "minimum_safe_speed_m_s": 170.0,
+            "low_speed_penalty_scale": 0.05,
+            "minimum_safe_altitude_m": 600.0,
+            "low_altitude_penalty_scale": 0.10,
+            "win_reward": 15.0,
+            "loss_reward": -15.0,
+            "crash_reward": -20.0,
+        },
     },
     "wez": {
         "angle_deg": 2.0,
@@ -58,6 +84,13 @@ DEFAULT_ENV_CONFIG = {
         "r_roll": 0.0,      # roll scatter (degrees)
         "r_pitch": 0.0,     # pitch scatter (degrees)
         "r_heading": 0.0,   # heading scatter (degrees)
+    },
+    "target_randomization": {
+        "enabled": False,
+        "radius": 0.0,
+        "r_roll": 0.0,
+        "r_pitch": 0.0,
+        "r_heading": 0.0,
     },
     "initial_scenario": {
         "mode": "default",

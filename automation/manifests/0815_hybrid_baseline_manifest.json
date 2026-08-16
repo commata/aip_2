@@ -1,0 +1,197 @@
+{
+  "repository": {
+    "remote": "https://github.com/commata/aip_2.git",
+    "main_sha": "f443cca9a9ab4e0f79c3f5f61378bb944cede56e",
+    "work_branch": "codex/0815-hybrid-aim-training"
+  },
+  "models": {
+    "0815": {
+      "dll": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip_final_0815\\aip_final_0815\\AIP_DCS_GDCC_0815.dll",
+        "bytes": 337408,
+        "sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9"
+      },
+      "xml": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip_final_0815\\aip_final_0815\\Rule_DCS_GDCC_0815.xml",
+        "bytes": 811,
+        "sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+      },
+      "task_pursue_sha256": "22F4A6D0BADEFD4C6C09CAB0E6E61AD8E70BC50F2388E5D220E03FA31D579F4F",
+      "controller_sha256": "4EE4BDA7C518C5329E79F09C9A4E421E4BF27FD3F6F732F27F1AE0CF807331EB",
+      "hardcoded_rule_filename": "Rule_DCS_GDCC_0815.xml"
+    },
+    "AIP2": {
+      "dll": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip2\\aip2\\AIP_DCS_new.dll",
+        "bytes": 338944,
+        "sha256": "3AD96D6A43C256FBDAD26643CB846AF55D40603F3C4170D9C0B58968A43B007E"
+      },
+      "xml": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip2\\aip2\\Rule_sei_AIP2_default.xml",
+        "bytes": 811,
+        "sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+      },
+      "task_pursue_sha256": "DD89D991E91A0C228FEB1D27E2147BFB140B10891F3348BE48544ECFA9CB0177",
+      "controller_sha256": "4EE4BDA7C518C5329E79F09C9A4E421E4BF27FD3F6F732F27F1AE0CF807331EB",
+      "hardcoded_rule_filename": "Rule_sei_AIP2_default.xml"
+    },
+    "AIP3": {
+      "dll": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip3\\aip3\\AIP_DCS_new3.dll",
+        "bytes": 338944,
+        "sha256": "815B28647964BC9AAC393157C55F88936D3A5AF3EA411652EA38E085EE1DB4A8"
+      },
+      "xml": {
+        "path": "C:\\Users\\shy66\\Downloads\\aip3\\aip3\\Rule_sei_AIP3_default.xml",
+        "bytes": 811,
+        "sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+      },
+      "task_pursue_sha256": "7AC35C3F25FE0E09A0F9AC04EDB5ABE2549AE21127C3FB55185F2B222DD73C2B",
+      "controller_sha256": "4EE4BDA7C518C5329E79F09C9A4E421E4BF27FD3F6F732F27F1AE0CF807331EB",
+      "hardcoded_rule_filename": "Rule_sei_AIP2_default.xml"
+    }
+  },
+  "existing_offensive_rl_bundle": {
+    "path": "artifacts/models/team01/student_sac_baseline",
+    "metadata_sha256": "F705B9EC7C33FA423AEDDB41420CF83E628495EC37F96ED4CD928E999A9BA2A1",
+    "weights_sha256": "9B0B20A762C6555E691BC42C3BDD9986E0BE7CC169378A72735958BFF4649F8C",
+    "algorithm": "SAC",
+    "observation": "tactical16",
+    "ownship_control_mode": "rl",
+    "max_engage_time_seconds": 300.0,
+    "action_dim": 4
+  },
+  "research_bundles": {
+    "stage1_aim_s0125_r01_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_s0125_r01",
+      "metadata_bytes": 20411,
+      "metadata_sha256": "E93EEAA98E88629E0257FCEAD2028872356223659E9CA8A0488D3486B486A6EF",
+      "weights_bytes": 70212,
+      "weights_sha256": "52C0D56BF99EC497DF638FA3DE4F31A8D72DBAE0AD736794E428F5A907328F08",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "status": "ROLLBACK",
+      "reason": "3-pair 평가에서 Pure 0815 대비 유의미한 조준 또는 Damage 개선이 없고 Gate 점유율이 95.3%임"
+    },
+    "stage1_aim_s0125_r01_iteration_5": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_s0125_r01/bundle_000005",
+      "metadata_bytes": 20432,
+      "metadata_sha256": "27A42F790AA2304B4B770817435736CD3AAE39BF6BCE7B2BCFAFF446DD7D6FAB",
+      "weights_bytes": 70218,
+      "weights_sha256": "20F7D09F1A6EDB2DDDF325D7148ED9A3D5945BFAA8659EE29383D335B7DCD64B",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "status": "ROLLBACK",
+      "reason": "3-pair에서 median LOS는 감소했지만 평균 LOS와 LOS rate가 악화되고 seed별 Damage 부호가 불일치함"
+    },
+    "stage1_curriculum_s0125_r02_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_curriculum_s0125_r02",
+      "metadata_bytes": 22603,
+      "metadata_sha256": "7BFE3BC037F8280F5D36CB303F937170EBAC0DB605DC06FF1D31524971840DD9",
+      "weights_bytes": 70230,
+      "weights_sha256": "8DF2E35785CABC4636A7696E1AE9C733BCC679F7FFF4E7C7232259D5160345A5",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "status": "ROLLBACK",
+      "reason": "lateral-right probe에서 최초 Damage 지연, Cone 및 Damage 감소와 66.1% clipping이 발생함"
+    },
+    "stage1_curriculum_s0125_r02_iteration_10": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_curriculum_s0125_r02/bundle_000010",
+      "metadata_bytes": 22625,
+      "metadata_sha256": "ECD0A63E91CF1E0F375026E2F1834337459C1DCBB9A3FC6BF8C3D92DA886723B",
+      "weights_bytes": 70211,
+      "weights_sha256": "911AE7A688CD8E0B539AD4E85A9AE3123D40FCD3B107F8109F3D004746334631",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "status": "ROLLBACK",
+      "reason": "5개 고유 validation pair에서 최초 Damage +0.263초, 평균/P95 LOS 악화, 정상 격추 Damage 비퇴행 미확인"
+    },
+    "stage1_headroom_s0125_r03_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_headroom_s0125_r03",
+      "metadata_bytes": 22650,
+      "metadata_sha256": "122AB02B75D1D716190011CDC2FD9C5090DE5A468671F544C772CAA6B282DCD3",
+      "weights_bytes": 70189,
+      "weights_sha256": "8E76FE21DDBD669DF479EF8E4F1AF526C88B4F867230DD90E68EACC625FB5325",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "클리핑 0%를 달성했으나 5개 고유 pair에서 평균/P95 LOS와 최초 Damage가 악화되고 Gate 점유율이 83.9%임"
+    },
+    "stage1_headroom_s0125_r03_iteration_10": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_headroom_s0125_r03/bundle_000010",
+      "metadata_bytes": 22672,
+      "metadata_sha256": "4EC14A22C8ADB5AE732C3EA00B27919B1790D282EA7F26F5F6CF6353449AF520",
+      "weights_bytes": 70175,
+      "weights_sha256": "1F05E7638CF489C248B8314AE7854A2FF20AAC9621E7ADD8BB0386ECF004E383",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "클리핑은 제거됐지만 평균/P95 LOS와 최초 Damage가 악화되고 정상 격추 3건 Damage 합이 감소함"
+    },
+    "stage1_offensive_headroom_s0125_r04_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_offensive_headroom_s0125_r04",
+      "metadata_bytes": 22709,
+      "metadata_sha256": "8E0B70FBBDA1BA0C700FAEED0ECBE79424E87BDB6917F814D34D2D96C78C4AE1",
+      "weights_bytes": 70204,
+      "weights_sha256": "20D7407B50B2FCB9855968F1AAD1450A943AFDAAC0B7A8AF431F8BDC254262FA",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "gate_kind": "offensive",
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "Gate 활성률 95.0%, 최초 Damage +0.270초, 평균/P95 LOS 악화이며 전체 Damage 증가는 target crash 한 건에 의존함"
+    },
+    "stage1_aim_localobs_s0125_r05_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_localobs_s0125_r05",
+      "metadata_bytes": 22663,
+      "metadata_sha256": "578E42D3ED5E1DE2F781335CDCBB2899A90EC3FB9B98F08F8CC430EB6CF93B9D",
+      "weights_bytes": 70213,
+      "weights_sha256": "80F294B66D9AD36D97543717E29180A5F57CA54BCEF31FC205349ECB14089C52",
+      "algorithm": "SAC",
+      "observation": "aim_residual10_v2",
+      "residual_scale": 0.125,
+      "gate_kind": "aim",
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "5개 mixed pair에서 평균/P95 LOS, LOS rate와 최초 Damage가 악화되고 lateral-right 최초 Damage가 1.283초 늦어짐"
+    },
+    "stage1_aim_localobs_s0125_r05_iteration_10": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_localobs_s0125_r05/bundle_000010",
+      "metadata_bytes": 22685,
+      "metadata_sha256": "B8360D8CED52CB4E1D7CFC8A2A214964D2195A881C10A89ADE076CD4BE88CCE0",
+      "weights_bytes": 70203,
+      "weights_sha256": "F58786BF9E65AF2823EB8BC679D033E159BA3198C8F015689074A53B8F666F2F",
+      "algorithm": "SAC",
+      "observation": "aim_residual10_v2",
+      "residual_scale": 0.125,
+      "gate_kind": "aim",
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "선별 정상 격추에서 lateral-right 최초 Damage가 1.300초 늦어 final 악화가 후반 과학습 때문이 아님"
+    },
+    "stage1_aim_balanced_s0125_r06_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_balanced_s0125_r06",
+      "metadata_bytes": 22661,
+      "metadata_sha256": "3BDC1B5F1D3B9662C17C7E3AA48A2E6D267E8C3987F361151760DA6D3B3C8F27",
+      "weights_bytes": 70235,
+      "weights_sha256": "157D95867A6C8502EB41A206C90BBF2B1689B53EC2E6F4DA46EA2A377D57AA34",
+      "algorithm": "SAC",
+      "observation": "aim_residual10_v2",
+      "reward": "aim_residual_balanced",
+      "residual_scale": 0.125,
+      "gate_kind": "aim",
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "reward 비중은 재균형됐으나 lateral-right 최초 Damage +1.317초와 평균/median LOS 악화가 반복됨"
+    }
+  }
+}

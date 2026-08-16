@@ -1,0 +1,95 @@
+name: 0815_aim_residual_stage1_short
+script: train_rllib
+
+output:
+  name: 0815_hybrid_aim
+  tag: stage1_aim_s0125_r01
+
+env:
+  observation_mode: aim_residual10
+  target_mode: autopilot
+  bt_rule_xml: 'C:\Users\shy66\Downloads\aip_final_0815\aip_final_0815\Rule_DCS_GDCC_0815.xml'
+  bt_rule_aliases: [Rule_DCS_GDCC_0815.xml]
+  max_engage_time: 30.0
+  episode_step_limit: 1800
+
+env_config:
+  sim_hz: 60
+  step_ratio: 6
+  min_altitude: 300.0
+  ownship_control_mode: bt_residual
+  ownship_behavior_dll: 'C:\Users\shy66\Downloads\aip_final_0815\aip_final_0815\AIP_DCS_GDCC_0815.dll'
+  ownship: [0.0, 0.0, -5000.0, 0.0, 0.0, 0.0, 230.0]
+  target: [850.0, 100.0, -5000.0, 0.0, 0.0, 0.0, 220.0]
+  initial_scenario:
+    mode: default
+    legacy_use_random_scenario: false
+  ownship_randomization:
+    enabled: true
+    radius: 100.0
+    r_roll: 2.0
+    r_pitch: 2.0
+    r_heading: 4.0
+  target_autopilot:
+    heading_cmd: 0.0
+    altitude_cmd: 5000.0
+    speed_cmd: 220.0
+  residual_training:
+    scale: 0.125
+    gate_kind: aim
+    aim_gate:
+      min_range_m: 152.4
+      enter_angle_margin_deg: 7.0
+      exit_angle_margin_deg: 10.0
+      enter_range_margin_m: 300.0
+      exit_range_margin_m: 550.0
+      min_hold_steps: 12
+  reward:
+    mode: aim_residual
+  wez:
+    angle_deg: 2.0
+    min_range_m: 152.4
+    max_range_m: 914.4
+
+algo:
+  name: sac
+  framework: torch
+  lr: 3.0e-4
+  gamma: 0.99
+  train_batch_size: 128
+  minibatch_size: 128
+  tau: 0.005
+  target_entropy: auto
+  replay_buffer_capacity: 10000
+  learning_starts: 256
+  mlp:
+    enabled: true
+    fcnet_hiddens: [128, 128]
+    fcnet_activation: relu
+    head_fcnet_hiddens: []
+    head_fcnet_activation: relu
+
+runtime:
+  iterations: 20
+  num_env_runners: 0
+  num_envs_per_env_runner: 1
+  rollout_fragment_length: 128
+  batch_mode: truncate_episodes
+  save_lightweight_bundle: true
+  lightweight_bundle_frequency: 5
+  save_native_checkpoint: true
+  native_checkpoint_frequency: 10
+
+dashboard:
+  enabled: false
+
+policy_probe:
+  enabled: true
+  interval: 2
+  steps: 4
+  print: false
+
+engagement_log:
+  enabled: false
+
+notes: "Stage 1 가설 H1: 0815 BT의 공격 기하에서 0.125 조준 잔차 SAC가 Damage Cone 진입 안정성을 학습할 수 있다."

@@ -55,36 +55,64 @@ def _resolve_rule_xml_source(
     )
 
 
+def _resolve_rule_targets(
+    workspace_root: Path,
+    aliases: list[str] | tuple[str, ...] | None,
+    *,
+    include_default: bool,
+) -> list[Path]:
+    names = ([RULE_XML_NAME] if include_default else []) + list(aliases or ())
+    targets: list[Path] = []
+    for name in names:
+        candidate = Path(name)
+        if candidate.name != str(candidate) or candidate.suffix.lower() != ".xml":
+            raise ValueError(f"Rule XML alias must be a plain .xml filename: {name!r}")
+        target = workspace_root / candidate.name
+        if target not in targets:
+            targets.append(target)
+    return targets
+
+
 @contextmanager
 def activate_rule_xml(
     rule_xml_path: str | Path | None,
     workspace_root: str | Path,
+    *,
+    aliases: list[str] | tuple[str, ...] | None = None,
+    include_default: bool = True,
 ) -> Iterator[None]:
-    """Temporarily activate a BT rule XML as the workspace rule file."""
+    """Temporarily activate a BT rule XML under every DLL-required filename."""
     workspace_root = Path(workspace_root).resolve()
     source = _resolve_rule_xml_source(rule_xml_path, workspace_root)
-
-    target = workspace_root / RULE_XML_NAME
-    if source == target.resolve():
-        # 2026-05-26: Log the exact XML path consumed by the native BT DLL.
+    targets = _resolve_rule_targets(
+        workspace_root,
+        aliases,
+        include_default=include_default,
+    )
+    if not targets:
+        raise ValueError("at least one Rule XML target must be enabled")
+    snapshots: dict[Path, bytes | None] = {}
+    activated: list[Path] = []
+    for target in targets:
+        if source == target.resolve():
+            print(
+                f"[bt_rule_manager] active Rule XML already in place: {target}",
+                file=sys.stderr,
+            )
+            continue
+        snapshots[target] = target.read_bytes() if target.exists() else None
+        shutil.copy2(source, target)
+        activated.append(target)
         print(
-            f"[bt_rule_manager] active Rule XML already in place: {target}",
+            f"[bt_rule_manager] activated Rule XML: {source} -> {target}",
             file=sys.stderr,
         )
-        yield
-        return
-
-    backup = None
-    if target.exists():
-        backup = target.with_suffix(".xml.bak")
-        shutil.copy2(target, backup)
-
-    shutil.copy2(source, target)
-    # 2026-05-26: Make XML activation explicit for DLL/cwd mismatch diagnosis.
-    print(f"[bt_rule_manager] activated Rule XML: {source} -> {target}", file=sys.stderr)
     try:
         yield
     finally:
-        if backup and backup.exists():
-            shutil.copy2(backup, target)
-            backup.unlink()
+        for target in reversed(activated):
+            previous = snapshots[target]
+            if previous is None:
+                target.unlink(missing_ok=True)
+            else:
+                target.write_bytes(previous)
