@@ -702,9 +702,10 @@ class DogFightEnv(gym.Env):
 
     def _prepare_btaware_action(self) -> np.ndarray:
         provider = self._ownship_action_provider
-        if not isinstance(provider, ResidualTrainingActionProvider):
+        prepare = getattr(provider, "prepare_bt_action", None)
+        if not callable(prepare):
             raise RuntimeError(
-                "aim_residual13_btaware requires ResidualTrainingActionProvider"
+                "aim_residual13_btaware requires a same-frame BT cache provider"
             )
         context = ActionContext(
             sim=self._sim,
@@ -717,7 +718,7 @@ class DogFightEnv(gym.Env):
                 "sim_time_s": float(self._ownship_state[StateIndex.SIM_TIME]),
             },
         )
-        return provider.prepare_bt_action(context)
+        return prepare(context)
 
     def _build_observation_for(
         self,

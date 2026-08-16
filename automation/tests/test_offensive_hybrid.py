@@ -407,6 +407,25 @@ class OffensiveHybridTests(unittest.TestCase):
         provider.reset(ctx)
         self.assertIsNone(provider.prepared_bt_action)
 
+    def test_btaware_inference_consumes_prepared_bt_once(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+        ctx = context(self.own, self.target, sim_time_s=0.0)
+
+        prepared = provider.prepare_bt_action(ctx)
+        result = provider.compute_action(ctx)
+
+        self.assertEqual(bt.calls, 1)
+        self.assertIsNone(provider.prepared_bt_action)
+        np.testing.assert_array_equal(result.info["bt_action"], prepared)
+        self.assertEqual(rl.calls, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

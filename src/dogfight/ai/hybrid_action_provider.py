@@ -780,6 +780,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         self.bt_provider.reset(context)
         self.residual_provider.reset(context)
         self.gate.reset()
+        self._prepared_bt_result: ActionResult | None = None
         self._active_frames = 0
         self._cached_residual: np.ndarray | None = None
         self._rl_inference_calls = 0
@@ -792,8 +793,32 @@ class ResidualInferenceActionProvider(ActionProvider):
         _reset_authority_counters(self)
         self._last_frame: dict = {}
 
+    @property
+    def prepared_bt_action(self) -> np.ndarray | None:
+        if self._prepared_bt_result is None:
+            return None
+        return clip_action(self._prepared_bt_result.action).copy()
+
+    def prepare_bt_action(self, context: ActionContext) -> np.ndarray:
+        if self._prepared_bt_result is None:
+            result = self.bt_provider.compute_action(context)
+            self._prepared_bt_result = ActionResult(
+                clip_action(result.action),
+                result.source,
+                result.confidence,
+                dict(result.info),
+            )
+        return clip_action(self._prepared_bt_result.action).copy()
+
+    def _consume_bt_result(self, context: ActionContext) -> ActionResult:
+        if self._prepared_bt_result is None:
+            return self.bt_provider.compute_action(context)
+        result = self._prepared_bt_result
+        self._prepared_bt_result = None
+        return result
+
     def compute_action(self, context: ActionContext) -> ActionResult:
-        bt_result = self.bt_provider.compute_action(context)
+        bt_result = self._consume_bt_result(context)
         bt_action = clip_action(bt_result.action)
         if self.gate_kind in ("aim", "combined"):
             gate_info = self.gate.update(
