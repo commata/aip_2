@@ -47,6 +47,18 @@ class AimResidualObservationTests(unittest.TestCase):
         self.assertTrue(np.all(np.isfinite(observation)))
         self.assertTrue(np.all(np.abs(observation) <= 1.0))
 
+    def test_v2_preserves_features_but_amplifies_local_aim_errors(self) -> None:
+        own = state(0.0, 0.0, -5000.0, 0.0, (230.0, 0.0, 0.0))
+        target = state(1000.0, 100.0, -5000.0, 0.0, (225.0, 0.0, 0.0))
+        v1 = build_observation("aim_residual10", own, target, None)
+        v2 = build_observation("aim_residual10_v2", own, target, None)
+
+        self.assertEqual(observation_size("aim_residual10_v2"), 10)
+        self.assertEqual(v2.shape, (10,))
+        self.assertTrue(np.all(np.isfinite(v2)))
+        self.assertTrue(np.all(np.abs(v2) <= 1.0))
+        self.assertGreater(abs(float(v2[0])), abs(float(v1[0])) * 5.0)
+
 
 if __name__ == "__main__":
     unittest.main()
