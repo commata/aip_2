@@ -65,6 +65,8 @@ class ManeuverTelemetryLogger:
             in_wez=bool(in_wez),
             target_damage=float(target_damage),
         )
+        action_info = dict(ownship_action_info or {})
+        self._update_surface_summary(ownship_action, action_info)
         if not self.enabled:
             self._frame += 1
             return
@@ -89,7 +91,7 @@ class ManeuverTelemetryLogger:
             "target": self._state_payload(target),
             "ownship_action": np.asarray(ownship_action, dtype=np.float32).tolist(),
             "target_action": np.asarray(target_action, dtype=np.float32).tolist(),
-            "hybrid": _json_safe(dict(ownship_action_info or {})),
+            "hybrid": _json_safe(action_info),
         }
         self._write(payload)
         self._frame += 1
@@ -107,6 +109,12 @@ class ManeuverTelemetryLogger:
         self._previous_in_wez = False
         self._time_to_first_wez_s: float | None = None
         self._time_to_first_damage_s: float | None = None
+        self._final_surface_saturated_steps = np.zeros(3, dtype=np.int64)
+        self._bt_surface_saturated_steps = np.zeros(3, dtype=np.int64)
+        self._final_positive_headroom_sum = np.zeros(3, dtype=np.float64)
+        self._final_negative_headroom_sum = np.zeros(3, dtype=np.float64)
+        self._bt_positive_headroom_sum = np.zeros(3, dtype=np.float64)
+        self._bt_negative_headroom_sum = np.zeros(3, dtype=np.float64)
 
     def _update_summary(
         self,
@@ -144,6 +152,25 @@ class ManeuverTelemetryLogger:
             self._time_to_first_damage_s = sim_time_s
         self._previous_in_wez = in_wez
 
+    def _update_surface_summary(self, final_action, action_info: dict[str, Any]) -> None:
+        final = np.asarray(final_action, dtype=np.float64)[:3]
+        bt_value = action_info.get("bt_action")
+        bt = (
+            np.asarray(bt_value, dtype=np.float64)[:3]
+            if isinstance(bt_value, (list, tuple, np.ndarray)) and len(bt_value) >= 3
+            else final
+        )
+        self._final_surface_saturated_steps += np.isclose(
+            np.abs(final), 1.0, atol=1e-6
+        )
+        self._bt_surface_saturated_steps += np.isclose(
+            np.abs(bt), 1.0, atol=1e-6
+        )
+        self._final_positive_headroom_sum += np.clip(1.0 - final, 0.0, 2.0)
+        self._final_negative_headroom_sum += np.clip(final + 1.0, 0.0, 2.0)
+        self._bt_positive_headroom_sum += np.clip(1.0 - bt, 0.0, 2.0)
+        self._bt_negative_headroom_sum += np.clip(bt + 1.0, 0.0, 2.0)
+
     @staticmethod
     def _state_payload(state: np.ndarray) -> dict[str, Any]:
         return {
@@ -167,7 +194,7 @@ class ManeuverTelemetryLogger:
         speed = np.asarray(self._speed_values, dtype=np.float64)
         altitude = np.asarray(self._altitude_values, dtype=np.float64)
         target_ata = np.asarray(self._target_ata_values, dtype=np.float64)
-        return {
+        result = {
             "enabled": self.enabled,
             "path": str(self.path) if self.path else "",
             "episode": self._episode,
@@ -197,6 +224,27 @@ class ManeuverTelemetryLogger:
             "min_speed_m_s": float(np.min(speed)) if speed.size else 0.0,
             "min_altitude_m": float(np.min(altitude)) if altitude.size else 0.0,
         }
+        frames = max(1, self._frame)
+        for index, axis in enumerate(("roll", "pitch", "yaw")):
+            result[f"final_{axis}_saturation_ratio"] = float(
+                self._final_surface_saturated_steps[index] / frames
+            )
+            result[f"bt_{axis}_saturation_ratio"] = float(
+                self._bt_surface_saturated_steps[index] / frames
+            )
+            result[f"final_{axis}_positive_headroom_mean"] = float(
+                self._final_positive_headroom_sum[index] / frames
+            )
+            result[f"final_{axis}_negative_headroom_mean"] = float(
+                self._final_negative_headroom_sum[index] / frames
+            )
+            result[f"bt_{axis}_positive_headroom_mean"] = float(
+                self._bt_positive_headroom_sum[index] / frames
+            )
+            result[f"bt_{axis}_negative_headroom_mean"] = float(
+                self._bt_negative_headroom_sum[index] / frames
+            )
+        return result
 
     def close(self) -> None:
         if self._file is not None:

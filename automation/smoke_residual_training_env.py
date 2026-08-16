@@ -117,6 +117,16 @@ def main() -> None:
                     or last["final_action"] == last["bt_action"]
                 ),
                 "last_applied_correction": last["applied_rl_correction"],
+                "last_surface_authority": last["surface_authority"],
+                "bt_surface_saturation_ratio_axis": telemetry[
+                    "bt_surface_saturation_ratio_axis"
+                ],
+                "final_surface_saturation_ratio_axis": telemetry[
+                    "final_surface_saturation_ratio_axis"
+                ],
+                "applied_to_requested_ratio_mean_axis": telemetry[
+                    "applied_to_requested_ratio_mean_axis"
+                ],
                 "episode_reward_components": info.get("ep_reward_components", {}),
                 "throttle_residual_forced_zero": last[
                     "throttle_residual_forced_zero"
