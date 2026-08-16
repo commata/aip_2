@@ -928,6 +928,10 @@ class DogFightEnv(gym.Env):
         self._initial_scenario_metrics = {
             "aim_curriculum_variant_index": float(index),
             "aim_curriculum_variant_name": str(variant.get("name", index)),
+            "aim_curriculum_variant_names": [
+                str(item.get("name", item_index))
+                for item_index, item in enumerate(variants)
+            ],
         }
 
     def _apply_ref_old_random_initial_scenario(self, scenario: dict) -> None:

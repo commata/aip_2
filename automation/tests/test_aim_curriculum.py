@@ -43,6 +43,10 @@ class AimCurriculumTests(unittest.TestCase):
         self.assertEqual(calls[1][1]["init_e"], -350)
         self.assertEqual(env.config["target_autopilot"]["heading_cmd"], 5.0)
         self.assertEqual(env._initial_scenario_metrics["aim_curriculum_variant_name"], "left")
+        self.assertEqual(
+            env._initial_scenario_metrics["aim_curriculum_variant_names"],
+            ["left"],
+        )
 
     def test_empty_variant_list_is_rejected(self) -> None:
         env = DogFightEnv.__new__(DogFightEnv)

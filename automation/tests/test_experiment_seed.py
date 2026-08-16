@@ -33,6 +33,21 @@ class ExperimentSeedTests(unittest.TestCase):
         numpy_seed.assert_called_once_with(1701)
         torch_seed.assert_called_once_with(1701)
 
+    def test_variant_fraction_metrics_are_preserved_in_training_rows(self) -> None:
+        result = {
+            "env_runners": {
+                "custom_metrics": {
+                    "aim_variant_fraction_lateral_left_mean": 0.4,
+                    "aim_variant_fraction_lateral_right_mean": 0.6,
+                }
+            }
+        }
+
+        metrics = train_rllib._extract_custom_metrics(result)
+
+        self.assertEqual(metrics["aim_variant_fraction_lateral_left"], 0.4)
+        self.assertEqual(metrics["aim_variant_fraction_lateral_right"], 0.6)
+
 
 if __name__ == "__main__":
     unittest.main()

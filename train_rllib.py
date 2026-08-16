@@ -33,6 +33,7 @@ from dogfight.ai.checkpoint_io import (
     save_lightweight_policy_bundle,
 )
 from dogfight.ai.bt_rule_manager import activate_rule_xml
+from dogfight.ai.callbacks import aim_variant_metric_name
 from dogfight.ai.dashboard_logger import (
     DashboardJsonlLogger,
     copy_experiment_yaml,
@@ -339,7 +340,7 @@ def _extract_custom_metrics(result: dict) -> dict:
                     return metrics[key]
         return default
 
-    return {
+    extracted = {
         "win_rate":             metric("win"),
         "loss_rate":            metric("loss"),
         "timeout_rate":         metric("timeout"),
@@ -415,6 +416,12 @@ def _extract_custom_metrics(result: dict) -> dict:
             )
         },
     }
+    for metrics in (cm, result.get("custom_metrics", {})):
+        for raw_key, value in metrics.items():
+            key = raw_key[:-5] if raw_key.endswith("_mean") else raw_key
+            if key.startswith("aim_variant_fraction_") and value is not None:
+                extracted.setdefault(key, value)
+    return extracted
 
 
 def _extract_progress_metrics(result: dict) -> dict:
@@ -1352,6 +1359,13 @@ def _run_training(args):
         "replay_buffer_size", "replay_buffer_memory_mb", "env_steps_per_sec",
         "learner_steps_per_sec", "iteration_time_s",
     ]
+    scenario_variants = (
+        env_config.get("initial_scenario", {}).get("variants", [])
+    )
+    _CSV_FIELDS.extend(
+        aim_variant_metric_name(variant.get("name", index))
+        for index, variant in enumerate(scenario_variants)
+    )
     csv_file = open(csv_path, "w", newline="", encoding="utf-8")
     csv_writer = csv.DictWriter(csv_file, fieldnames=_CSV_FIELDS)
     csv_writer.writeheader()

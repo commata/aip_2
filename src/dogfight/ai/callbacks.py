@@ -1,7 +1,15 @@
 from __future__ import annotations
 
+import re
+
 import numpy as np
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
+
+
+def aim_variant_metric_name(name: object) -> str:
+    """curriculum variant 이름을 안정적인 평균 빈도 metric key로 변환한다."""
+    normalized = re.sub(r"[^0-9A-Za-z_]+", "_", str(name).strip()).strip("_")
+    return f"aim_variant_fraction_{normalized.lower() or 'unnamed'}"
 
 
 class DogFightCallbacks(DefaultCallbacks):
@@ -88,6 +96,16 @@ class DogFightCallbacks(DefaultCallbacks):
             "headon_guard_fail",
             float(bool(info.get("headon_guard_fail", False))),
         )
+        selected_variant = info.get("aim_curriculum_variant_name")
+        variant_names = info.get("aim_curriculum_variant_names", [])
+        if selected_variant is not None and isinstance(variant_names, (list, tuple)):
+            for variant_name in variant_names:
+                self._record_metric(
+                    episode,
+                    metrics_logger,
+                    aim_variant_metric_name(variant_name),
+                    float(str(variant_name) == str(selected_variant)),
+                )
 
         # ── Aim and hybrid telemetry ─────────────────────────────────────
         maneuver = info.get("maneuver_telemetry", {}) or {}
