@@ -529,7 +529,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scenario", type=Path, default=ROOT / "automation/scenarios/0815_aim_stage1.json")
     parser.add_argument("--seeds", nargs="+", type=int, default=[1201, 1202, 1203])
     parser.add_argument("--scales", nargs="+", type=float, default=[0.125])
-    parser.add_argument("--gate-kind", choices=["aim", "offensive"], default="aim")
+    parser.add_argument(
+        "--gate-kind",
+        choices=["aim", "offensive", "combined"],
+        default="aim",
+    )
     parser.add_argument(
         "--composition-mode",
         choices=["additive", "saturation_aware"],
