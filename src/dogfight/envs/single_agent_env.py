@@ -18,6 +18,8 @@ import FighterSim
 import JSBSimWrapper
 from GeoMathUtil import GeometryInfo
 from dogfight.ai.action_provider import ActionContext
+from dogfight.ai.bt_action_provider import BTActionProvider
+from dogfight.ai.hybrid_action_provider import ResidualTrainingActionProvider
 from dogfight.ai.maneuver_telemetry_logger import ManeuverTelemetryLogger
 from dogfight.ai.native_bt import AIPilot
 from dogfight.config import FEET_TO_METER, METER_TO_FEET, merge_env_config
@@ -94,6 +96,11 @@ class DogFightEnv(gym.Env):
         self._target_action_provider = target_action_provider
 
         self.config = merge_env_config(env_config)
+        if (
+            self._ownship_action_provider is None
+            and self.config["ownship_control_mode"] == "bt_residual"
+        ):
+            self._ownship_action_provider = self._build_residual_training_provider()
         self._runner_index = self.config.get("_runner_index", "local")
         self._env_index = self.config.get("_env_index", 0)
         self._geo_info = GeometryInfo()
@@ -226,6 +233,25 @@ class DogFightEnv(gym.Env):
         if not dll_name:
             return None
         return AIPilot(dll_name)
+
+    def _build_residual_training_provider(self):
+        dll_name = self.config.get("ownship_behavior_dll")
+        if not dll_name:
+            raise ValueError(
+                "ownship_behavior_dll is required for bt_residual control mode"
+            )
+        residual = self.config.get("residual_training", {})
+        bt_provider = BTActionProvider(
+            dll_name=dll_name,
+            enable_turn_throttle_optimization=False,
+        )
+        return ResidualTrainingActionProvider(
+            bt_provider,
+            residual_scale=float(residual.get("scale", 0.125)),
+            gate_kind=str(residual.get("gate_kind", "aim")),
+            aim_gate=residual.get("aim_gate") or None,
+            offensive_gate=residual.get("offensive_gate") or None,
+        )
 
     def _build_ownship_ai(self):
         if self._ownship_action_provider is not None:
@@ -521,6 +547,10 @@ class DogFightEnv(gym.Env):
                 self._ownship_state,
                 self._target_state,
                 self.pre_obs,
+                info={
+                    "residual_action": np.asarray(action, dtype=np.float32),
+                    "sim_time_s": float(self._ownship_state[StateIndex.SIM_TIME]),
+                },
             )
             result = self._ownship_action_provider.compute_action(context)
             self._last_ownship_action_info = {
@@ -1011,7 +1041,16 @@ class DogFightEnv(gym.Env):
             ]
         )
 
-    def _build_action_context(self, sim, opponent_sim, ownship_state, target_state, observation) -> ActionContext:
+    def _build_action_context(
+        self,
+        sim,
+        opponent_sim,
+        ownship_state,
+        target_state,
+        observation,
+        *,
+        info: dict | None = None,
+    ) -> ActionContext:
         if ownship_state is not None and target_state is not None:
             observation = self._build_observation_for(
                 np.array(ownship_state, copy=True),
@@ -1023,7 +1062,7 @@ class DogFightEnv(gym.Env):
             ownship_state=np.array(ownship_state, copy=True) if ownship_state is not None else None,
             target_state=np.array(target_state, copy=True) if target_state is not None else None,
             observation=np.array(observation, copy=True) if observation is not None else None,
-            info={"timestep": self.current_timestep},
+            info={"timestep": self.current_timestep, **dict(info or {})},
         )
 
     def _reset_action_providers(self) -> None:

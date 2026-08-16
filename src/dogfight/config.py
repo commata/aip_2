@@ -18,6 +18,12 @@ DEFAULT_ENV_CONFIG = {
     "ownship_control_mode": "rl",
     "target_mode": "behavior_tree",
     "ownship_behavior_dll": None,
+    "residual_training": {
+        "scale": 0.125,
+        "gate_kind": "aim",
+        "aim_gate": {},
+        "offensive_gate": {},
+    },
     "target_behavior_dll": "AIP_BASE_target.dll",
     "target_loiter": {"enabled": True, "bank": 30.0, "pitch": 0.0},
     "target_autopilot": {"heading_cmd": 180.0, "altitude_cmd": 7000.0, "speed_cmd": 250.0},
