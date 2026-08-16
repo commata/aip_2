@@ -80,6 +80,12 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
     _add_optional(argv, "--observation-mode", env, "observation_mode")
     _add_optional(argv, "--observation-module", env, "observation_module")
     _add_optional(argv, "--target-behavior-dll", env, "target_behavior_dll")
+    target_curriculum = env.get("target_profile_curriculum")
+    if target_curriculum:
+        argv += [
+            "--target-profile-curriculum-json",
+            json.dumps(target_curriculum, ensure_ascii=False, separators=(",", ":")),
+        ]
     _add_optional(argv, "--bt-rule-xml", env, "bt_rule_xml")
     _add_repeatable(argv, "--bt-rule-alias", env.get("bt_rule_aliases"))
     _add_optional(argv, "--target-rule-xml", env, "target_rule_xml")
@@ -180,6 +186,25 @@ def build_subprocess_env(exp: dict[str, Any]) -> dict[str, str]:
     ):
         env[name] = rendered
     return env
+
+
+def run_preserving_file(
+    command: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str],
+    protected_path: Path,
+) -> subprocess.CompletedProcess:
+    """Run one experiment and restore simulator-mutated tracked state exactly."""
+    original = protected_path.read_bytes() if protected_path.is_file() else None
+    try:
+        return subprocess.run(command, cwd=cwd, env=env)
+    finally:
+        if original is not None and (
+            not protected_path.is_file() or protected_path.read_bytes() != original
+        ):
+            protected_path.write_bytes(original)
+            print(f"[restore]    {protected_path.relative_to(cwd)}")
 
 
 def _section(exp: dict[str, Any], key: str) -> dict[str, Any]:
@@ -356,7 +381,15 @@ def main() -> int:
     command = [sys.executable, str(script_path), *script_args]
     print(f"[experiment] {exp.get('name', exp_path.stem)}")
     print(f"[script]     {script_path.relative_to(ROOT)}")
-    if target_profile is not None:
+    if target_profile is not None and "profile_pool" in target_profile:
+        print(
+            "[target-pool] "
+            + ", ".join(
+                f"{item['profile_id']}:{item['weight']:g}"
+                for item in target_profile["profile_pool"]
+            )
+        )
+    elif target_profile is not None:
         print(
             "[target]     "
             f"{target_profile['profile_id']} "
@@ -369,7 +402,12 @@ def main() -> int:
         print("[dry-run] no training started.")
         return 0
 
-    completed = subprocess.run(command, cwd=ROOT, env=subprocess_env)
+    completed = run_preserving_file(
+        command,
+        cwd=ROOT,
+        env=subprocess_env,
+        protected_path=ROOT / "aircraft" / "f16" / "f16_init.xml",
+    )
     return completed.returncode
 
 

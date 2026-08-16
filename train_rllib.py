@@ -38,7 +38,7 @@ from dogfight.ai.checkpoint_io import (
     save_lightweight_policy_bundle,
 )
 from dogfight.ai.bt_rule_manager import activate_rule_xml
-from dogfight.ai.callbacks import aim_variant_metric_name
+from dogfight.ai.callbacks import aim_variant_metric_name, target_profile_metric_name
 from dogfight.ai.dashboard_logger import (
     DashboardJsonlLogger,
     copy_experiment_yaml,
@@ -516,7 +516,10 @@ def _extract_custom_metrics(result: dict) -> dict:
     for metrics in (cm, result.get("custom_metrics", {})):
         for raw_key, value in metrics.items():
             key = raw_key[:-5] if raw_key.endswith("_mean") else raw_key
-            if key.startswith("aim_variant_fraction_") and value is not None:
+            if (
+                key.startswith("aim_variant_fraction_")
+                or key.startswith("target_profile_fraction_")
+            ) and value is not None:
                 extracted.setdefault(key, value)
     return extracted
 
@@ -539,6 +542,11 @@ def _extract_progress_metrics(result: dict) -> dict:
         "episodes": first_present(
             env_metrics,
             ("num_episodes_lifetime", "num_episodes"),
+        ),
+        "learner_steps": _find_nested_metric(
+            result,
+            "num_env_steps_trained_lifetime",
+            "num_module_steps_trained_lifetime",
         ),
     }
 
@@ -723,9 +731,14 @@ def parse_args():
     parser.add_argument(
         "--target-mode",
         default="behavior_tree",
-        choices=["behavior_tree", "fixed", "loiter", "autopilot"],
+        choices=["behavior_tree", "fixed", "loiter", "autopilot", "profile_curriculum"],
     )
     parser.add_argument("--target-behavior-dll", default="AIP_BASE_target.dll")
+    parser.add_argument(
+        "--target-profile-curriculum-json",
+        default="",
+        help="Resolved weighted target profile curriculum JSON from run_experiment.py.",
+    )
     parser.add_argument("--bt-rule-xml", default="")
     parser.add_argument("--bt-rule-alias", action="append", default=[])
     parser.add_argument("--target-rule-xml", default="")
@@ -1384,6 +1397,14 @@ def _run_training(args):
         "episode_step_limit": args.episode_step_limit,
     }
     deep_update(env_config, load_experiment_env_config(args.experiment_yaml, ROOT))
+    if args.target_profile_curriculum_json:
+        curriculum = json.loads(args.target_profile_curriculum_json)
+        if not isinstance(curriculum, list) or not curriculum:
+            raise ValueError(
+                "--target-profile-curriculum-json must contain a non-empty list"
+            )
+        env_config["target_profile_curriculum"] = curriculum
+        env_config["target_mode"] = "profile_curriculum"
     if args.reward_module:
         env_config["reward_module"] = args.reward_module
     if args.observation_module:
@@ -1451,7 +1472,8 @@ def _run_training(args):
     log_dir.mkdir(parents=True, exist_ok=True)
     csv_path = log_dir / "training_log.csv"
     _CSV_FIELDS = [
-        "iter", "sampled_steps", "episodes", "reward_mean", "ep_len_mean",
+        "iter", "sampled_steps", "learner_steps", "episodes", "reward_mean", "ep_len_mean",
+        "train_call_wall_s", "effective_learner_time_s",
         "win_rate", "loss_rate", "timeout_rate", "crash_rate",
         "ep_wez_steps", "ep_mean_distance", "ep_min_distance",
         "ep_reward_pursuit", "ep_reward_damage", "ep_reward_safety",
@@ -1488,6 +1510,11 @@ def _run_training(args):
     _CSV_FIELDS.extend(
         aim_variant_metric_name(variant.get("name", index))
         for index, variant in enumerate(scenario_variants)
+    )
+    target_profiles = env_config.get("target_profile_curriculum", [])
+    _CSV_FIELDS.extend(
+        target_profile_metric_name(profile.get("profile_id", index))
+        for index, profile in enumerate(target_profiles)
     )
     csv_file = open(csv_path, "w", newline="", encoding="utf-8")
     csv_writer = csv.DictWriter(csv_file, fieldnames=_CSV_FIELDS)
@@ -1543,14 +1570,37 @@ def _run_training(args):
         bundle_frequency = max(0, int(args.lightweight_bundle_frequency))
         native_frequency = _native_checkpoint_frequency(args)
 
+        effective_learner_time_s = 0.0
+        previous_sampled_steps = 0.0
+        previous_learner_steps = 0.0
         for iteration in range(args.iterations):
             _runtime_stage("train_iteration_start", iteration=iteration)
+            train_call_started = time.monotonic()
             result = algorithm.train()
+            train_call_wall_s = time.monotonic() - train_call_started
             _runtime_stage("train_iteration_done", iteration=iteration)
             env_metrics   = result.get("env_runners", {})
             reward_mean      = env_metrics.get("episode_return_mean", "n/a")
             episode_len_mean = env_metrics.get("episode_len_mean", "n/a")
             progress = _extract_progress_metrics(result)
+            sampled_steps_value = progress.get("sampled_steps")
+            learner_steps_value = progress.get("learner_steps")
+            has_sampling_progress = isinstance(sampled_steps_value, (int, float)) and (
+                float(sampled_steps_value) > previous_sampled_steps
+            )
+            has_learner_progress = isinstance(learner_steps_value, (int, float)) and (
+                float(learner_steps_value) > previous_learner_steps
+            )
+            if has_sampling_progress and has_learner_progress:
+                effective_learner_time_s += train_call_wall_s
+            if isinstance(sampled_steps_value, (int, float)):
+                previous_sampled_steps = max(
+                    previous_sampled_steps, float(sampled_steps_value)
+                )
+            if isinstance(learner_steps_value, (int, float)):
+                previous_learner_steps = max(
+                    previous_learner_steps, float(learner_steps_value)
+                )
             learner_stats = _extract_learner_stats(result)
             _fill_algorithm_runtime_stats(learner_stats, algorithm)
             if (
@@ -1567,9 +1617,12 @@ def _run_training(args):
             row = {
                 "iter":              iteration,
                 "sampled_steps":     progress["sampled_steps"],
+                "learner_steps":     progress["learner_steps"],
                 "episodes":          progress["episodes"],
                 "reward_mean":       reward_mean,
                 "ep_len_mean":       episode_len_mean,
+                "train_call_wall_s": train_call_wall_s,
+                "effective_learner_time_s": effective_learner_time_s,
                 **custom,
                 **learner_stats,
             }
@@ -1592,6 +1645,10 @@ def _run_training(args):
                 "iteration":       iteration,
                 "reward_mean":     reward_mean,
                 "episode_len_mean": episode_len_mean,
+                "sampled_steps": progress["sampled_steps"],
+                "learner_steps": progress["learner_steps"],
+                "train_call_wall_s": train_call_wall_s,
+                "effective_learner_time_s": effective_learner_time_s,
                 **custom,
                 **learner_stats,
             })

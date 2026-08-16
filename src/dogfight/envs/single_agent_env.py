@@ -22,6 +22,7 @@ from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.hybrid_action_provider import ResidualTrainingActionProvider
 from dogfight.ai.maneuver_telemetry_logger import ManeuverTelemetryLogger
 from dogfight.ai.native_bt import AIPilot
+from dogfight.ai.target_profile_curriculum import TargetProfileCurriculum
 from dogfight.config import FEET_TO_METER, METER_TO_FEET, merge_env_config
 from dogfight.envs.observation import (
     build_observation,
@@ -96,6 +97,16 @@ class DogFightEnv(gym.Env):
         self._target_action_provider = target_action_provider
 
         self.config = merge_env_config(env_config)
+        target_curriculum_config = self.config.get("target_profile_curriculum") or []
+        if target_curriculum_config and self._target_action_provider is not None:
+            raise ValueError(
+                "target_profile_curriculum cannot be combined with target_action_provider"
+            )
+        self._target_profile_curriculum = (
+            TargetProfileCurriculum(target_curriculum_config)
+            if target_curriculum_config
+            else None
+        )
         if (
             self._ownship_action_provider is None
             and self.config["ownship_control_mode"] == "bt_residual"
@@ -269,6 +280,8 @@ class DogFightEnv(gym.Env):
         return self._build_ai(self.config["ownship_behavior_dll"])
 
     def _build_target_ai(self):
+        if self._target_profile_curriculum is not None:
+            return None
         if self._target_action_provider is not None:
             return None
         if self.config["target_mode"] != "behavior_tree":
@@ -293,6 +306,8 @@ class DogFightEnv(gym.Env):
             self._apply_aim_residual_initial_scenario(scenario)
         else:
             self._initial_scenario_metrics = {}
+
+        self._select_target_profile_for_episode()
 
         # Apply per-episode position randomization if configured
         rand = self.config.get("ownship_randomization", {})
@@ -342,6 +357,22 @@ class DogFightEnv(gym.Env):
         self._previous_residual_correction = np.zeros(4, dtype=np.float64)
         self._maneuver_telemetry.start_episode(seed=seed)
         return np.array(self.pre_obs, dtype=np.float32), dict(self.info)
+
+    def _select_target_profile_for_episode(self) -> None:
+        curriculum = self._target_profile_curriculum
+        if curriculum is None:
+            return
+        selection = curriculum.select_episode(self.np_random)
+        self._target_action_provider = curriculum.active_provider
+        self.config["target_mode"] = selection.backend_type
+        self._initial_scenario_metrics.update(
+            {
+                "target_profile_index": float(selection.index),
+                "target_profile_id": selection.profile_id,
+                "target_profile_ids": curriculum.profile_ids,
+                "target_behavior_cluster": selection.behavior_cluster,
+            }
+        )
 
     def step(self, action) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         action = np.asarray(action, dtype=np.float32)
@@ -1373,6 +1404,8 @@ class DogFightEnv(gym.Env):
                     provider.close()
                 except Exception:
                     pass
+        if getattr(self, "_target_profile_curriculum", None) is not None:
+            self._target_profile_curriculum.close()
         self._maneuver_telemetry.close()
         sim_ai_pairs = (
             (getattr(self, "_sim", None), getattr(self, "_ownship_ai", None)),

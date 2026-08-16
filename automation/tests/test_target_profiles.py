@@ -107,6 +107,51 @@ class TargetProfileTests(unittest.TestCase):
                     profile["dll"]["sha256"],
                 )
 
+    def test_profile_pool_resolves_weighted_backends_without_observation_identity(self) -> None:
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            dll = root / "target.dll"
+            xml = root / "rule.xml"
+            dll.write_bytes(b"dll")
+            xml.write_text("<root/>", encoding="utf-8")
+            self._write_profile(root, dll, xml)
+            autopilot = {
+                "profile_id": "test_autopilot",
+                "backend_type": "autopilot",
+                "source": "unit test",
+                "smoke_status": "PASSED",
+                "behavior_cluster": "scripted",
+                "use": {"training": True, "validation": True, "held_out": False},
+            }
+            (root / "test_autopilot.json").write_text(
+                json.dumps(autopilot), encoding="utf-8"
+            )
+            experiment = {
+                "env": {
+                    "observation_mode": "aim_residual10_v2",
+                    "target_profile_pool": [
+                        {"profile": "test_autopilot", "weight": 2},
+                        {"profile": "test_bt", "weight": 1},
+                    ],
+                }
+            }
+
+            merged, result = apply_target_profile(
+                experiment,
+                environ={},
+                profile_dir=root,
+            )
+
+            env = merged["env"]
+            self.assertEqual(env["target_mode"], "profile_curriculum")
+            self.assertEqual(
+                [item["profile_id"] for item in env["target_profile_curriculum"]],
+                ["test_autopilot", "test_bt"],
+            )
+            self.assertEqual(env["target_rule_aliases"], ["Rule_test.xml"])
+            self.assertNotIn("target_profile_id", env)
+            self.assertIn("profile_pool", result)
+
 
 if __name__ == "__main__":
     unittest.main()

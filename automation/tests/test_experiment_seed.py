@@ -4,7 +4,12 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from scripts.run_experiment import ExperimentError, build_argv, build_subprocess_env
+from scripts.run_experiment import (
+    ExperimentError,
+    build_argv,
+    build_subprocess_env,
+    run_preserving_file,
+)
 import train_rllib
 
 
@@ -99,6 +104,51 @@ class ExperimentSeedTests(unittest.TestCase):
 
         self.assertEqual(metrics["aim_variant_fraction_lateral_left"], 0.4)
         self.assertEqual(metrics["aim_variant_fraction_lateral_right"], 0.6)
+
+    def test_target_profile_fraction_and_learner_steps_are_preserved(self) -> None:
+        result = {
+            "env_runners": {
+                "num_env_steps_sampled_lifetime": 512,
+                "custom_metrics": {
+                    "target_profile_fraction_bt_0815_mean": 0.5,
+                    "target_profile_fraction_bt_aip2_mean": 0.5,
+                },
+            },
+            "learners": {
+                "__all_modules__": {"num_env_steps_trained_lifetime": 384}
+            },
+        }
+
+        metrics = train_rllib._extract_custom_metrics(result)
+        progress = train_rllib._extract_progress_metrics(result)
+
+        self.assertEqual(metrics["target_profile_fraction_bt_0815"], 0.5)
+        self.assertEqual(metrics["target_profile_fraction_bt_aip2"], 0.5)
+        self.assertEqual(progress["sampled_steps"], 512)
+        self.assertEqual(progress["learner_steps"], 384)
+
+    def test_experiment_runner_restores_simulator_mutated_file(self) -> None:
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            protected = root / "f16_init.xml"
+            protected.write_bytes(b"baseline")
+
+            def mutate(*args, **kwargs):
+                protected.write_bytes(b"simulator mutation")
+                return type("Completed", (), {"returncode": 0})()
+
+            with patch("scripts.run_experiment.subprocess.run", side_effect=mutate):
+                completed = run_preserving_file(
+                    ["python", "train.py"],
+                    cwd=root,
+                    env={},
+                    protected_path=protected,
+                )
+
+            self.assertEqual(completed.returncode, 0)
+            self.assertEqual(protected.read_bytes(), b"baseline")
 
 
 if __name__ == "__main__":
