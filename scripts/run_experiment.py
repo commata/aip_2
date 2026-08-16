@@ -69,6 +69,7 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
     _add_optional(argv, "--tau", algo, "tau")
     _add_optional(argv, "--target-entropy", algo, "target_entropy")
     _add_replay_buffer_options(argv, algo)
+    _add_optional(argv, "--learning-starts", algo, "learning_starts")
     _add_mlp_model_options(argv, algo)
     _add_network_options(argv, algo)
     _add_lstm_sac_options(argv, algo)

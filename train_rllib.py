@@ -349,6 +349,13 @@ def _extract_custom_metrics(result: dict) -> dict:
         "ep_reward_damage":     metric("ep_reward_damage"),
         "ep_reward_safety":     metric("ep_reward_safety"),
         "ep_reward_survival":   metric("ep_reward_survival"),
+        "ep_reward_aim_progress": metric("ep_reward_aim_progress"),
+        "ep_reward_aim_quality": metric("ep_reward_aim_quality"),
+        "ep_reward_los_rate": metric("ep_reward_los_rate"),
+        "ep_reward_cone_dwell": metric("ep_reward_cone_dwell"),
+        "ep_reward_residual_l2": metric("ep_reward_residual_l2"),
+        "ep_reward_residual_smooth": metric("ep_reward_residual_smooth"),
+        "ep_reward_low_speed": metric("ep_reward_low_speed"),
         "ep_altitude_penalty_steps": metric("ep_altitude_penalty_steps"),
         "initial_alpha_deg":    metric("initial_alpha_deg"),
         "initial_ata_deg":      metric("initial_ata_deg"),
@@ -366,6 +373,45 @@ def _extract_custom_metrics(result: dict) -> dict:
         "action_rudder_std":    metric("action_rudder_std"),
         "action_throttle_std":  metric("action_throttle_std"),
         "action_sat_rate":      metric("action_saturation_rate"),
+        **{
+            key: metric(key)
+            for key in (
+                "mean_los_deg",
+                "median_los_deg",
+                "p95_los_deg",
+                "min_los_deg",
+                "los_rate_rms_deg_s",
+                "mean_ata_deg",
+                "min_ata_deg",
+                "mean_target_ata_deg",
+                "damage_cone_entries",
+                "damage_cone_time_s",
+                "phase1_cone_time_s",
+                "phase2_cone_time_s",
+                "phase3_cone_time_s",
+                "time_to_first_wez_s",
+                "time_to_first_damage_s",
+                "mean_speed_m_s",
+                "min_speed_m_s",
+                "min_altitude_m",
+                "gate_active_ratio",
+                "gate_entries",
+                "gate_exits",
+                "gate_mean_active_s",
+                "gate_min_active_s",
+                "rl_correction_steps",
+                "rl_correction_ratio",
+                "roll_residual_abs_mean",
+                "pitch_residual_abs_mean",
+                "yaw_residual_abs_mean",
+                "roll_residual_abs_max",
+                "pitch_residual_abs_max",
+                "yaw_residual_abs_max",
+                "action_clipping_ratio",
+                "action_saturation_ratio",
+                "requested_throttle_residual_abs_mean",
+            )
+        },
     }
 
 
@@ -579,6 +625,12 @@ def parse_args():
         type=int,
         default=None,
         help="SAC replay buffer capacity. Ignored by PPO.",
+    )
+    parser.add_argument(
+        "--learning-starts",
+        type=int,
+        default=None,
+        help="SAC environment steps collected before learner updates begin.",
     )
     parser.add_argument(
         "--model-fcnet-hiddens",
@@ -827,6 +879,7 @@ def _build_algorithm_args(args) -> dict:
         "tau": args.tau,
         "target_entropy": args.target_entropy,
         "replay_buffer_capacity": args.replay_buffer_capacity,
+        "learning_starts": args.learning_starts,
         "model_config": _build_model_config_args(args),
         "network_spec": args.network_spec_json,
         "use_lstm": args.use_lstm,
@@ -1248,7 +1301,10 @@ def _run_training(args):
         "win_rate", "loss_rate", "timeout_rate", "crash_rate",
         "ep_wez_steps", "ep_mean_distance", "ep_min_distance",
         "ep_reward_pursuit", "ep_reward_damage", "ep_reward_safety",
-        "ep_reward_survival", "ep_altitude_penalty_steps",
+        "ep_reward_survival", "ep_reward_aim_progress", "ep_reward_aim_quality",
+        "ep_reward_los_rate", "ep_reward_cone_dwell", "ep_reward_residual_l2",
+        "ep_reward_residual_smooth", "ep_reward_low_speed",
+        "ep_altitude_penalty_steps",
         "initial_alpha_deg", "initial_ata_deg", "initial_aa_deg",
         "initial_distance_m", "final_ata_deg", "final_aa_deg",
         "headon_guard_fail",
@@ -1256,6 +1312,17 @@ def _run_training(args):
         "action_throttle_mean", "action_roll_std", "action_pitch_std",
         "action_rudder_std", "action_throttle_std",
         "action_sat_rate",
+        "mean_los_deg", "median_los_deg", "p95_los_deg", "min_los_deg",
+        "los_rate_rms_deg_s", "mean_ata_deg", "min_ata_deg",
+        "mean_target_ata_deg", "damage_cone_entries", "damage_cone_time_s",
+        "phase1_cone_time_s", "phase2_cone_time_s", "phase3_cone_time_s",
+        "time_to_first_wez_s", "time_to_first_damage_s", "mean_speed_m_s",
+        "min_speed_m_s", "min_altitude_m", "gate_active_ratio",
+        "gate_entries", "gate_exits", "gate_mean_active_s", "gate_min_active_s",
+        "rl_correction_steps", "rl_correction_ratio", "roll_residual_abs_mean",
+        "pitch_residual_abs_mean", "yaw_residual_abs_mean", "roll_residual_abs_max",
+        "pitch_residual_abs_max", "yaw_residual_abs_max", "action_clipping_ratio",
+        "action_saturation_ratio", "requested_throttle_residual_abs_mean",
         "policy_loss", "vf_loss", "entropy", "kl", "clip_frac", "explained_var",
         "actor_loss", "critic_loss", "alpha_loss", "alpha", "target_entropy",
         "replay_buffer_size", "replay_buffer_memory_mb", "env_steps_per_sec",
@@ -1465,6 +1532,7 @@ def main():
                     args.bt_rule_xml,
                     ROOT,
                     aliases=args.bt_rule_alias,
+                    include_default=False,
                 )
             )
         if args.target_rule_xml:
@@ -1473,6 +1541,7 @@ def main():
                     args.target_rule_xml,
                     ROOT,
                     aliases=args.target_rule_alias,
+                    include_default=False,
                 )
             )
         _run_training(args)
