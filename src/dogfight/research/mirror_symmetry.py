@@ -111,4 +111,3 @@ def mirror_pose_vertical(pose, *, down_origin_m: float) -> list[float]:
     result[3] *= -1.0
     result[4] *= -1.0
     return result.tolist()
-
