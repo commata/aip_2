@@ -9,9 +9,13 @@ from .dashboard_logger import (
     training_row_to_dashboard_metrics,
 )
 from .hybrid_action_provider import (
+    AimGateConfig,
+    AimResidualGate,
     HybridActionProvider,
     OffensiveGateConfig,
     OffensiveResidualGate,
+    ResidualInferenceActionProvider,
+    ResidualTrainingActionProvider,
 )
 from .native_bt import AIPilot
 from .rl_action_provider import RLActionProvider
@@ -27,8 +31,12 @@ __all__ = [
     "DashboardJsonlLogger",
     "activate_rule_xml",
     "HybridActionProvider",
+    "AimGateConfig",
+    "AimResidualGate",
     "OffensiveGateConfig",
     "OffensiveResidualGate",
+    "ResidualInferenceActionProvider",
+    "ResidualTrainingActionProvider",
     "RLActionProvider",
     "build_algorithm_config",
     "build_algorithm_from_bundle",

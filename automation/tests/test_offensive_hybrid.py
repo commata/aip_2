@@ -16,6 +16,7 @@ from dogfight.ai.hybrid_action_provider import (
     HybridActionProvider,
     OffensiveGateConfig,
     OffensiveResidualGate,
+    ResidualInferenceActionProvider,
     ResidualTrainingActionProvider,
 )
 
@@ -211,6 +212,55 @@ class OffensiveHybridTests(unittest.TestCase):
         np.testing.assert_allclose(on.action[:3], [0.3, -0.35, 0.125], atol=1e-6)
         self.assertAlmostEqual(float(on.action[3]), 0.77, places=6)
         self.assertTrue(on.info["throttle_residual_forced_zero"])
+
+    def test_inference_residual_gate_off_is_exact_bt_and_skips_policy(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+
+        result = provider.compute_action(
+            context(self.own, state(0.0, 3000.0, 0.0), sim_time_s=0.0)
+        )
+
+        np.testing.assert_array_equal(result.action, bt.action)
+        self.assertEqual(rl.calls, 0)
+        self.assertEqual(provider.telemetry()["rl_inference_calls"], 0)
+
+    def test_inference_residual_runs_bt_each_frame_and_holds_policy(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="aim",
+            rl_action_repeat=3,
+        )
+
+        results = [
+            provider.compute_action(
+                context(self.own, self.target, sim_time_s=0.0)
+            )
+            for _ in range(5)
+        ]
+
+        self.assertEqual(bt.calls, 5)
+        self.assertEqual(rl.calls, 2)
+        for result in results:
+            np.testing.assert_allclose(
+                result.action,
+                [0.3, -0.35, 0.125, 0.77],
+                atol=1e-6,
+            )
+        telemetry = provider.telemetry()
+        self.assertEqual(telemetry["rl_correction_steps"], 5)
+        self.assertEqual(telemetry["rl_action_repeat"], 3)
+        self.assertAlmostEqual(telemetry["rl_inference_over_166_7ms_ratio"], 0.0)
 
 
 if __name__ == "__main__":

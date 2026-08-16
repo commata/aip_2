@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from time import perf_counter
 from typing import Callable
 
 import numpy as np
@@ -500,6 +501,207 @@ class HybridActionProvider(ActionProvider):
     def close(self) -> None:
         self.primary_provider.close()
         self.secondary_provider.close()
+
+
+class ResidualInferenceActionProvider(ActionProvider):
+    """Run raw BT every frame and apply a held policy residual only inside a gate."""
+
+    def __init__(
+        self,
+        bt_provider: ActionProvider,
+        residual_provider: ActionProvider,
+        *,
+        residual_scale: float,
+        gate_kind: str = "aim",
+        aim_gate: AimGateConfig | dict | None = None,
+        offensive_gate: OffensiveGateConfig | dict | None = None,
+        rl_action_repeat: int = 6,
+        confidence: float = 0.95,
+    ):
+        if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
+            raise ValueError(
+                "aim residual scale must be one of "
+                f"{ALLOWED_AIM_RESIDUAL_SCALES}, got {residual_scale}"
+            )
+        if gate_kind == "aim":
+            gate = AimResidualGate(aim_gate)
+        elif gate_kind == "offensive":
+            gate = OffensiveResidualGate(offensive_gate)
+        else:
+            raise ValueError(f"unsupported residual inference gate: {gate_kind!r}")
+        self.bt_provider = bt_provider
+        self.residual_provider = residual_provider
+        self.residual_scale = float(residual_scale)
+        self.gate_kind = gate_kind
+        self.gate = gate
+        self.rl_action_repeat = max(1, int(rl_action_repeat))
+        self.confidence = float(confidence)
+        self.reset(None)
+
+    def reset(self, context: ActionContext | None = None) -> None:
+        self.bt_provider.reset(context)
+        self.residual_provider.reset(context)
+        self.gate.reset()
+        self._active_frames = 0
+        self._cached_residual: np.ndarray | None = None
+        self._rl_inference_calls = 0
+        self._rl_inference_latency_ms: list[float] = []
+        self._correction_steps = 0
+        self._correction_abs_sum = np.zeros(4, dtype=np.float64)
+        self._correction_abs_max = np.zeros(4, dtype=np.float64)
+        self._clipped_steps = 0
+        self._saturated_steps = 0
+        self._last_frame: dict = {}
+
+    def compute_action(self, context: ActionContext) -> ActionResult:
+        bt_result = self.bt_provider.compute_action(context)
+        bt_action = clip_action(bt_result.action)
+        if self.gate_kind == "aim":
+            gate_info = self.gate.update(
+                context.ownship_state,
+                context.target_state,
+                sim_time_s=context.info.get("sim_time_s"),
+            )
+        else:
+            gate_info = self.gate.update(
+                context.ownship_state,
+                context.target_state,
+            )
+
+        if not gate_info["active"]:
+            self._cached_residual = None
+            self._active_frames = 0
+            frame = self._frame_info(
+                gate_info=gate_info,
+                bt_action=bt_action,
+                residual=None,
+                final=bt_action.copy(),
+                refreshed=False,
+                clipped=False,
+                saturated=False,
+            )
+            self._last_frame = frame
+            return ActionResult(bt_action.copy(), "bt_residual_inference", self.confidence, frame)
+
+        if gate_info["entry"]:
+            self.residual_provider.reset(context)
+        refreshed = (
+            self._cached_residual is None
+            or self._active_frames % self.rl_action_repeat == 0
+        )
+        if refreshed:
+            start = perf_counter()
+            residual_result = self.residual_provider.compute_action(context)
+            self._rl_inference_latency_ms.append((perf_counter() - start) * 1000.0)
+            residual = np.asarray(residual_result.action, dtype=np.float32)
+            if residual.shape != (4,):
+                raise ValueError(f"expected four residual axes, got shape {residual.shape}")
+            self._cached_residual = np.clip(
+                np.nan_to_num(residual, nan=0.0, posinf=1.0, neginf=-1.0),
+                -1.0,
+                1.0,
+            )
+            self._rl_inference_calls += 1
+
+        residual = np.asarray(self._cached_residual, dtype=np.float32)
+        unclipped = bt_action.copy()
+        unclipped[:3] = bt_action[:3] + self.residual_scale * residual[:3]
+        final = clip_action(unclipped)
+        final[3] = bt_action[3]
+        correction = final - bt_action
+        clipped = bool(np.any(np.abs(final[:3] - unclipped[:3]) > 1e-7))
+        saturated = bool(np.any(np.isclose(np.abs(final[:3]), 1.0)))
+        self._correction_steps += 1
+        self._correction_abs_sum += np.abs(correction)
+        self._correction_abs_max = np.maximum(
+            self._correction_abs_max,
+            np.abs(correction),
+        )
+        self._clipped_steps += int(clipped)
+        self._saturated_steps += int(saturated)
+        self._active_frames += 1
+        frame = self._frame_info(
+            gate_info=gate_info,
+            bt_action=bt_action,
+            residual=residual,
+            final=final,
+            refreshed=refreshed,
+            clipped=clipped,
+            saturated=saturated,
+        )
+        self._last_frame = frame
+        return ActionResult(final, "bt_residual_inference", self.confidence, frame)
+
+    def _frame_info(
+        self,
+        *,
+        gate_info: dict,
+        bt_action: np.ndarray,
+        residual: np.ndarray | None,
+        final: np.ndarray,
+        refreshed: bool,
+        clipped: bool,
+        saturated: bool,
+    ) -> dict:
+        correction = final - bt_action
+        return {
+            "mode": "bt_residual_inference",
+            "gate_kind": self.gate_kind,
+            "gate": gate_info,
+            f"{self.gate_kind}_gate": gate_info,
+            "effective_residual_scale": (
+                self.residual_scale if gate_info["active"] else 0.0
+            ),
+            "rl_action_repeat": self.rl_action_repeat,
+            "rl_action_refreshed": refreshed,
+            "bt_action": bt_action.tolist(),
+            "raw_residual_action": residual.tolist() if residual is not None else None,
+            "applied_rl_correction": correction.tolist(),
+            "final_action": final.tolist(),
+            "throttle_residual_forced_zero": True,
+            "action_clipped": clipped,
+            "action_saturation": saturated,
+        }
+
+    def telemetry(self) -> dict:
+        result = self.gate.telemetry()
+        latency = np.asarray(self._rl_inference_latency_ms, dtype=np.float64)
+        result.update(
+            {
+                "residual_inference_gate_kind": self.gate_kind,
+                "residual_scale": self.residual_scale,
+                "rl_inference_calls": self._rl_inference_calls,
+                "rl_action_repeat": self.rl_action_repeat,
+                "rl_correction_steps": self._correction_steps,
+                "rl_correction_abs_mean": (
+                    self._correction_abs_sum / max(1, self._correction_steps)
+                ).tolist(),
+                "rl_correction_abs_max": self._correction_abs_max.tolist(),
+                "action_clipped_steps": self._clipped_steps,
+                "action_saturated_steps": self._saturated_steps,
+                "rl_inference_latency_ms_p50": (
+                    float(np.percentile(latency, 50)) if latency.size else 0.0
+                ),
+                "rl_inference_latency_ms_p95": (
+                    float(np.percentile(latency, 95)) if latency.size else 0.0
+                ),
+                "rl_inference_latency_ms_p99": (
+                    float(np.percentile(latency, 99)) if latency.size else 0.0
+                ),
+                "rl_inference_latency_ms_max": (
+                    float(np.max(latency)) if latency.size else 0.0
+                ),
+                "rl_inference_over_166_7ms_ratio": (
+                    float(np.mean(latency > 166.7)) if latency.size else 0.0
+                ),
+                "last_frame": dict(self._last_frame),
+            }
+        )
+        return result
+
+    def close(self) -> None:
+        self.bt_provider.close()
+        self.residual_provider.close()
 
 
 class ResidualTrainingActionProvider(ActionProvider):
