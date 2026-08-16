@@ -459,6 +459,64 @@ def write_outputs(
     return payload
 
 
+def _record_identity(record: dict[str, Any]) -> tuple[int, str]:
+    """Return the episode identity used by a resumed paired evaluation."""
+    return int(record["seed"]), str(record["controller"])
+
+
+def merge_unique_records(
+    existing: list[dict[str, Any]],
+    additions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Append only previously unseen seed/controller episodes.
+
+    A resumed evaluation must preserve prior evidence rather than replacing it,
+    while repeated invocations for the same seed must not inflate the sample.
+    """
+    merged = list(existing)
+    identities = {_record_identity(record) for record in merged}
+    for record in additions:
+        identity = _record_identity(record)
+        if identity in identities:
+            continue
+        merged.append(record)
+        identities.add(identity)
+    return merged
+
+
+def load_resume_records(
+    output: Path,
+    args: argparse.Namespace,
+    preflight_result: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Load compatible prior evidence for ``--resume`` aggregation."""
+    evaluation_path = output / "evaluation.json"
+    if not args.resume or not evaluation_path.exists():
+        return []
+    payload = json.loads(evaluation_path.read_text(encoding="utf-8"))
+    if payload.get("preflight") != preflight_result:
+        raise RuntimeError(
+            "resume evaluation preflight differs from the existing output; "
+            "use a new output directory"
+        )
+    existing_settings = dict(payload.get("settings", {}))
+    current_settings = dict(vars(args))
+    current_settings["scenario"] = str(current_settings["scenario"])
+    ignored = {"seeds", "resume", "quiet", "scales"}
+    for key, current in current_settings.items():
+        if key in ignored:
+            continue
+        if existing_settings.get(key) != current:
+            raise RuntimeError(
+                f"resume evaluation setting differs for {key!r}; "
+                "use a new output directory"
+            )
+    records = payload.get("records", [])
+    if not isinstance(records, list):
+        raise RuntimeError("resume evaluation records must be a list")
+    return [dict(record) for record in records]
+
+
 def fmt(value: Any, digits: int = 4) -> str:
     return "자료 없음" if value is None else f"{float(value):.{digits}f}"
 
@@ -577,19 +635,27 @@ def main() -> None:
     for name in ("summaries", "telemetry", "raw"):
         (output / name).mkdir(parents=True, exist_ok=True)
     preflight_result = preflight(args)
-    records: list[dict[str, Any]] = []
+    records = load_resume_records(output, args, preflight_result)
+    completed = {_record_identity(record) for record in records}
     for seed in args.seeds:
         for controller, scale in controller_specs(args.scales):
-            print(f"[paired-eval] seed={seed} controller={controller}", flush=True)
-            records.append(
-                run_match(
-                    args,
-                    output,
-                    seed=seed,
-                    controller=controller,
-                    scale=scale,
+            if (int(seed), controller) in completed:
+                print(
+                    f"[paired-eval] skip existing seed={seed} "
+                    f"controller={controller}",
+                    flush=True,
                 )
+                continue
+            print(f"[paired-eval] seed={seed} controller={controller}", flush=True)
+            new_record = run_match(
+                args,
+                output,
+                seed=seed,
+                controller=controller,
+                scale=scale,
             )
+            records = merge_unique_records(records, [new_record])
+            completed.add(_record_identity(new_record))
             write_outputs(output, args, preflight_result, records)
     payload = write_outputs(output, args, preflight_result, records)
     if not args.quiet:
