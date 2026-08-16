@@ -15,14 +15,17 @@ def load(name: str) -> dict:
 
 class H7ExperimentContractTests(unittest.TestCase):
     def test_independent_seed_configs_differ_only_in_identity_and_seed(self) -> None:
-        first = load("0815_aim_residual_mirror_balanced_s1701.yaml")
-        second = load("0815_aim_residual_mirror_balanced_s1702.yaml")
-        for value in (first, second):
+        configs = [
+            load(f"0815_aim_residual_mirror_balanced_s{seed}.yaml")
+            for seed in (1701, 1702, 1703)
+        ]
+        for value in configs:
             value.pop("name")
             value.pop("notes")
             value["output"].pop("tag")
             value["runtime"].pop("seed")
-        self.assertEqual(first, second)
+        self.assertEqual(configs[0], configs[1])
+        self.assertEqual(configs[0], configs[2])
 
     def test_h7_changes_h6_scenario_distribution_but_freezes_core_settings(self) -> None:
         h6 = load("0815_aim_residual_balanced_reward_short.yaml")
