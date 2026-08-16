@@ -1,0 +1,82 @@
+{
+  "research_issue": 7,
+  "branch": "codex/0817-hybrid-aim-proxy-longrun",
+  "git_sha": "cb42d23bebe9e1d7a177da1d4cd62ac44a47cc24",
+  "frozen_policy": {
+    "bundle": "artifacts/models/0815_hybrid_aim_symmetry/h7_mirror10_s1701",
+    "weights_sha256": "31229A7DB673A4344B417384EDA881ECAD61E599614D3730C5AC1BD40DF1559D",
+    "observation": "aim_residual10_v2",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "rl_action_repeat": 6
+  },
+  "shadow": {
+    "near_aim_30s": {
+      "episodes": 18,
+      "aim_active_ratio": 0.1736666047203122,
+      "offensive_active_ratio": 0.39078857709223813,
+      "combined_active_ratio": 0.15015796320386546,
+      "damage_events": 6,
+      "all_gates_damage_previous_3s": 6,
+      "artifact_sha256": "4BE3AEC15A268C17FED7B60571C4C66E4505FAF30484F212147EF576136724BB"
+    },
+    "proxy_full_fight": {
+      "episodes": 12,
+      "aim_active_ratio": 0.03146807867739104,
+      "offensive_active_ratio": 0.0,
+      "combined_active_ratio": 0.0,
+      "aim_entries": 23,
+      "damage_events": 6,
+      "aim_damage_previous_3s": 6,
+      "offensive_damage_previous_3s": 0,
+      "combined_damage_previous_3s": 0,
+      "aim_bt_surface_saturation_ratio_axis": [
+        0.6257089022346203,
+        0.17804987650612378,
+        0.5338944943969194
+      ],
+      "artifact_sha256": "D30F5AB55B6E96CAFA7002DDE36826212B4EB190BF0106A9BF38769B1EFD336E"
+    }
+  },
+  "actual_application": {
+    "scenario": "automation/scenarios/0815_aim_validation_mixed.json",
+    "seeds": [2501, 2502, 2503, 2504, 2505, 2506],
+    "aim": {
+      "evaluation_sha256": "D45DC93B39BE06281D347D67FDA6042460C7A312D13E73EF107CBC30341F13CC",
+      "active_ratio": 0.8624891477832647,
+      "mean_los_delta_deg": -0.018689032321740462,
+      "los_rate_rms_delta_deg_s": 0.0027367946156734066,
+      "cone_time_delta_s": 0.047222222222222276,
+      "first_damage_delta_s": 0.00277777777777762,
+      "damage_delta": 0.001285734357360994,
+      "action_saturated_ratio": 0.3015626681668219
+    },
+    "offensive": {
+      "evaluation_sha256": "1EBFC9CAA00DF76AEFF7EF8FFBC8256EA266838C3B3C95771C9806F63CE0E15A",
+      "active_ratio": 0.9664555692239718,
+      "mean_los_delta_deg": -0.023746971797662424,
+      "los_rate_rms_delta_deg_s": 0.0004592567849641682,
+      "cone_time_delta_s": 0.061111111111111116,
+      "first_damage_delta_s": 0.0055555555555553875,
+      "damage_delta": 0.005340827116707951,
+      "action_saturated_ratio": 0.35999678521666517
+    },
+    "combined": {
+      "evaluation_sha256": "57B67FAA6D0A89261AB479942929403377080022CB56B33ED30FB2FADB089001",
+      "active_ratio": 0.8624891477832647,
+      "trajectory_equal_to_aim": true,
+      "action_saturated_ratio": 0.3015626681668219
+    },
+    "throttle_max_abs_difference": 0.0,
+    "gate_off_action_mismatches": 0,
+    "pure_bt_telemetry_equal_across_gates": true
+  },
+  "decision": {
+    "selected_for_observation_pilot": "aim",
+    "status": "PROVISIONAL",
+    "confidence": "중간",
+    "reason": "현재 full-fight proxy에서 실제 opportunity coverage가 있는 유일한 gate이지만 near-aim 점유율과 active-window surface saturation이 높음",
+    "offensive_and_combined_status": "CHANGE_HYPOTHESIS",
+    "remaining_uncertainty": "full-fight Damage가 high-closing/low-target-ATA geometry에 집중되어 Aim correction의 overshoot 위험과 공격 기회 효과를 분리하지 못함"
+  }
+}
