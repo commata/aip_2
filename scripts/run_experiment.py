@@ -124,6 +124,12 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
             "native_checkpoint_frequency",
         )
         _add_optional(argv, "--print-every", runtime, "print_every")
+        _add_optional(
+            argv,
+            "--max-effective-learner-time-s",
+            runtime,
+            "max_effective_learner_time_s",
+        )
     else:
         _add_optional(argv, "--start-stage", runtime, "start_stage")
         _add_optional(argv, "--stages-module", curriculum, "stages_module")

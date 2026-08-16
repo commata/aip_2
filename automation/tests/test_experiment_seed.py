@@ -37,6 +37,7 @@ class ExperimentSeedTests(unittest.TestCase):
                 "iterations": 1,
                 "runtime_diagnostics": True,
                 "ray_num_cpus": 2,
+                "max_effective_learner_time_s": 1800,
             },
             "dashboard": {"enabled": False},
         }
@@ -46,6 +47,8 @@ class ExperimentSeedTests(unittest.TestCase):
         self.assertIn("--runtime-diagnostics", argv)
         index = argv.index("--ray-num-cpus")
         self.assertEqual(argv[index + 1], "2")
+        index = argv.index("--max-effective-learner-time-s")
+        self.assertEqual(argv[index + 1], "1800")
 
     def test_math_thread_limit_is_forwarded_to_training_environment(self) -> None:
         env = build_subprocess_env({"runtime": {"math_threads": 2}})

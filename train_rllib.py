@@ -666,6 +666,15 @@ def parse_args():
         help="Number of training iterations.",
     )
     parser.add_argument(
+        "--max-effective-learner-time-s",
+        type=float,
+        default=0.0,
+        help=(
+            "Stop after this many seconds of train() calls with both sampled and "
+            "learner step progress. 0 disables the time stop."
+        ),
+    )
+    parser.add_argument(
         "--framework",
         default="torch",
         choices=["torch"],
@@ -1686,6 +1695,16 @@ def _run_training(args):
                         checkpoint_dir,
                         label=f"periodic iter {iteration_number}",
                     )
+            if (
+                args.max_effective_learner_time_s > 0.0
+                and effective_learner_time_s >= args.max_effective_learner_time_s
+            ):
+                print(
+                    "effective learner time target reached: "
+                    f"{effective_learner_time_s:.3f}s >= "
+                    f"{args.max_effective_learner_time_s:.3f}s"
+                )
+                break
         csv_file.close()
         print(f"training log saved to {csv_path}")
         if dashboard_logger is not None:
