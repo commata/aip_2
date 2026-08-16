@@ -23,6 +23,25 @@ class ExperimentSeedTests(unittest.TestCase):
         index = argv.index("--seed")
         self.assertEqual(argv[index + 1], "1701")
 
+    def test_runtime_diagnostics_and_ray_cpu_cap_are_forwarded(self) -> None:
+        experiment = {
+            "script": "train_rllib",
+            "output": {"name": "runtime_test", "tag": "diagnostic"},
+            "algo": {"name": "sac"},
+            "runtime": {
+                "iterations": 1,
+                "runtime_diagnostics": True,
+                "ray_num_cpus": 2,
+            },
+            "dashboard": {"enabled": False},
+        }
+
+        _, argv = build_argv(experiment, Path("runtime_test.yaml"))
+
+        self.assertIn("--runtime-diagnostics", argv)
+        index = argv.index("--ray-num-cpus")
+        self.assertEqual(argv[index + 1], "2")
+
     def test_training_seed_initializes_numpy_before_algorithm_build(self) -> None:
         with patch.object(train_rllib.random, "seed") as python_seed, patch.object(
             train_rllib.np.random, "seed"

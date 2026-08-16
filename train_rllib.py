@@ -3,12 +3,15 @@ from __future__ import annotations
 import argparse
 from contextlib import ExitStack
 import csv
+import faulthandler
 import json
 import math
 import random
 import os
 from pathlib import Path
 import sys
+import threading
+import time
 from typing import Any
 
 import numpy as np
@@ -26,6 +29,7 @@ if _existing_pythonpath:
     _pythonpath_entries.append(_existing_pythonpath)
 os.environ["PYTHONPATH"] = os.pathsep.join(_pythonpath_entries)
 _RAY_RAYLET_START_WAIT_TIME_S = "60"
+_RUNTIME_DIAGNOSTICS_ENABLED = False
 
 from DogFightEnvWrapper import DogFightWrapper
 from dogfight.ai.checkpoint_io import (
@@ -50,13 +54,81 @@ from dogfight.envs.observation import (
 )
 
 
-def _ensure_ray_runtime_env() -> None:
+def _runtime_snapshot() -> dict[str, Any]:
+    """Return a compact process/memory snapshot without requiring psutil."""
+
+    snapshot: dict[str, Any] = {
+        "pid": os.getpid(),
+        "threads": threading.active_count(),
+    }
+    try:
+        import psutil
+
+        process = psutil.Process()
+        memory = process.memory_info()
+        virtual = psutil.virtual_memory()
+        snapshot.update(
+            {
+                "rss_mb": round(memory.rss / (1024 * 1024), 3),
+                "system_available_mb": round(virtual.available / (1024 * 1024), 3),
+                "children": [
+                    {"pid": child.pid, "name": child.name()}
+                    for child in process.children(recursive=True)
+                ],
+            }
+        )
+    except Exception as exc:  # pragma: no cover - diagnostics must never block training.
+        snapshot["snapshot_error"] = f"{type(exc).__name__}: {exc}"
+    return snapshot
+
+
+def _runtime_stage(stage: str, **details: Any) -> None:
+    """Emit a flushed monotonic stage marker for training hang diagnosis."""
+
+    if not _RUNTIME_DIAGNOSTICS_ENABLED:
+        return
+    payload = {
+        "event": "training_runtime_stage",
+        "stage": stage,
+        "monotonic_s": round(time.monotonic(), 6),
+        **_runtime_snapshot(),
+        **details,
+    }
+    print(f"[RUNTIME_DIAGNOSTIC] {json.dumps(payload, ensure_ascii=False)}", flush=True)
+
+
+def _set_runtime_diagnostics(enabled: bool) -> None:
+    """Enable stage markers and periodic Python stack dumps for a run."""
+
+    global _RUNTIME_DIAGNOSTICS_ENABLED
+    _RUNTIME_DIAGNOSTICS_ENABLED = bool(enabled)
+    if not enabled:
+        return
+    faulthandler.enable()
+    faulthandler.dump_traceback_later(60, repeat=True)
+    _runtime_stage("diagnostics_enabled")
+
+
+def _disable_runtime_diagnostics() -> None:
+    global _RUNTIME_DIAGNOSTICS_ENABLED
+    if _RUNTIME_DIAGNOSTICS_ENABLED:
+        faulthandler.cancel_dump_traceback_later()
+    _RUNTIME_DIAGNOSTICS_ENABLED = False
+
+
+def _ensure_ray_runtime_env(*, num_cpus: int | None = None) -> None:
     """Restart Ray with local project paths available to worker actors."""
     import ray
 
     # 2026-05-29: Give slower PCs more time for raylet/GCS startup after shutdown.
     os.environ.setdefault("RAY_raylet_start_wait_time_s", _RAY_RAYLET_START_WAIT_TIME_S)
+    _runtime_stage("ray_shutdown_start")
     ray.shutdown()
+    _runtime_stage("ray_shutdown_done")
+    init_kwargs: dict[str, Any] = {}
+    if num_cpus is not None:
+        init_kwargs["num_cpus"] = int(num_cpus)
+    _runtime_stage("ray_init_start", ray_num_cpus=num_cpus)
     ray.init(
         ignore_reinit_error=True,
         include_dashboard=False,
@@ -68,7 +140,9 @@ def _ensure_ray_runtime_env() -> None:
                 ],
             }
         },
+        **init_kwargs,
     )
+    _runtime_stage("ray_init_done", ray_num_cpus=num_cpus)
 
 
 def env_creator(env_config):
@@ -577,6 +651,17 @@ def parse_args():
         type=int,
         default=None,
         help="Independent training seed for Python, NumPy, Torch, RLlib, and env runners.",
+    )
+    parser.add_argument(
+        "--ray-num-cpus",
+        type=int,
+        default=None,
+        help="Optional Ray CPU resource cap for local runtime diagnosis/training.",
+    )
+    parser.add_argument(
+        "--runtime-diagnostics",
+        action="store_true",
+        help="Emit flushed stage/process snapshots and 60-second Python stack dumps.",
     )
     parser.add_argument(
         "--num-envs-per-env-runner",
@@ -1255,7 +1340,9 @@ def _seed_training_runtime(seed: int | None) -> None:
 
 
 def _run_training(args):
+    _runtime_stage("training_seed_start", training_seed=args.seed)
     _seed_training_runtime(args.seed)
+    _runtime_stage("training_seed_done", training_seed=args.seed)
     algorithm_name = normalize_algorithm_name(args.algorithm)
     if args.use_tune and (args.restore_checkpoint or args.init_bundle):
         raise RuntimeError(
@@ -1277,6 +1364,7 @@ def _run_training(args):
         env_config["reward_module"] = args.reward_module
     if args.observation_module:
         env_config["observation_module"] = args.observation_module
+    _runtime_stage("env_preview_start")
     env_preview = env_creator(env_config)
     env_config["reward"] = dict(env_preview.config["reward"])
     env_config["wez"] = dict(env_preview.config["wez"])
@@ -1289,24 +1377,33 @@ def _run_training(args):
     probe_obs_dim = int(obs_shape[0]) if obs_shape else 0
     probe_action_dim = int(action_shape[0]) if action_shape else 4
     env_preview.close()
+    _runtime_stage(
+        "env_preview_done",
+        observation_dim=probe_obs_dim,
+        action_dim=probe_action_dim,
+    )
 
     env_name = "dogfight-single-agent-v0"
     register_env(env_name, env_creator)
 
+    _runtime_stage("algorithm_config_start", algorithm=algorithm_name)
     config = build_algorithm_config(
         algorithm_name=algorithm_name,
         env_name=env_name,
         env_config=env_config,
         args=_build_algorithm_args(args),
     )
+    _runtime_stage("algorithm_config_done", algorithm=algorithm_name)
 
-    _ensure_ray_runtime_env()
+    _ensure_ray_runtime_env(num_cpus=args.ray_num_cpus)
 
     if args.use_tune:
         _run_with_tune(args, algorithm_name, config, env_config)
         return
 
+    _runtime_stage("algorithm_build_start", algorithm=algorithm_name)
     algorithm = config.build_algo()
+    _runtime_stage("algorithm_build_done", algorithm=algorithm_name)
     if args.restore_checkpoint:
         checkpoint_path = Path(args.restore_checkpoint)
         if not checkpoint_path.exists():
@@ -1421,7 +1518,9 @@ def _run_training(args):
         native_frequency = _native_checkpoint_frequency(args)
 
         for iteration in range(args.iterations):
+            _runtime_stage("train_iteration_start", iteration=iteration)
             result = algorithm.train()
+            _runtime_stage("train_iteration_done", iteration=iteration)
             env_metrics   = result.get("env_runners", {})
             reward_mean      = env_metrics.get("episode_return_mean", "n/a")
             episode_len_mean = env_metrics.get("episode_len_mean", "n/a")
@@ -1563,26 +1662,30 @@ def _run_training(args):
 
 def main():
     args = parse_args()
-    with ExitStack() as stack:
-        if args.bt_rule_xml:
-            stack.enter_context(
-                activate_rule_xml(
-                    args.bt_rule_xml,
-                    ROOT,
-                    aliases=args.bt_rule_alias,
-                    include_default=False,
+    _set_runtime_diagnostics(args.runtime_diagnostics)
+    try:
+        with ExitStack() as stack:
+            if args.bt_rule_xml:
+                stack.enter_context(
+                    activate_rule_xml(
+                        args.bt_rule_xml,
+                        ROOT,
+                        aliases=args.bt_rule_alias,
+                        include_default=False,
+                    )
                 )
-            )
-        if args.target_rule_xml:
-            stack.enter_context(
-                activate_rule_xml(
-                    args.target_rule_xml,
-                    ROOT,
-                    aliases=args.target_rule_alias,
-                    include_default=False,
+            if args.target_rule_xml:
+                stack.enter_context(
+                    activate_rule_xml(
+                        args.target_rule_xml,
+                        ROOT,
+                        aliases=args.target_rule_alias,
+                        include_default=False,
+                    )
                 )
-            )
-        _run_training(args)
+            _run_training(args)
+    finally:
+        _disable_runtime_diagnostics()
 
 
 if __name__ == "__main__":

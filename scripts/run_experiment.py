@@ -89,6 +89,9 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
 
     _add_optional(argv, "--num-env-runners", runtime, "num_env_runners")
     _add_optional(argv, "--seed", runtime, "seed")
+    _add_optional(argv, "--ray-num-cpus", runtime, "ray_num_cpus")
+    if runtime.get("runtime_diagnostics", False):
+        argv.append("--runtime-diagnostics")
     if script_name != "train_curriculum":
         _add_optional(
             argv,
