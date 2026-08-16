@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -153,6 +154,30 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
         argv += ["--notes", str(exp["notes"])]
     argv += ["--experiment-yaml", str(exp_path.resolve())]
     return SCRIPT_TARGETS[script_name], argv
+
+
+def build_subprocess_env(exp: dict[str, Any]) -> dict[str, str]:
+    """Build a reproducible math-library thread environment for training."""
+    runtime = _section(exp, "runtime")
+    value = runtime.get("math_threads")
+    env = os.environ.copy()
+    if value is None:
+        return env
+    try:
+        thread_count = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ExperimentError("runtime.math_threads must be a positive integer") from exc
+    if thread_count <= 0:
+        raise ExperimentError("runtime.math_threads must be a positive integer")
+    rendered = str(thread_count)
+    for name in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    ):
+        env[name] = rendered
+    return env
 
 
 def _section(exp: dict[str, Any], key: str) -> dict[str, Any]:
@@ -320,6 +345,7 @@ def main() -> int:
     try:
         exp = load_experiment(exp_path)
         script_path, script_args = build_argv(exp, exp_path)
+        subprocess_env = build_subprocess_env(exp)
     except ExperimentError as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 2
@@ -334,7 +360,7 @@ def main() -> int:
         print("[dry-run] no training started.")
         return 0
 
-    completed = subprocess.run(command, cwd=ROOT)
+    completed = subprocess.run(command, cwd=ROOT, env=subprocess_env)
     return completed.returncode
 
 

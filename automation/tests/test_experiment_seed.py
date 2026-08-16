@@ -4,7 +4,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from scripts.run_experiment import build_argv
+from scripts.run_experiment import ExperimentError, build_argv, build_subprocess_env
 import train_rllib
 
 
@@ -41,6 +41,21 @@ class ExperimentSeedTests(unittest.TestCase):
         self.assertIn("--runtime-diagnostics", argv)
         index = argv.index("--ray-num-cpus")
         self.assertEqual(argv[index + 1], "2")
+
+    def test_math_thread_limit_is_forwarded_to_training_environment(self) -> None:
+        env = build_subprocess_env({"runtime": {"math_threads": 2}})
+
+        for name in (
+            "OMP_NUM_THREADS",
+            "MKL_NUM_THREADS",
+            "OPENBLAS_NUM_THREADS",
+            "NUMEXPR_NUM_THREADS",
+        ):
+            self.assertEqual(env[name], "2")
+
+    def test_math_thread_limit_rejects_non_positive_values(self) -> None:
+        with self.assertRaisesRegex(ExperimentError, "positive integer"):
+            build_subprocess_env({"runtime": {"math_threads": 0}})
 
     def test_algorithm_log_root_is_inside_workspace_artifacts(self) -> None:
         args = type(
