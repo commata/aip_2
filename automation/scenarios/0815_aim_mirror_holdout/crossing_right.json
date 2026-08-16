@@ -1,0 +1,13 @@
+{
+  "name": "0815_aim_mirror_holdout_crossing_right",
+  "mirror_axis": "lateral",
+  "mirror_pair": "crossing_left",
+  "env_config": {
+    "ownship": [0.0, -0.0, -5100.0, -0.0, 0.0, 0.0, 235.0],
+    "target": [1450.0, 400.0, -5100.0, -0.0, 0.0, 340.0, 232.0],
+    "initial_scenario": {"mode": "default", "legacy_use_random_scenario": false},
+    "ownship_randomization": {"enabled": false},
+    "target_randomization": {"enabled": false},
+    "target_autopilot": {"heading_cmd": 340.0, "altitude_cmd": 5100.0, "speed_cmd": 232.0}
+  }
+}

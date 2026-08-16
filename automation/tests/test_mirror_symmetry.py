@@ -111,8 +111,7 @@ class MirrorSymmetryTests(unittest.TestCase):
             [1100.0, 0.0, -4700.0, -0.0, -0.0, 0.0, 225.0],
         )
 
-    def test_checked_in_scenario_files_match_their_declared_mirrors(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "scenarios" / "0815_aim_mirror"
+    def assert_checked_in_scenario_directory_is_mirrored(self, root: Path) -> None:
         for left_name, right_name in (
             ("lateral_left", "lateral_right"),
             ("crossing_left", "crossing_right"),
@@ -142,6 +141,14 @@ class MirrorSymmetryTests(unittest.TestCase):
             mirror_pose_vertical(high["env_config"]["target"], down_origin_m=origin),
             low["env_config"]["target"],
         )
+
+    def test_checked_in_training_scenarios_match_declared_mirrors(self) -> None:
+        root = Path(__file__).resolve().parents[1] / "scenarios" / "0815_aim_mirror"
+        self.assert_checked_in_scenario_directory_is_mirrored(root)
+
+    def test_checked_in_holdout_scenarios_match_declared_mirrors(self) -> None:
+        root = Path(__file__).resolve().parents[1] / "scenarios" / "0815_aim_mirror_holdout"
+        self.assert_checked_in_scenario_directory_is_mirrored(root)
 
 
 if __name__ == "__main__":
