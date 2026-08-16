@@ -220,6 +220,8 @@ def build_record(
         "gate_kind": provider.get("residual_inference_gate_kind"),
         "outcome": "process_error" if returncode else result.get("outcome", "unknown"),
         "end_condition": result.get("end_condition", ""),
+        "ownship_crash": bool(result.get("ownship_crash", False)),
+        "target_crash": bool(result.get("target_crash", False)),
         "returncode": returncode,
         "resumed": resumed,
         "wall_seconds": round(wall_seconds, 3),
@@ -290,7 +292,8 @@ def aggregate(records: list[dict[str, Any]]) -> dict[str, Any]:
         by_controller[controller] = {
             "episodes": len(rows),
             "wins": sum(row["outcome"] == "win" for row in rows),
-            "ownship_crashes": sum(row["outcome"] == "crash" for row in rows),
+            "ownship_crashes": sum(row["ownship_crash"] for row in rows),
+            "target_crashes": sum(row["target_crash"] for row in rows),
             "timeouts": sum(row["outcome"] == "timeout" for row in rows),
             **{metric: mean(rows, metric) for metric in metrics},
         }
