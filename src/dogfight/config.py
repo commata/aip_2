@@ -84,6 +84,13 @@ DEFAULT_ENV_CONFIG = {
         "r_pitch": 0.0,     # pitch scatter (degrees)
         "r_heading": 0.0,   # heading scatter (degrees)
     },
+    "target_randomization": {
+        "enabled": False,
+        "radius": 0.0,
+        "r_roll": 0.0,
+        "r_pitch": 0.0,
+        "r_heading": 0.0,
+    },
     "initial_scenario": {
         "mode": "default",
         "legacy_use_random_scenario": True,

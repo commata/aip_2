@@ -283,6 +283,8 @@ class DogFightEnv(gym.Env):
             self._apply_two_circle_headon_initial_scenario(scenario)
         elif scenario_mode == "ref_old_random":
             self._apply_ref_old_random_initial_scenario(scenario)
+        elif scenario_mode == "aim_residual_curriculum":
+            self._apply_aim_residual_initial_scenario(scenario)
         else:
             self._initial_scenario_metrics = {}
 
@@ -295,6 +297,15 @@ class DogFightEnv(gym.Env):
                 r_roll=float(rand.get("r_roll", 0)),
                 r_pitch=float(rand.get("r_pitch", 0)),
                 r_heading=float(rand.get("r_heading", 0)),
+            )
+        target_rand = self.config.get("target_randomization", {})
+        if scenario_mode != "two_circle_headon" and target_rand.get("enabled", False):
+            self.add_random_init_position(
+                "target",
+                radius=float(target_rand.get("radius", 0)),
+                r_roll=float(target_rand.get("r_roll", 0)),
+                r_pitch=float(target_rand.get("r_pitch", 0)),
+                r_heading=float(target_rand.get("r_heading", 0)),
             )
 
         JSBSimWrapper.Reset(self.battle_space_id)
@@ -870,6 +881,50 @@ class DogFightEnv(gym.Env):
             "initial_distance_m": separation_m,
         }
 
+    def _apply_aim_residual_initial_scenario(self, scenario: dict) -> None:
+        """Select one bounded offensive geometry for residual curriculum training."""
+        variants = list(scenario.get("variants", []))
+        if not variants:
+            raise ValueError("aim_residual_curriculum requires at least one variant")
+        index = int(self.np_random.integers(0, len(variants)))
+        variant = variants[index]
+        ownship = list(variant.get("ownship", []))
+        target = list(variant.get("target", []))
+        if len(ownship) != 7 or len(target) != 7:
+            raise ValueError(
+                "aim residual variant ownship/target must each contain seven values"
+            )
+        self.change_init_position(
+            "ownship",
+            init_n=ownship[0],
+            init_e=ownship[1],
+            init_d=ownship[2],
+            init_roll=ownship[3],
+            init_pitch=ownship[4],
+            init_heading=ownship[5],
+            init_speed=ownship[6],
+        )
+        self.change_init_position(
+            "target",
+            init_n=target[0],
+            init_e=target[1],
+            init_d=target[2],
+            init_roll=target[3],
+            init_pitch=target[4],
+            init_heading=target[5],
+            init_speed=target[6],
+        )
+        target_autopilot = variant.get("target_autopilot")
+        if target_autopilot:
+            self.config["target_autopilot"] = {
+                **self.config.get("target_autopilot", {}),
+                **dict(target_autopilot),
+            }
+        self._initial_scenario_metrics = {
+            "aim_curriculum_variant_index": float(index),
+            "aim_curriculum_variant_name": str(variant.get("name", index)),
+        }
+
     def _apply_ref_old_random_initial_scenario(self, scenario: dict) -> None:
         """Apply ref_oldDogFightEnv 1vs1 mixed BT/loiter initial scenarios."""
         indices = list(scenario.get("legacy_scenario_indices", [0]))
@@ -998,7 +1053,11 @@ class DogFightEnv(gym.Env):
             fighter._init_pos_alt = lla[2]
 
     def _update_initial_geometry_metrics(self, scenario_mode: str) -> None:
-        if scenario_mode not in ("two_circle_headon", "ref_old_random"):
+        if scenario_mode not in (
+            "two_circle_headon",
+            "ref_old_random",
+            "aim_residual_curriculum",
+        ):
             return
         ata = abs(float(self._geo_info._get_antenna_train_angle(
             self._ownship_state, self._target_state, True
