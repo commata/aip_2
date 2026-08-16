@@ -177,6 +177,21 @@
       "composition_mode": "saturation_aware",
       "status": "ROLLBACK",
       "reason": "선별 정상 격추에서 lateral-right 최초 Damage가 1.300초 늦어 final 악화가 후반 과학습 때문이 아님"
+    },
+    "stage1_aim_balanced_s0125_r06_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_aim_balanced_s0125_r06",
+      "metadata_bytes": 22661,
+      "metadata_sha256": "3BDC1B5F1D3B9662C17C7E3AA48A2E6D267E8C3987F361151760DA6D3B3C8F27",
+      "weights_bytes": 70235,
+      "weights_sha256": "157D95867A6C8502EB41A206C90BBF2B1689B53EC2E6F4DA46EA2A377D57AA34",
+      "algorithm": "SAC",
+      "observation": "aim_residual10_v2",
+      "reward": "aim_residual_balanced",
+      "residual_scale": 0.125,
+      "gate_kind": "aim",
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "reward 비중은 재균형됐으나 lateral-right 최초 Damage +1.317초와 평균/median LOS 악화가 반복됨"
     }
   }
 }
