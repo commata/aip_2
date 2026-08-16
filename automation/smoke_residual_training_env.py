@@ -44,7 +44,20 @@ def parse_args() -> argparse.Namespace:
         help="automation/target_profiles의 profile ID 또는 JSON 경로",
     )
     parser.add_argument("--scale", type=float, default=0.125)
-    parser.add_argument("--gate-kind", choices=("aim", "offensive"), default="aim")
+    parser.add_argument(
+        "--gate-kind",
+        choices=("aim", "offensive", "combined"),
+        default="aim",
+    )
+    parser.add_argument(
+        "--observation-mode",
+        choices=(
+            "aim_residual10",
+            "aim_residual10_v2",
+            "aim_residual13_btaware",
+        ),
+        default="aim_residual10",
+    )
     parser.add_argument("--seed", type=int, default=1103)
     parser.add_argument("--result-json")
     return parser.parse_args()
@@ -79,7 +92,7 @@ def main() -> None:
         "max_engage_time": 1.0,
         "episode_step_limit": 60,
         "min_altitude": 300.0,
-        "observation_mode": "aim_residual10",
+        "observation_mode": args.observation_mode,
         "ownship_control_mode": "bt_residual",
         "ownship_behavior_dll": args.bt_dll,
         "target_mode": target_mode,
@@ -137,7 +150,13 @@ def main() -> None:
                 ),
                 "steps": steps,
                 "observation_size": len(initial_observation),
+                "observation_mode": args.observation_mode,
                 "observation_finite": bool(np.all(np.isfinite(initial_observation))),
+                "bt_observation_surface": (
+                    initial_observation[-3:]
+                    if args.observation_mode == "aim_residual13_btaware"
+                    else None
+                ),
                 "gate_kind": args.gate_kind,
                 "residual_scale": args.scale,
                 "gate_active_ratio": telemetry[f"{args.gate_kind}_gate_active_ratio"],
