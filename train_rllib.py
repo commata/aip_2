@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
+import numpy as np
 from ray.tune.registry import register_env
 
 ROOT = Path(__file__).resolve().parent
@@ -1234,16 +1235,20 @@ def _run_with_tune(args, algorithm_name: str, config, env_config: dict) -> None:
     _save_tune_outputs(args, algorithm_name, config, env_config, result_grid)
 
 
-def _run_training(args):
-    if args.seed is not None:
-        random.seed(args.seed)
-        np.random.seed(args.seed)
+def _seed_training_runtime(seed: int | None) -> None:
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
         try:
             import torch
 
-            torch.manual_seed(args.seed)
+            torch.manual_seed(seed)
         except ImportError:  # pragma: no cover - Torch is present for RLlib runs.
             pass
+
+
+def _run_training(args):
+    _seed_training_runtime(args.seed)
     algorithm_name = normalize_algorithm_name(args.algorithm)
     if args.use_tune and (args.restore_checkpoint or args.init_bundle):
         raise RuntimeError(
@@ -1568,5 +1573,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

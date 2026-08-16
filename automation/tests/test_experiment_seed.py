@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from scripts.run_experiment import build_argv
+import train_rllib
 
 
 class ExperimentSeedTests(unittest.TestCase):
@@ -20,6 +22,16 @@ class ExperimentSeedTests(unittest.TestCase):
 
         index = argv.index("--seed")
         self.assertEqual(argv[index + 1], "1701")
+
+    def test_training_seed_initializes_numpy_before_algorithm_build(self) -> None:
+        with patch.object(train_rllib.random, "seed") as python_seed, patch.object(
+            train_rllib.np.random, "seed"
+        ) as numpy_seed, patch("torch.manual_seed") as torch_seed:
+            train_rllib._seed_training_runtime(1701)
+
+        python_seed.assert_called_once_with(1701)
+        numpy_seed.assert_called_once_with(1701)
+        torch_seed.assert_called_once_with(1701)
 
 
 if __name__ == "__main__":
