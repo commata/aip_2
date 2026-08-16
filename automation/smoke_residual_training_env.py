@@ -16,6 +16,7 @@ for path in (ROOT, SRC):
 
 from dogfight.ai.bt_rule_manager import activate_rule_xml
 from dogfight.envs.single_agent_env import DogFightEnv
+from automation.target_profiles import load_target_profile
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,6 +39,10 @@ def parse_args() -> argparse.Namespace:
         "--target-xml",
         default=r"C:\Users\shy66\Downloads\aip2\aip2\Rule_sei_AIP2_default.xml",
     )
+    parser.add_argument(
+        "--target-profile",
+        help="automation/target_profiles의 profile ID 또는 JSON 경로",
+    )
     parser.add_argument("--scale", type=float, default=0.125)
     parser.add_argument("--gate-kind", choices=("aim", "offensive"), default="aim")
     parser.add_argument("--seed", type=int, default=1103)
@@ -47,6 +52,27 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    target_profile = (
+        load_target_profile(args.target_profile) if args.target_profile else None
+    )
+    target_mode = (
+        target_profile["backend_type"] if target_profile else "behavior_tree"
+    )
+    target_dll = (
+        target_profile["dll"]["resolved_path"]
+        if target_profile and target_profile["dll"]
+        else args.target_dll
+    )
+    target_xml = (
+        target_profile["xml"]["resolved_path"]
+        if target_profile and target_profile["xml"]
+        else args.target_xml
+    )
+    target_aliases = (
+        target_profile.get("rule_aliases", [])
+        if target_profile
+        else ["Rule_sei_AIP2_default.xml"]
+    )
     config = {
         "sim_hz": 60,
         "step_ratio": 1,
@@ -56,8 +82,8 @@ def main() -> None:
         "observation_mode": "aim_residual10",
         "ownship_control_mode": "bt_residual",
         "ownship_behavior_dll": args.bt_dll,
-        "target_mode": "behavior_tree",
-        "target_behavior_dll": args.target_dll,
+        "target_mode": target_mode,
+        "target_behavior_dll": target_dll,
         "ownship": [0.0, 0.0, -5000.0, 0.0, 0.0, 0.0, 240.0],
         "target": [800.0, 0.0, -5000.0, 0.0, 0.0, 180.0, 220.0],
         "initial_scenario": {
@@ -79,14 +105,15 @@ def main() -> None:
                 include_default=False,
             )
         )
-        stack.enter_context(
-            activate_rule_xml(
-                args.target_xml,
-                ROOT,
-                aliases=["Rule_sei_AIP2_default.xml"],
-                include_default=False,
+        if target_mode == "behavior_tree":
+            stack.enter_context(
+                activate_rule_xml(
+                    target_xml,
+                    ROOT,
+                    aliases=target_aliases,
+                    include_default=False,
+                )
             )
-        )
         env = DogFightEnv(config)
         try:
             observation, _ = env.reset(seed=args.seed)
@@ -102,6 +129,12 @@ def main() -> None:
             last = telemetry["last_frame"]
             result = {
                 "seed": args.seed,
+                "target_profile": (
+                    target_profile["profile_id"] if target_profile else "legacy_args"
+                ),
+                "target_behavior_cluster": (
+                    target_profile["behavior_cluster"] if target_profile else None
+                ),
                 "steps": steps,
                 "observation_size": len(initial_observation),
                 "observation_finite": bool(np.all(np.isfinite(initial_observation))),

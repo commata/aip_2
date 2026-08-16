@@ -49,6 +49,7 @@ artifacts/records/
 artifacts/evaluations/
 artifacts/analysis/
 artifacts/smoke/
+artifacts/proxy_target_smoke/
 automation/state/
 automation/reports/generated/
 checkpoints/
