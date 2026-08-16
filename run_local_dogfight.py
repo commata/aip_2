@@ -54,7 +54,14 @@ def parse_args():
     parser.add_argument(
         "--observation-mode",
         default="tactical16",
-        choices=["classic12", "relative14", "tactical16", "aim_residual10", "custom"],
+        choices=[
+            "classic12",
+            "relative14",
+            "tactical16",
+            "aim_residual10",
+            "aim_residual10_v2",
+            "custom",
+        ],
     )
     parser.add_argument("--observation-module", default="", help="Optional custom observation module.")
     parser.add_argument("--hybrid-mode", choices=["offensive_residual", "residual", "blend", "switch"], default="offensive_residual")

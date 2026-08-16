@@ -587,6 +587,7 @@ def parse_args():
             "relative14",
             "tactical16",
             "aim_residual10",
+            "aim_residual10_v2",
             "custom",
         ],
     )

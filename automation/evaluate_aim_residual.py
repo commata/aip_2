@@ -67,8 +67,9 @@ def preflight(args: argparse.Namespace) -> dict[str, Any]:
         payload.get("metadata", {}).get("obs_mode")
         or payload.get("algorithm_config", {}).get("env_config", {}).get("observation_mode")
     )
-    if obs_mode != "aim_residual10":
+    if obs_mode not in ("aim_residual10", "aim_residual10_v2"):
         raise ValueError(f"bundle observation 불일치: {obs_mode!r}")
+    args.observation_mode = obs_mode
     invalid = [scale for scale in args.scales if scale not in ALLOWED_SCALES]
     if invalid:
         raise ValueError(f"잔차 강도는 {ALLOWED_SCALES} 중 하나여야 함: {invalid}")
@@ -133,7 +134,7 @@ def run_match(
         "--bt-rule-xml", str(Path(args.bt_rule_xml).resolve()),
         "--bt-rule-alias-only",
         "--bt-turn-throttle-mode", "raw",
-        "--observation-mode", "aim_residual10",
+        "--observation-mode", args.observation_mode,
         "--scenario-file", str(Path(args.scenario).resolve()),
         "--seed", str(seed),
         "--max-engage-time", str(args.max_engage_time),

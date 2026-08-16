@@ -146,7 +146,11 @@ class DogFightEnv(gym.Env):
                 shape=(self.num_observation,),
                 dtype=np.float32,
             )
-        elif self._observation_mode in ("tactical16", "aim_residual10"):
+        elif self._observation_mode in (
+            "tactical16",
+            "aim_residual10",
+            "aim_residual10_v2",
+        ):
             self.observation_space = gym.spaces.Box(
                 low=-1.0, high=1.0, shape=(self.num_observation,), dtype=np.float32
             )

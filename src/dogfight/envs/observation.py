@@ -15,7 +15,7 @@ def normalize(value: float, minimum: float, maximum: float) -> float:
 
 
 def observation_size(mode: str) -> int:
-    if mode == "aim_residual10":
+    if mode in ("aim_residual10", "aim_residual10_v2"):
         return 10
     if mode == "tactical16":
         return 16
@@ -27,6 +27,8 @@ def observation_size(mode: str) -> int:
 def build_observation(mode: str, ownship_state, target_state, geo_info, wez_config=None) -> np.ndarray:
     if mode == "aim_residual10":
         return _build_aim_residual10(ownship_state, target_state)
+    if mode == "aim_residual10_v2":
+        return _build_aim_residual10_v2(ownship_state, target_state)
     if mode == "tactical16":
         return _build_tactical16(ownship_state, target_state, geo_info, wez_config)
     if mode == "relative14":
@@ -55,6 +57,28 @@ def describe_observation(mode: str) -> dict:
                 "조준 잔차 학습용 10차원 관측: 기체축 조준 오차, 관성 LOS rate, "
                 "공격 기하, 거리/접근률, 속도와 고도. 모두 [-1, 1]로 정규화한다."
             ),
+        }
+    if mode == "aim_residual10_v2":
+        return {
+            "mode": "aim_residual10_v2",
+            "size": 10,
+            "features": describe_observation("aim_residual10")["features"],
+            "description": (
+                "조준 잔차 학습용 10차원 관측 v2: feature는 v1과 같고 "
+                "Gate 활성 로그의 근접 조준 범위에 맞춰 정규화한다."
+            ),
+            "normalization": {
+                "aim_azimuth_deg": [-15.0, 15.0],
+                "aim_elevation_deg": [-15.0, 15.0],
+                "los_azimuth_rate_deg_s": [-15.0, 15.0],
+                "los_elevation_rate_deg_s": [-15.0, 15.0],
+                "ata_deg": [0.0, 15.0],
+                "target_ata_deg": [90.0, 180.0],
+                "distance_m": [0.0, 2000.0],
+                "closing_rate_m_s": [-150.0, 150.0],
+                "ownship_speed_m_s": [100.0, 400.0],
+                "ownship_altitude_m": [0.0, 10000.0],
+            },
         }
     if mode == "tactical16":
         return {
@@ -224,6 +248,27 @@ def _build_aim_residual10(ownship_state, target_state) -> np.ndarray:
             normalize(geometry["closing_rate_m_s"], -500.0, 500.0),
             normalize(float(ownship_state[StateIndex.KCAS]), 0.0, 400.0),
             normalize(float(ownship_state[StateIndex.ALT]), 0.0, 15000.0),
+        ],
+        dtype=np.float32,
+    )
+    return np.clip(observation, -1.0, 1.0)
+
+
+def _build_aim_residual10_v2(ownship_state, target_state) -> np.ndarray:
+    """Scale the same ten features for the local pre-aim operating region."""
+    geometry = aim_residual_geometry(ownship_state, target_state)
+    observation = np.array(
+        [
+            normalize(geometry["aim_azimuth_deg"], -15.0, 15.0),
+            normalize(geometry["aim_elevation_deg"], -15.0, 15.0),
+            normalize(geometry["los_azimuth_rate_deg_s"], -15.0, 15.0),
+            normalize(geometry["los_elevation_rate_deg_s"], -15.0, 15.0),
+            normalize(geometry["ata_deg"], 0.0, 15.0),
+            normalize(geometry["target_ata_deg"], 90.0, 180.0),
+            normalize(geometry["distance_m"], 0.0, 2000.0),
+            normalize(geometry["closing_rate_m_s"], -150.0, 150.0),
+            normalize(float(ownship_state[StateIndex.KCAS]), 100.0, 400.0),
+            normalize(float(ownship_state[StateIndex.ALT]), 0.0, 10000.0),
         ],
         dtype=np.float32,
     )
