@@ -1,0 +1,22 @@
+{
+  "profile_id": "bt_0815",
+  "backend_type": "behavior_tree",
+  "dll": {
+    "default_path": "C:\\Users\\shy66\\Downloads\\aip_final_0815\\aip_final_0815\\AIP_DCS_GDCC_0815.dll",
+    "path_env": "AIP_PROXY_0815_DLL",
+    "bytes": 337408,
+    "sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9"
+  },
+  "xml": {
+    "default_path": "C:\\Users\\shy66\\Downloads\\aip_final_0815\\aip_final_0815\\Rule_DCS_GDCC_0815.xml",
+    "path_env": "AIP_PROXY_0815_XML",
+    "bytes": 811,
+    "sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+  },
+  "rule_aliases": ["Rule_DCS_GDCC_0815.xml"],
+  "source": "0815 공식 BT baseline 및 제공 AIP_DCS2 source",
+  "smoke_status": "PASSED_SEED_511",
+  "behavior_cluster": "bt_0815_family",
+  "use": {"training": true, "validation": true, "held_out": false}
+}
+

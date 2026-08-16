@@ -1,0 +1,12 @@
+{
+  "profile_id": "autopilot_crossing",
+  "backend_type": "autopilot",
+  "dll": null,
+  "xml": null,
+  "source": "저장소 DogFight target autopilot: 좌우 crossing mirror family",
+  "smoke_status": "PASSED_H7_RUNTIME",
+  "behavior_cluster": "scripted_crossing",
+  "maneuver_family": "crossing_left_right",
+  "use": {"training": true, "validation": true, "held_out": false}
+}
+

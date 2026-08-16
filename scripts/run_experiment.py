@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from automation.target_profiles import TargetProfileError, apply_target_profile
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -344,15 +346,22 @@ def main() -> int:
 
     try:
         exp = load_experiment(exp_path)
+        exp, target_profile = apply_target_profile(exp)
         script_path, script_args = build_argv(exp, exp_path)
         subprocess_env = build_subprocess_env(exp)
-    except ExperimentError as exc:
+    except (ExperimentError, TargetProfileError) as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 2
 
     command = [sys.executable, str(script_path), *script_args]
     print(f"[experiment] {exp.get('name', exp_path.stem)}")
     print(f"[script]     {script_path.relative_to(ROOT)}")
+    if target_profile is not None:
+        print(
+            "[target]     "
+            f"{target_profile['profile_id']} "
+            f"cluster={target_profile['behavior_cluster']}"
+        )
     print(f"[argv]       {' '.join(script_args)}")
     print(f"[run]        {' '.join(command)}")
 

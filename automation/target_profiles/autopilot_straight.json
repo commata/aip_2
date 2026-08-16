@@ -1,0 +1,12 @@
+{
+  "profile_id": "autopilot_straight",
+  "backend_type": "autopilot",
+  "dll": null,
+  "xml": null,
+  "source": "저장소 DogFight target autopilot: 일정 heading/altitude/speed",
+  "smoke_status": "PASSED_H7_RUNTIME",
+  "behavior_cluster": "scripted_straight",
+  "maneuver_family": "straight_constant_speed",
+  "use": {"training": true, "validation": false, "held_out": false}
+}
+
