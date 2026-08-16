@@ -10,6 +10,7 @@ import random
 import os
 from pathlib import Path
 import sys
+import tempfile
 import threading
 import time
 from typing import Any
@@ -114,6 +115,28 @@ def _disable_runtime_diagnostics() -> None:
     if _RUNTIME_DIAGNOSTICS_ENABLED:
         faulthandler.cancel_dump_traceback_later()
     _RUNTIME_DIAGNOSTICS_ENABLED = False
+
+
+def _algorithm_log_root(args) -> Path:
+    """Keep RLlib's per-run logger state inside the workspace artifacts tree."""
+
+    return ROOT / "artifacts" / "ray_results" / args.output_name / args.output_tag
+
+
+def _build_algorithm_logger_creator(args):
+    """Build the normal UnifiedLogger without writing to ~/ray_results."""
+
+    from ray.tune.logger import UnifiedLogger
+
+    root = _algorithm_log_root(args)
+    root.mkdir(parents=True, exist_ok=True)
+
+    def logger_creator(config):
+        logdir = tempfile.mkdtemp(prefix="run_", dir=root)
+        _runtime_stage("algorithm_logger_created", logdir=logdir)
+        return UnifiedLogger(config, logdir, loggers=None)
+
+    return logger_creator
 
 
 def _ensure_ray_runtime_env(*, num_cpus: int | None = None) -> None:
@@ -1402,7 +1425,9 @@ def _run_training(args):
         return
 
     _runtime_stage("algorithm_build_start", algorithm=algorithm_name)
-    algorithm = config.build_algo()
+    algorithm = config.build_algo(
+        logger_creator=_build_algorithm_logger_creator(args),
+    )
     _runtime_stage("algorithm_build_done", algorithm=algorithm_name)
     if args.restore_checkpoint:
         checkpoint_path = Path(args.restore_checkpoint)

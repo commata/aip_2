@@ -42,6 +42,24 @@ class ExperimentSeedTests(unittest.TestCase):
         index = argv.index("--ray-num-cpus")
         self.assertEqual(argv[index + 1], "2")
 
+    def test_algorithm_log_root_is_inside_workspace_artifacts(self) -> None:
+        args = type(
+            "Args",
+            (),
+            {"output_name": "runtime_test", "output_tag": "diagnostic"},
+        )()
+
+        root = train_rllib._algorithm_log_root(args)
+
+        self.assertEqual(
+            root,
+            train_rllib.ROOT
+            / "artifacts"
+            / "ray_results"
+            / "runtime_test"
+            / "diagnostic",
+        )
+
     def test_training_seed_initializes_numpy_before_algorithm_build(self) -> None:
         with patch.object(train_rllib.random, "seed") as python_seed, patch.object(
             train_rllib.np.random, "seed"
