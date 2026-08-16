@@ -13,6 +13,7 @@ from dogfight.ai.action_provider import (
 from dogfight.ai.hybrid_action_provider import (
     AimGateConfig,
     AimResidualGate,
+    CombinedResidualGate,
     HybridActionProvider,
     OffensiveGateConfig,
     OffensiveResidualGate,
@@ -181,6 +182,39 @@ class OffensiveHybridTests(unittest.TestCase):
         self.assertFalse(exited["active"])
         self.assertEqual(gate.entries, 1)
         self.assertEqual(gate.exits, 1)
+
+    def test_combined_gate_requires_aim_and_offensive_overlap(self) -> None:
+        gate = CombinedResidualGate()
+        aim_only_target = state(1000.0, 0.0, 180.0)
+
+        aim_only = gate.update(self.own, aim_only_target, sim_time_s=0.0)
+        combined = gate.update(self.own, self.target, sim_time_s=0.0)
+
+        self.assertFalse(aim_only["active"])
+        self.assertTrue(aim_only["aim_gate"]["active"])
+        self.assertFalse(aim_only["offensive_gate"]["active"])
+        self.assertTrue(combined["active"])
+        telemetry = gate.telemetry()
+        self.assertEqual(telemetry["combined_gate_entries"], 1)
+        self.assertEqual(telemetry["combined_gate_active_steps"], 1)
+
+    def test_combined_inference_gate_off_is_exact_bt(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="combined",
+        )
+
+        result = provider.compute_action(
+            context(self.own, state(1000.0, 0.0, 180.0), sim_time_s=0.0)
+        )
+
+        np.testing.assert_array_equal(result.action, bt.action)
+        self.assertEqual(rl.calls, 0)
+        self.assertEqual(provider.telemetry()["combined_gate_active_ratio"], 0.0)
 
     def test_training_residual_forces_bt_throttle_and_gate_off_equality(self) -> None:
         bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
