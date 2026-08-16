@@ -51,6 +51,16 @@
     "holdout_seed_label": 1901,
     "holdout_seed_limit": "scenario가 결정론적이므로 독립성은 seed label이 아니라 새로운 geometry와 독립 training seed에서만 주장한다"
   },
+  "third_seed_revalidation": {
+    "training_seed": 1703,
+    "config": "experiments/0815_aim_residual_mirror_balanced_s1703.yaml",
+    "config_sha256": "5329A2D54336921A9A918554600513C02782A79958E5A2653BFF5017483CAE4C",
+    "variant_frequency_instrumentation_commit": "db1d20c",
+    "status": "LOCAL_TRAINING_BLOCKED",
+    "sampled_steps": 0,
+    "reason": "Ray/SAC config.build_algo 경고 후 5분 이상 iteration 0 미시작",
+    "bundle_created": false
+  },
   "decision": "NEED_MORE_EVIDENCE",
   "h8_transition": false
 }

@@ -222,3 +222,17 @@ hold-out seed 1702 `lateral_left`는 LOS `-0.00047°`, First Damage `0s`, Damage
 ### 다음 가설
 
 H8 전환 전에 최소 한 개의 추가 독립 training seed와 training variant 실제 선택 빈도를 계측해 distribution 균형이 실행 중에도 성립했는지 재검증한다. 동일 pathology가 반복되면 그때 `aim_residual13_btaware`를 구현하며, 같은 frame의 단일 BT tick cache를 observation과 composition이 공유하는 자동 테스트를 먼저 작성한다.
+
+## 세 번째 seed 재검증 시도
+
+실제 variant 선택 빈도를 확인하기 위해 각 episode가 6개 variant one-hot metric을 모두 기록하고, 평균이 선택 비율이 되도록 계측을 추가했다. 단위 테스트에서는 dynamic metric이 training row까지 보존됨을 확인했다.
+
+- 설정: `experiments/0815_aim_residual_mirror_balanced_s1703.yaml`
+- training seed: `1703`
+- 고정 조건: H7 seed 1701/1702와 identity/seed 외 동일
+- 실행 결과: Ray 시작 후 SAC `config.build_algo()` 경고까지 진행했으나 5분 이상 iteration 0 미시작
+- sampled step: `0`
+- bundle/checkpoint: 생성되지 않음
+- 처리: 프로세스 중단, 생성 Rule alias 제거, `f16_init.xml` 원복, working tree clean 확인
+
+이는 정책 성능 결과가 아니라 현재 로컬 Ray training runtime blocker다. variant 선택 빈도는 실제 학습 episode가 생성되지 않아 아직 측정 완료가 아니다. H7 결론 신뢰도를 `높음`으로 올리지 않으며 H8 전환도 보류한다.
