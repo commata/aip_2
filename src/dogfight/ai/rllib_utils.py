@@ -747,3 +747,110 @@ def build_algorithm_from_bundle(metadata: dict):
 
     return config.build_algo()
 
+
+class RLModuleInferenceAdapter:
+    """Algorithm 전체 없이 inference-only RLModule만 노출하는 얇은 adapter."""
+
+    def __init__(self, module, policy_id: str):
+        self.module = module
+        self.policy_id = policy_id
+
+    def get_module(self, policy_id: str | None = None):
+        if policy_id not in (None, self.policy_id):
+            return None
+        return self.module
+
+    def set_module_state(self, state) -> None:
+        self.module.set_state(state)
+
+    def stop(self) -> None:
+        # RLModule 단독 경로는 Ray runtime이나 worker를 만들지 않는다.
+        return None
+
+
+def build_inference_module_from_bundle(metadata: dict) -> RLModuleInferenceAdapter:
+    """경량 bundle에서 learner/replay 없는 inference-only RLModule을 구성한다.
+
+    `Algorithm.build()`는 추론에 불필요한 SAC learner/replay/runtime까지 만들기
+    때문에 반복 local evaluation에서 초기화 지연과 timeout을 일으킬 수 있다.
+    저장된 model config와 동일한 observation/action space로 actor module만 만든다.
+    """
+    try:
+        import gymnasium as gym
+        import numpy as np
+    except ImportError as exc:  # pragma: no cover
+        raise RuntimeError("gymnasium과 numpy가 lightweight inference에 필요함") from exc
+
+    algorithm_class = metadata.get("algorithm_class", "").strip()
+    config_dict = _sanitize_inference_config(metadata.get("algorithm_config", {}))
+    _restore_bundle_observation_config(config_dict, metadata)
+    config_dict["num_env_runners"] = 0
+    config_dict["num_workers"] = 0
+    config_dict["callbacks"] = None
+    config_dict["disable_env_checking"] = True
+
+    if algorithm_class == "PPO":
+        from ray.rllib.algorithms.ppo import PPOConfig
+
+        config_class = PPOConfig
+    elif algorithm_class == "SAC":
+        from ray.rllib.algorithms.sac import SACConfig
+
+        config_class = SACConfig
+    else:
+        raise ValueError(
+            f"Unsupported lightweight bundle algorithm: {algorithm_class!r}"
+        )
+
+    config = config_class.from_dict(config_dict)
+    bundle_meta = metadata.get("metadata", {})
+    config, restored_model_config = _apply_bundle_model_config(config, bundle_meta)
+    if (
+        not restored_model_config
+        and algorithm_class == "SAC"
+        and bundle_meta.get("use_lstm_sac")
+    ):
+        config = _apply_lstm_sac_model_config(
+            config,
+            {
+                "use_lstm_sac": True,
+                "lstm_cell_size": int(bundle_meta.get("lstm_cell_size", 64)),
+                "max_seq_len": int(bundle_meta.get("max_seq_len", 8)),
+                "lstm_scope": bundle_meta.get("lstm_scope", "actor_only"),
+                "network_spec": bundle_meta.get("network_spec"),
+                "debug_io": os.environ.get("DOGFIGHT_RNNSAC_DEBUG") == "1",
+            },
+        )
+
+    env_config = config_dict.get("env_config") or {}
+    observation_size_value = int(
+        env_config.get("observation_size")
+        or bundle_meta.get("observation_size")
+    )
+    action_dim = int(bundle_meta.get("action_dim", 4))
+    mode = str(env_config.get("observation_mode", "classic12"))
+    bounded_observation = mode in {
+        "tactical16",
+        "aim_residual10",
+        "aim_residual10_v2",
+    }
+    observation_low = -1.0 if bounded_observation else -np.inf
+    observation_high = 1.0 if bounded_observation else np.inf
+    observation_space = gym.spaces.Box(
+        low=observation_low,
+        high=observation_high,
+        shape=(observation_size_value,),
+        dtype=np.float32,
+    )
+    action_space = gym.spaces.Box(
+        low=-np.ones(action_dim, dtype=np.float32),
+        high=np.ones(action_dim, dtype=np.float32),
+        shape=(action_dim,),
+        dtype=np.float32,
+    )
+    policy_id = str(metadata.get("policy_id") or "default_policy")
+    spec = config.get_rl_module_spec(
+        spaces={policy_id: (observation_space, action_space)},
+        inference_only=True,
+    )
+    return RLModuleInferenceAdapter(spec.build(), policy_id)

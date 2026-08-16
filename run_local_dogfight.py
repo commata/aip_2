@@ -23,7 +23,7 @@ from dogfight.ai.hybrid_action_provider import (
     OffensiveGateConfig,
     ResidualInferenceActionProvider,
 )
-from dogfight.ai.rllib_utils import build_algorithm_from_bundle
+from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
 
@@ -116,11 +116,11 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
     if backend == "rl":
         if not bundle_dir:
             raise ValueError(f"--{side}-bundle-dir is required when {side}-backend=rl")
-        return RLActionProvider(bundle_dir=bundle_dir, algorithm_factory=build_algorithm_from_bundle, policy_id=policy_id)
+        return RLActionProvider(bundle_dir=bundle_dir, algorithm_factory=build_inference_module_from_bundle, policy_id=policy_id)
     if backend == "hybrid":
         if not bundle_dir:
             raise ValueError(f"--{side}-bundle-dir is required when {side}-backend=hybrid")
-        rl_provider = RLActionProvider(bundle_dir=bundle_dir, algorithm_factory=build_algorithm_from_bundle, policy_id=policy_id)
+        rl_provider = RLActionProvider(bundle_dir=bundle_dir, algorithm_factory=build_inference_module_from_bundle, policy_id=policy_id)
         bt_provider = BTActionProvider(
             dll_name=bt_dll,
             enable_turn_throttle_optimization=bt_turn_throttle_mode == "optimized",
@@ -142,7 +142,7 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             )
         residual_provider = RLActionProvider(
             bundle_dir=bundle_dir,
-            algorithm_factory=build_algorithm_from_bundle,
+            algorithm_factory=build_inference_module_from_bundle,
             policy_id=policy_id,
             explore=False,
         )
