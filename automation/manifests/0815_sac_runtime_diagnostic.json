@@ -1,0 +1,69 @@
+{
+  "research_issue": 7,
+  "branch": "codex/0817-hybrid-aim-proxy-longrun",
+  "parent_main": "1e454c1583cad63fb8ca770981f8b1d96f35690b",
+  "purpose": "H7 seed 1703 SAC algorithm build 정지 원인 분리",
+  "fixed_contract": {
+    "algorithm": "SAC",
+    "observation_mode": "aim_residual10_v2",
+    "gate": "aim",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "training_seed": 1703,
+    "iterations": 1
+  },
+  "runs": [
+    {
+      "tag": "s1703_diag_uncapped",
+      "config": "experiments/0815_aim_residual_s1703_runtime_diag_uncapped.yaml",
+      "config_sha256": "DB1F629D025F6098709DF294FD2328EDA46FBBB5A62BBB6F26D9FEE57EFB1E08",
+      "logger": "RLlib default ~/ray_results",
+      "ray_num_cpus": null,
+      "ray_init_seconds": 40.67,
+      "algorithm_build_completed": false,
+      "sampled_steps": 0,
+      "duration_seconds_before_stop": 632,
+      "stdout_sha256": "2141B63EB7FB54463D38487444DB7218EB2AA916C7A56681CA2DE922FF4BFE94",
+      "stderr_sha256": "044AEFE77DE6FFFF23C2D02FE4F5E7C518E6E1419C0B34012F02C5191ED7375E",
+      "root_cause_evidence": "10개 stack dump가 Algorithm.__init__의 tempfile.mkdtemp PermissionError 재시도를 반복"
+    },
+    {
+      "tag": "s1703_diag_workspace",
+      "config": "experiments/0815_aim_residual_s1703_runtime_diag_workspace.yaml",
+      "config_sha256": "CA3B18EDAD2F7114446304FD4E0B74A310B6201A96C589E6A11BF8C72C8CA5D9",
+      "logger": "workspace artifacts/ray_results",
+      "ray_num_cpus": null,
+      "ray_init_seconds": 41.06,
+      "algorithm_build_seconds": 1.42,
+      "iteration_seconds": 2.72,
+      "sampled_steps": 256,
+      "episodes": 1,
+      "weights_sha256": "0D6DA9136890DE5A8BF015A8FCA82E6214E1349074F2E318877B903F23E1E216",
+      "metadata_sha256": "89584EDFBC72B0DB45A38D4EBC7CEADDE2A45A8F54C65983867DAA81EA0BF871"
+    },
+    {
+      "tag": "s1703_diag_cpu2",
+      "config": "experiments/0815_aim_residual_s1703_runtime_diag_cpu2.yaml",
+      "config_sha256": "766AF64D7984AB981C76C426E1ADD2FAD0228AC649EA28D6C082F03C1EBB48EB",
+      "logger": "workspace artifacts/ray_results",
+      "ray_num_cpus": 2,
+      "math_threads_declared_for_future_runs": 2,
+      "ray_init_seconds": 8.8,
+      "algorithm_build_seconds": 1.41,
+      "iteration_seconds": 2.68,
+      "sampled_steps": 256,
+      "episodes": 1,
+      "weights_sha256": "9377C090EBF6BE83F45D4810576AF81193980FCAB7FAF2DBC8479ADFA55028C4",
+      "metadata_sha256": "88C5E21DFB8B58E4162EDEB1BC3A4F4D73293D26FD4D24BA6717A3EA3B8B47D8",
+      "rl_module_state_sha256": "08180381E9AA38E523EB6C709A337852B1F0D2C9EC704AA1D4789AD01435A16F",
+      "stdout_sha256": "42FCB454186E2152EAB67190AF92B073A60BD375E771DB1B851A8A106EB6C7B1",
+      "stderr_sha256": "72736F1BE488BA998CB1566C0254911C3D0FBF65839DD421759908780B8F2C6C"
+    }
+  ],
+  "root_cause": "RLlib 기본 로그 경로에 대한 Windows ACL PermissionError를 tempfile가 반복 재시도",
+  "runtime_decision": "PROMOTE_CANDIDATE",
+  "policy_decision": "NEED_MORE_EVIDENCE",
+  "local_training_blocker_resolved": true,
+  "remaining_uncertainty": "CPU 제한이 replay sample 및 learner loss에 미세한 수치 차이를 만들었으며 독립 다중 iteration 재검증 필요"
+}
+
