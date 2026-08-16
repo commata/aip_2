@@ -109,6 +109,32 @@
       "residual_scale": 0.125,
       "status": "ROLLBACK",
       "reason": "5개 고유 validation pair에서 최초 Damage +0.263초, 평균/P95 LOS 악화, 정상 격추 Damage 비퇴행 미확인"
+    },
+    "stage1_headroom_s0125_r03_final": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_headroom_s0125_r03",
+      "metadata_bytes": 22650,
+      "metadata_sha256": "122AB02B75D1D716190011CDC2FD9C5090DE5A468671F544C772CAA6B282DCD3",
+      "weights_bytes": 70189,
+      "weights_sha256": "8E76FE21DDBD669DF479EF8E4F1AF526C88B4F867230DD90E68EACC625FB5325",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "클리핑 0%를 달성했으나 5개 고유 pair에서 평균/P95 LOS와 최초 Damage가 악화되고 Gate 점유율이 83.9%임"
+    },
+    "stage1_headroom_s0125_r03_iteration_10": {
+      "path": "artifacts/models/0815_hybrid_aim/stage1_headroom_s0125_r03/bundle_000010",
+      "metadata_bytes": 22672,
+      "metadata_sha256": "4EC14A22C8ADB5AE732C3EA00B27919B1790D282EA7F26F5F6CF6353449AF520",
+      "weights_bytes": 70175,
+      "weights_sha256": "1F05E7638CF489C248B8314AE7854A2FF20AAC9621E7ADD8BB0386ECF004E383",
+      "algorithm": "SAC",
+      "observation": "aim_residual10",
+      "residual_scale": 0.125,
+      "composition_mode": "saturation_aware",
+      "status": "ROLLBACK",
+      "reason": "클리핑은 제거됐지만 평균/P95 LOS와 최초 Damage가 악화되고 정상 격추 3건 Damage 합이 감소함"
     }
   }
 }
