@@ -551,6 +551,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aim-exit-range-margin-m", type=float, default=550.0)
     parser.add_argument("--aim-min-hold-steps", type=int, default=12)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--quiet", action="store_true", help="요약 JSON stdout 출력을 생략한다.")
     return parser.parse_args()
 
 
@@ -575,7 +576,8 @@ def main() -> None:
             )
             write_outputs(output, args, preflight_result, records)
     payload = write_outputs(output, args, preflight_result, records)
-    print(json.dumps(payload["summary"], indent=2, ensure_ascii=False))
+    if not args.quiet:
+        print(json.dumps(payload["summary"], indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
