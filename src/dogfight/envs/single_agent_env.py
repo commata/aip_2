@@ -28,7 +28,7 @@ from dogfight.envs.observation import (
     normalize,
     observation_size as builtin_observation_size,
 )
-from dogfight.envs.reward import compute_reward
+from dogfight.envs.reward import compute_aim_residual_reward, compute_reward
 from dogfight.envs.termination import evaluate_termination
 from dogfight.sim.state_schema import StateIndex
 
@@ -218,6 +218,8 @@ class DogFightEnv(gym.Env):
         self._initial_scenario_metrics: Dict[str, float] = {}
         self._last_ownship_action_info: Dict[str, object] = {}
         self._last_target_action_info: Dict[str, object] = {}
+        self._previous_aim_geometry: Dict[str, float] | None = None
+        self._previous_residual_correction = np.zeros(4, dtype=np.float64)
 
     # Sim expects throttle in [0, 1]; RL policy outputs throttle in [-1, 1].
     _SIM_ACTION_LOW  = np.array([-1., -1., -1., 0.], dtype=np.float32)
@@ -319,6 +321,8 @@ class DogFightEnv(gym.Env):
         self._ep_action_sq_sum = np.zeros(self.num_action, dtype=np.float64)
         self._last_ownship_action_info = {}
         self._last_target_action_info = {}
+        self._previous_aim_geometry = None
+        self._previous_residual_correction = np.zeros(4, dtype=np.float64)
         self._maneuver_telemetry.start_episode(seed=seed)
         return np.array(self.pre_obs, dtype=np.float32), dict(self.info)
 
@@ -485,6 +489,26 @@ class DogFightEnv(gym.Env):
         truncated: bool,
         end_condition: str,
     ) -> tuple[float, dict]:
+        if (
+            self._reward_fn is None
+            and self._reward_config.get("mode") == "aim_residual"
+        ):
+            reward, components, geometry, correction = compute_aim_residual_reward(
+                self._ownship_state,
+                self._target_state,
+                self.ownship_damage,
+                self.target_damage,
+                self._reward_config,
+                terminated,
+                truncated,
+                end_condition,
+                previous_geometry=self._previous_aim_geometry,
+                action_info=self._last_ownship_action_info,
+                previous_correction=self._previous_residual_correction,
+            )
+            self._previous_aim_geometry = geometry
+            self._previous_residual_correction = correction
+            return reward, components
         _reward_fn = self._reward_fn if self._reward_fn is not None else compute_reward
         return _reward_fn(
             self._ownship_state,

@@ -68,6 +68,7 @@ def main() -> None:
             "scale": args.scale,
             "gate_kind": args.gate_kind,
         },
+        "reward": {"mode": "aim_residual"},
     }
     with ExitStack() as stack:
         stack.enter_context(
@@ -114,6 +115,7 @@ def main() -> None:
                     or last["final_action"] == last["bt_action"]
                 ),
                 "last_applied_correction": last["applied_rl_correction"],
+                "episode_reward_components": info.get("ep_reward_components", {}),
                 "throttle_residual_forced_zero": last[
                     "throttle_residual_forced_zero"
                 ],
