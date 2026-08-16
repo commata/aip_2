@@ -11,9 +11,12 @@ from dogfight.ai.action_provider import (
     policy_action_to_sim_action,
 )
 from dogfight.ai.hybrid_action_provider import (
+    AimGateConfig,
+    AimResidualGate,
     HybridActionProvider,
     OffensiveGateConfig,
     OffensiveResidualGate,
+    ResidualTrainingActionProvider,
 )
 
 
@@ -28,8 +31,13 @@ def state(n: float, e: float, yaw: float) -> np.ndarray:
     return value
 
 
-def context(own=None, target=None) -> ActionContext:
-    return ActionContext(None, None, own, target, np.zeros(16), {})
+def context(own=None, target=None, *, residual=None, sim_time_s=None) -> ActionContext:
+    info = {}
+    if residual is not None:
+        info["residual_action"] = residual
+    if sim_time_s is not None:
+        info["sim_time_s"] = sim_time_s
+    return ActionContext(None, None, own, target, np.zeros(16), info)
 
 
 class CountingProvider(ActionProvider):
@@ -144,6 +152,65 @@ class OffensiveHybridTests(unittest.TestCase):
         self.assertEqual(telemetry["rl_inference_calls"], 0)
         self.assertEqual(telemetry["offensive_gate_entries"], 0)
         self.assertEqual(telemetry["rl_correction_steps"], 0)
+
+    def test_aim_gate_uses_phase_half_angles_and_hysteresis(self) -> None:
+        gate = AimResidualGate(
+            AimGateConfig(
+                enter_angle_margin_deg=1.0,
+                exit_angle_margin_deg=3.0,
+                enter_range_margin_m=0.0,
+                exit_range_margin_m=200.0,
+                min_hold_steps=0,
+            )
+        )
+        phase1_target = state(900.0, 20.0, 0.0)
+        entered = gate.update(self.own, phase1_target, sim_time_s=50.0)
+        self.assertEqual(entered["phase"], 1)
+        self.assertTrue(entered["active"])
+
+        hysteresis_target = state(1000.0, 50.0, 0.0)
+        held = gate.update(self.own, hysteresis_target, sim_time_s=50.0)
+        self.assertTrue(held["active"])
+
+        exited = gate.update(
+            self.own,
+            state(1000.0, 200.0, 0.0),
+            sim_time_s=50.0,
+        )
+        self.assertFalse(exited["active"])
+        self.assertEqual(gate.entries, 1)
+        self.assertEqual(gate.exits, 1)
+
+    def test_training_residual_forces_bt_throttle_and_gate_off_equality(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+        off_target = state(0.0, 3000.0, 0.0)
+
+        off = provider.compute_action(
+            context(
+                self.own,
+                off_target,
+                residual=[1.0, 1.0, 1.0, -1.0],
+                sim_time_s=0.0,
+            )
+        )
+        np.testing.assert_array_equal(off.action, bt.action)
+
+        on = provider.compute_action(
+            context(
+                self.own,
+                self.target,
+                residual=[0.8, -0.4, 0.2, -1.0],
+                sim_time_s=0.0,
+            )
+        )
+        np.testing.assert_allclose(on.action[:3], [0.3, -0.35, 0.125], atol=1e-6)
+        self.assertAlmostEqual(float(on.action[3]), 0.77, places=6)
+        self.assertTrue(on.info["throttle_residual_forced_zero"])
 
 
 if __name__ == "__main__":
