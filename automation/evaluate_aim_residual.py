@@ -179,6 +179,15 @@ def run_match(
             "--aim-enter-range-margin-m", str(args.aim_enter_range_margin_m),
             "--aim-exit-range-margin-m", str(args.aim_exit_range_margin_m),
             "--aim-min-hold-steps", str(args.aim_min_hold_steps),
+            "--offensive-enter-ata-deg", str(args.offensive_enter_ata_deg),
+            "--offensive-exit-ata-deg", str(args.offensive_exit_ata_deg),
+            "--offensive-enter-target-ata-deg", str(args.offensive_enter_target_ata_deg),
+            "--offensive-exit-target-ata-deg", str(args.offensive_exit_target_ata_deg),
+            "--rear120-enter-target-ata-deg", str(args.rear120_enter_target_ata_deg),
+            "--rear120-exit-target-ata-deg", str(args.rear120_exit_target_ata_deg),
+            "--safety-minimum-altitude-m", str(args.safety_minimum_altitude_m),
+            "--safety-minimum-speed-m-s", str(args.safety_minimum_speed_m_s),
+            "--safety-maximum-closing-rate-m-s", str(args.safety_maximum_closing_rate_m_s),
         ]
 
     protected = ROOT / "aircraft" / "f16" / "f16_init.xml"
@@ -601,7 +610,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scales", nargs="+", type=float, default=[0.125])
     parser.add_argument(
         "--gate-kind",
-        choices=["aim", "offensive", "combined"],
+        choices=["aim", "offensive", "combined", "rear120"],
         default="aim",
     )
     parser.add_argument(
@@ -624,6 +633,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aim-enter-range-margin-m", type=float, default=300.0)
     parser.add_argument("--aim-exit-range-margin-m", type=float, default=550.0)
     parser.add_argument("--aim-min-hold-steps", type=int, default=12)
+    parser.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
+    parser.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
+    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=120.0)
+    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--rear120-enter-target-ata-deg", type=float, default=120.0)
+    parser.add_argument("--rear120-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--safety-minimum-altitude-m", type=float, default=350.0)
+    parser.add_argument("--safety-minimum-speed-m-s", type=float, default=170.0)
+    parser.add_argument("--safety-maximum-closing-rate-m-s", type=float, default=250.0)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--quiet", action="store_true", help="요약 JSON stdout 출력을 생략한다.")
     return parser.parse_args()
