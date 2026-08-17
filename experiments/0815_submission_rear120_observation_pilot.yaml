@@ -6,8 +6,8 @@ output:
   tag: matrix_template
 
 pilot_matrix:
-  # r0은 CSV schema 오류로 첫 iteration 저장 전에 중단되어 보존한다.
-  run_suffix: r1
+  # r0은 CSV schema 오류, r1은 Ray logger ACL 오류로 첫 iteration에 중단되어 보존한다.
+  run_suffix: r2
   seeds: [3101, 3102]
   observations:
     - label: r10
