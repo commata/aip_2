@@ -13,6 +13,13 @@ from dogfight.sim.state_schema import StateIndex
 ALLOWED_AIM_RESIDUAL_SCALES = (0.10, 0.125, 0.15)
 RESIDUAL_COMPOSITION_MODES = ("additive", "saturation_aware")
 SURFACE_AXES = ("roll", "pitch", "yaw")
+RESIDUAL_AXIS_MASKS = {
+    "roll": (1.0, 0.0, 0.0, 0.0),
+    "pitch": (0.0, 1.0, 0.0, 0.0),
+    "yaw": (0.0, 0.0, 1.0, 0.0),
+    "pitch_yaw": (0.0, 1.0, 1.0, 0.0),
+    "roll_pitch_yaw": (1.0, 1.0, 1.0, 0.0),
+}
 
 
 def _compose_aim_surface_residual(
@@ -326,6 +333,8 @@ class Rear120ActivationGate:
         self.entries = 0
         self.exits = 0
         self.safety_veto_steps = 0
+        self._current_active_steps = 0
+        self._active_durations: list[int] = []
         self.last_geometry = {"active": False, "entry": False, "exit": False}
 
     def update(
@@ -357,6 +366,11 @@ class Rear120ActivationGate:
         self.entries += int(entry)
         self.exits += int(exit_event)
         self.safety_veto_steps += int(veto)
+        if self.active:
+            self._current_active_steps += 1
+        elif exit_event:
+            self._active_durations.append(self._current_active_steps)
+            self._current_active_steps = 0
         self.last_geometry = {
             "distance_m": aim["distance_m"],
             "aim_error_deg": aim["aim_error_deg"],
@@ -404,6 +418,9 @@ class Rear120ActivationGate:
 
     def telemetry(self) -> dict:
         result = self.rear.telemetry()
+        durations = list(self._active_durations)
+        if self.active and self._current_active_steps:
+            durations.append(self._current_active_steps)
         result.update(
             {
                 "rear120_activation_steps": self.steps,
@@ -411,6 +428,11 @@ class Rear120ActivationGate:
                 "rear120_activation_active_ratio": self.active_steps / max(1, self.steps),
                 "rear120_activation_entries": self.entries,
                 "rear120_activation_exits": self.exits,
+                "rear120_activation_mean_active_steps": (
+                    sum(durations) / len(durations) if durations else 0.0
+                ),
+                "rear120_activation_min_active_steps": min(durations) if durations else 0,
+                "rear120_activation_max_active_steps": max(durations) if durations else 0,
                 "rear120_activation_safety_veto_steps": self.safety_veto_steps,
                 "rear120_activation_safety_veto_ratio": self.safety_veto_steps / max(1, self.steps),
                 "rear120_activation_active_final": self.active,
@@ -1010,6 +1032,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         composition_mode: str = "additive",
         inference_timeout_s: float = 0.1667,
         confidence: float = 0.95,
+        residual_axis_mask: str = "roll_pitch_yaw",
     ):
         if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
             raise ValueError(
@@ -1037,6 +1060,14 @@ class ResidualInferenceActionProvider(ActionProvider):
         if composition_mode not in RESIDUAL_COMPOSITION_MODES:
             raise ValueError(f"unsupported residual composition: {composition_mode!r}")
         self.composition_mode = composition_mode
+        if residual_axis_mask not in RESIDUAL_AXIS_MASKS:
+            raise ValueError(
+                f"unsupported residual axis mask: {residual_axis_mask!r}"
+            )
+        self.residual_axis_mask = residual_axis_mask
+        self._residual_axis_vector = np.asarray(
+            RESIDUAL_AXIS_MASKS[residual_axis_mask], dtype=np.float32
+        )
         self.gate_kind = gate_kind
         self.gate = gate
         self.rl_action_repeat = max(1, int(rl_action_repeat))
@@ -1180,9 +1211,10 @@ class ResidualInferenceActionProvider(ActionProvider):
             self._rl_inference_calls += 1
 
         residual = np.asarray(self._cached_residual, dtype=np.float32)
+        masked_residual = residual * self._residual_axis_vector
         unclipped = _compose_aim_surface_residual(
             bt_action,
-            residual,
+            masked_residual,
             self.residual_scale,
             self.composition_mode,
         )
@@ -1201,7 +1233,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         self._saturated_steps += int(saturated)
         diagnostics = _surface_authority_diagnostics(
             bt_action,
-            residual,
+            masked_residual,
             final,
             self.residual_scale,
             active=True,
@@ -1212,6 +1244,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             gate_info=gate_info,
             bt_action=bt_action,
             residual=residual,
+            masked_residual=masked_residual,
             final=final,
             refreshed=refreshed,
             clipped=clipped,
@@ -1270,11 +1303,13 @@ class ResidualInferenceActionProvider(ActionProvider):
         refreshed: bool,
         clipped: bool,
         saturated: bool,
+        masked_residual: np.ndarray | None = None,
     ) -> dict:
         correction = final - bt_action
+        effective_residual = residual if masked_residual is None else masked_residual
         authority = _surface_authority_diagnostics(
             bt_action,
-            residual,
+            effective_residual,
             final,
             self.residual_scale,
             active=bool(gate_info["active"]),
@@ -1292,6 +1327,10 @@ class ResidualInferenceActionProvider(ActionProvider):
             "rl_action_refreshed": refreshed,
             "bt_action": bt_action.tolist(),
             "raw_residual_action": residual.tolist() if residual is not None else None,
+            "residual_axis_mask": self.residual_axis_mask,
+            "masked_residual_action": (
+                effective_residual.tolist() if effective_residual is not None else None
+            ),
             "applied_rl_correction": correction.tolist(),
             "surface_authority": authority,
             "final_action": final.tolist(),
@@ -1308,6 +1347,7 @@ class ResidualInferenceActionProvider(ActionProvider):
                 "residual_inference_gate_kind": self.gate_kind,
                 "residual_scale": self.residual_scale,
                 "residual_composition_mode": self.composition_mode,
+                "residual_axis_mask": self.residual_axis_mask,
                 "rl_inference_calls": self._rl_inference_calls,
                 "rl_action_repeat": self.rl_action_repeat,
                 "rl_inference_timeout_s": self.inference_timeout_s,
@@ -1363,6 +1403,7 @@ class ResidualTrainingActionProvider(ActionProvider):
         safety_veto: SafetyVetoConfig | dict | None = None,
         composition_mode: str = "additive",
         confidence: float = 0.95,
+        residual_axis_mask: str = "roll_pitch_yaw",
     ):
         if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
             raise ValueError(
@@ -1389,6 +1430,14 @@ class ResidualTrainingActionProvider(ActionProvider):
         if composition_mode not in RESIDUAL_COMPOSITION_MODES:
             raise ValueError(f"unsupported residual composition: {composition_mode!r}")
         self.composition_mode = composition_mode
+        if residual_axis_mask not in RESIDUAL_AXIS_MASKS:
+            raise ValueError(
+                f"unsupported residual axis mask: {residual_axis_mask!r}"
+            )
+        self.residual_axis_mask = residual_axis_mask
+        self._residual_axis_vector = np.asarray(
+            RESIDUAL_AXIS_MASKS[residual_axis_mask], dtype=np.float32
+        )
         self.gate_kind = gate_kind
         self.gate = gate
         self.confidence = float(confidence)
@@ -1447,6 +1496,7 @@ class ResidualTrainingActionProvider(ActionProvider):
             1.0,
         )
         self._requested_throttle_abs_sum += abs(float(residual[3]))
+        masked_residual = residual * self._residual_axis_vector
 
         if self.gate_kind == "rear120":
             gate_info = self.gate.update(
@@ -1471,7 +1521,7 @@ class ResidualTrainingActionProvider(ActionProvider):
         if gate_info["active"]:
             unclipped = _compose_aim_surface_residual(
                 bt_action,
-                residual,
+                masked_residual,
                 self.residual_scale,
                 self.composition_mode,
             )
@@ -1492,7 +1542,7 @@ class ResidualTrainingActionProvider(ActionProvider):
 
         authority = _surface_authority_diagnostics(
             bt_action,
-            residual,
+            masked_residual,
             final,
             self.residual_scale,
             active=bool(gate_info["active"]),
@@ -1509,8 +1559,10 @@ class ResidualTrainingActionProvider(ActionProvider):
                 self.residual_scale if gate_info["active"] else 0.0
             ),
             "residual_composition_mode": self.composition_mode,
+            "residual_axis_mask": self.residual_axis_mask,
             "bt_action": bt_action.tolist(),
             "raw_residual_action": residual.tolist(),
+            "masked_residual_action": masked_residual.tolist(),
             "applied_rl_correction": correction.tolist(),
             "surface_authority": authority,
             "final_action": final.tolist(),
@@ -1529,6 +1581,7 @@ class ResidualTrainingActionProvider(ActionProvider):
                 "residual_training_gate_kind": self.gate_kind,
                 "residual_scale": self.residual_scale,
                 "residual_composition_mode": self.composition_mode,
+                "residual_axis_mask": self.residual_axis_mask,
                 "rl_correction_steps": self._correction_steps,
                 "rl_correction_abs_mean": (
                     self._correction_abs_sum / max(1, self._correction_steps)

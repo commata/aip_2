@@ -90,6 +90,15 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--bt-rule-xml", required=True)
     value.add_argument("--bt-rule-alias", action="append", default=[])
     value.add_argument("--scale", type=float, default=0.125)
+    value.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
+    value.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
+    value.add_argument("--offensive-enter-range-m", type=float, default=1500.0)
+    value.add_argument("--offensive-exit-range-m", type=float, default=2000.0)
+    value.add_argument(
+        "--residual-axis-mask",
+        choices=("roll", "pitch", "yaw", "pitch_yaw", "roll_pitch_yaw"),
+        default="roll_pitch_yaw",
+    )
     value.add_argument(
         "--gate-kind",
         choices=("aim", "offensive", "combined", "rear120"),
@@ -119,6 +128,11 @@ def main() -> int:
             "--scales", str(args.scale),
             "--gate-kind", args.gate_kind,
             "--composition-mode", "saturation_aware",
+            "--residual-axis-mask", args.residual_axis_mask,
+            "--offensive-enter-ata-deg", str(args.offensive_enter_ata_deg),
+            "--offensive-exit-ata-deg", str(args.offensive_exit_ata_deg),
+            "--offensive-enter-range-m", str(args.offensive_enter_range_m),
+            "--offensive-exit-range-m", str(args.offensive_exit_range_m),
             "--ownship-bt-dll", args.ownship_bt_dll,
             "--target-backend", args.target_backend,
             "--target-bt-dll", args.target_bt_dll,

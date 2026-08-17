@@ -128,9 +128,12 @@ def preflight(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
-def controller_specs(scales: list[float]) -> list[tuple[str, float | None]]:
+def controller_specs(
+    scales: list[float], axis_mask: str = "roll_pitch_yaw"
+) -> list[tuple[str, float | None]]:
+    suffix = "" if axis_mask == "roll_pitch_yaw" else f"_{axis_mask}"
     return [("pure_0815", None)] + [
-        (f"hybrid_{scale:g}", scale) for scale in scales
+        (f"hybrid_{scale:g}{suffix}", scale) for scale in scales
     ]
 
 
@@ -193,6 +196,7 @@ def run_match(
             "--residual-gate", args.gate_kind,
             "--residual-composition", args.composition_mode,
             "--residual-scale", str(scale),
+            "--residual-axis-mask", args.residual_axis_mask,
             "--rl-action-repeat", str(args.rl_action_repeat),
             "--aim-min-range-m", str(args.aim_min_range_m),
             "--aim-enter-angle-margin-deg", str(args.aim_enter_angle_margin_deg),
@@ -202,6 +206,8 @@ def run_match(
             "--aim-min-hold-steps", str(args.aim_min_hold_steps),
             "--offensive-enter-ata-deg", str(args.offensive_enter_ata_deg),
             "--offensive-exit-ata-deg", str(args.offensive_exit_ata_deg),
+            "--offensive-enter-range-m", str(args.offensive_enter_range_m),
+            "--offensive-exit-range-m", str(args.offensive_exit_range_m),
             "--offensive-enter-target-ata-deg", str(args.offensive_enter_target_ata_deg),
             "--offensive-exit-target-ata-deg", str(args.offensive_exit_target_ata_deg),
             "--rear120-enter-target-ata-deg", str(args.rear120_enter_target_ata_deg),
@@ -278,6 +284,7 @@ def build_record(
         "controller": controller,
         "scale": scale,
         "gate_kind": gate_kind,
+        "residual_axis_mask": provider.get("residual_axis_mask"),
         "outcome": "process_error" if returncode else result.get("outcome", "unknown"),
         "end_condition": result.get("end_condition", ""),
         "ownship_crash": bool(result.get("ownship_crash", False)),
@@ -299,6 +306,7 @@ def build_record(
         "gate_entries": finite(provider.get(f"{gate_metric_prefix}_entries")) or 0.0,
         "gate_exits": finite(provider.get(f"{gate_metric_prefix}_exits")) or 0.0,
         "gate_mean_active_steps": finite(provider.get(f"{gate_metric_prefix}_mean_active_steps")) or 0.0,
+        "gate_max_active_steps": finite(provider.get(f"{gate_metric_prefix}_max_active_steps")) or 0.0,
         "rl_inference_calls": finite(provider.get("rl_inference_calls")) or 0.0,
         "rl_correction_steps": finite(provider.get("rl_correction_steps")) or 0.0,
         "correction_roll_mean": _axis(provider, "rl_correction_abs_mean", 0),
@@ -358,6 +366,7 @@ def aggregate(records: list[dict[str, Any]]) -> dict[str, Any]:
         "mean_los_deg", "median_los_deg", "p95_los_deg", "los_rate_rms_deg_s",
         "damage_cone_time_s", "time_to_first_wez_s", "time_to_first_damage_s",
         "mean_speed_m_s", "min_speed_m_s", "min_altitude_m", "gate_active_ratio",
+        "gate_entries", "gate_exits", "gate_mean_active_steps", "gate_max_active_steps",
         "rl_inference_calls", "correction_roll_mean", "correction_pitch_mean",
         "correction_yaw_mean", "action_clipped_steps", "action_saturated_steps",
         "requested_roll_correction_mean", "requested_pitch_correction_mean",
@@ -643,6 +652,11 @@ def parse_args() -> argparse.Namespace:
         choices=["additive", "saturation_aware"],
         default="additive",
     )
+    parser.add_argument(
+        "--residual-axis-mask",
+        choices=["roll", "pitch", "yaw", "pitch_yaw", "roll_pitch_yaw"],
+        default="roll_pitch_yaw",
+    )
     parser.add_argument("--ownship-bt-dll", required=True)
     parser.add_argument("--target-backend", choices=["autopilot", "bt"], default="autopilot")
     parser.add_argument("--target-bt-dll", default=str(ROOT / "AIP_BASE_target.dll"))
@@ -660,6 +674,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aim-min-hold-steps", type=int, default=12)
     parser.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
     parser.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
+    parser.add_argument("--offensive-enter-range-m", type=float, default=1500.0)
+    parser.add_argument("--offensive-exit-range-m", type=float, default=2000.0)
     parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=120.0)
     parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
     parser.add_argument("--rear120-enter-target-ata-deg", type=float, default=120.0)
@@ -681,7 +697,7 @@ def main() -> None:
     records = load_resume_records(output, args, preflight_result)
     completed = {_record_identity(record) for record in records}
     for seed in args.seeds:
-        for controller, scale in controller_specs(args.scales):
+        for controller, scale in controller_specs(args.scales, args.residual_axis_mask):
             if (int(seed), controller) in completed:
                 print(
                     f"[paired-eval] skip existing seed={seed} "

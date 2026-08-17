@@ -1,0 +1,53 @@
+{
+  "git_sha": "37d43c8",
+  "experiment_id": "offensive_residual_causal_rework_final_20260817",
+  "hypothesis": "a narrow causal redesign can make RL improve actual Damage without destabilizing the Pure 0815 BT trajectory",
+  "changed_variable": "sequential single-variable experiments: action structure, reward aim_progress, offensive Gate ATA",
+  "fixed_variables": {
+    "baseline": "Pure 0815 BT",
+    "observation": "tactical16.v1 except historical frozen 10D cross-check",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "rl_action_repeat": 6,
+    "throttle": "BT-only",
+    "evaluation_suite": "0815_aim_s2102_revalidation_suite",
+    "evaluation_seeds": [2801, 2802, 2803, 2804, 2805, 2806]
+  },
+  "training_seed": [4101, 4102, 4201, 4202, 4203],
+  "evaluation_seeds": [2801, 2802, 2803, 2804, 2805, 2806],
+  "observation": "tactical16.v1",
+  "reward_version": "pr10_aim_residual and no_aim_progress_v1 diagnostic",
+  "gate_version": "rear120_activation_v1 and offensive_ata10_v1 diagnostic",
+  "action_structure": "roll-only pilot and roll+pitch+yaw baseline",
+  "residual_scale": 0.125,
+  "checkpoint": "",
+  "checkpoint_hash": "",
+  "experiments": [
+    "residual_causal_axis_ablation.json",
+    "residual_gate_selectivity_v1.json",
+    "residual_roll_only_short_v1.json",
+    "residual_no_aim_progress_short_v1.json",
+    "residual_gate_ata10_diagnostic_v1.json"
+  ],
+  "training_totals": {
+    "completed_short_runs": 5,
+    "iterations": 100,
+    "sampled_steps": 12800,
+    "ownship_crashes": 0,
+    "critical_nan": 0,
+    "invalid_action": 0
+  },
+  "contamination": {
+    "status": "TARGET_CRASH_CONTAMINATED",
+    "geometry": "crossing_left",
+    "used_for_promotion": false
+  },
+  "scale_sweep": "NOT_RUN_PROMOTION_GATE_NOT_MET",
+  "long_training": "NOT_RUN_PROMOTION_GATE_NOT_MET",
+  "full_fight_200s": "NOT_RUN_PROMOTION_GATE_NOT_MET",
+  "result": "no independently reproducible contamination-free Damage improvement over Pure 0815 BT",
+  "promotion_status": "REVALIDATION_FAILED / NOT_PROMOTED",
+  "server_status": "SERVER_BLOCKED",
+  "target_bt_status": "TARGET_BT_PENDING",
+  "final_status": "DIAGNOSTIC_COMPLETE / TRAINING_COMPLETE / REVALIDATION_FAILED / NOT_PROMOTED"
+}

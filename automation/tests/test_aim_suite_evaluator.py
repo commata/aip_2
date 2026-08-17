@@ -1,9 +1,10 @@
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
-from automation.evaluate_aim_suite import combine_results, load_suite
+from automation.evaluate_aim_suite import combine_results, load_suite, parser
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -71,3 +72,30 @@ def test_checked_in_holdout_suite_covers_each_frozen_mirror_geometry_once():
         assert scenario.is_file()
         payload = json.loads(scenario.read_text(encoding="utf-8"))
         assert payload["name"].endswith(case["name"])
+
+
+def test_suite_parser_exposes_single_condition_gate_diagnostics(monkeypatch):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evaluate_aim_suite.py",
+            "--suite", "suite.json",
+            "--bundle", "bundle",
+            "--output", "output",
+            "--ownship-bt-dll", "own.dll",
+            "--target-bt-dll", "target.dll",
+            "--bt-rule-xml", "rule.xml",
+            "--offensive-enter-ata-deg", "10",
+            "--offensive-exit-ata-deg", "15",
+            "--offensive-enter-range-m", "1100",
+            "--offensive-exit-range-m", "1300",
+        ],
+    )
+
+    args = parser().parse_args()
+
+    assert args.offensive_enter_ata_deg == 10.0
+    assert args.offensive_exit_ata_deg == 15.0
+    assert args.offensive_enter_range_m == 1100.0
+    assert args.offensive_exit_range_m == 1300.0

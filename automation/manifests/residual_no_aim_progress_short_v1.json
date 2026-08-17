@@ -1,0 +1,80 @@
+{
+  "git_sha": "9750963",
+  "experiment_id": "residual_no_aim_progress_short_v1_20260817",
+  "hypothesis": "removing high-variance aim progress shaping will align the all-axis policy with the actual Damage chain",
+  "changed_variable": "reward aim_progress_scale: 1.0 to 0.0",
+  "fixed_variables": {
+    "observation": "tactical16.v1",
+    "gate": "rear120_activation_v1",
+    "action_structure": "roll+pitch+yaw",
+    "network": "SAC 128x128",
+    "iterations": 20,
+    "sampled_steps": 2560,
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "rl_action_repeat": 6,
+    "throttle": "BT-only",
+    "evaluation_suite": "0815_aim_s2102_revalidation_suite"
+  },
+  "training_seed": [4201, 4202, 4203],
+  "evaluation_seeds": [2801, 2802, 2803, 2804, 2805, 2806],
+  "observation": "tactical16.v1",
+  "reward_version": "pr10_aim_residual_without_aim_progress_v1",
+  "gate_version": "rear120_activation_v1",
+  "action_structure": "roll+pitch+yaw",
+  "residual_scale": 0.125,
+  "checkpoints": [
+    {
+      "training_seed": 4201,
+      "path": "artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_all_s4201_reward_no_aim_progress_v1",
+      "checkpoint_hash": "20C0D43134A236AE6160E6EA2190DB7201CB81EC36B3418A605D4AD6D1257E27",
+      "clean_damage_delta_mean": -0.0012762715385624013,
+      "clean_positive_pairs": 1,
+      "clean_pairs": 5,
+      "bootstrap_95_ci": [-0.003995144722906652, 0.0017635730605096267],
+      "evaluation_artifact": "artifacts/evaluations/offensive_residual_causal_rework/no_aim_progress_short_s4201_20260817/evaluation.json",
+      "evaluation_sha256": "579C5DF29717F620BB222CA5A804013FC0A8FB10D52C6A402EFDEBA520B570DB"
+    },
+    {
+      "training_seed": 4202,
+      "path": "artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_all_s4202_reward_no_aim_progress_v1",
+      "checkpoint_hash": "560011450E717A065F4EAD2A593D9D4F0D135404BA5E0A10919C86BA1879DF2E",
+      "clean_damage_delta_mean": 0.0007649143110725731,
+      "clean_positive_pairs": 2,
+      "clean_pairs": 5,
+      "bootstrap_95_ci": [-0.002375267575849449, 0.0039050961979945954],
+      "evaluation_artifact": "artifacts/evaluations/offensive_residual_causal_rework/no_aim_progress_short_s4202_20260817/evaluation.json",
+      "evaluation_sha256": "15480E65E74DC7184B389A05EEE861DCC1741EC4E75BD01693F48D0C03E3617B"
+    },
+    {
+      "training_seed": 4203,
+      "path": "artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_all_s4203_reward_no_aim_progress_v1",
+      "checkpoint_hash": "946CC246B256216B6D44AEAC37569F182BEA73DF80E4ECE10801790F35ACC236",
+      "clean_damage_delta_mean": -0.0005242368429295485,
+      "clean_positive_pairs": 3,
+      "clean_pairs": 5,
+      "bootstrap_95_ci": [-0.0033749711983929397, 0.0019038197899752696],
+      "evaluation_artifact": "artifacts/evaluations/offensive_residual_causal_rework/no_aim_progress_short_s4203_20260817/evaluation.json",
+      "evaluation_sha256": "74BDBEAEA97649F88FA6C0D6BB5F698C72B1CE2B2619C34140A027F2FEDB71CD"
+    }
+  ],
+  "aggregate": {
+    "clean_training_seed_mean_damage_delta": -0.0003451980234731256,
+    "damage_direction_by_training_seed": ["negative", "positive", "negative"]
+  },
+  "contamination": {
+    "status": "TARGET_CRASH_CONTAMINATED",
+    "geometry": "crossing_left",
+    "used_for_promotion": false
+  },
+  "safety": {
+    "critical_nan": 0,
+    "invalid_action": 0,
+    "ownship_crashes": 0,
+    "action_clipping_ratio_max": 0.0
+  },
+  "result": "the third seed adjudication reproduced a negative clean Damage mean; one positive seed was not stable",
+  "promotion_status": "REVALIDATION_FAILED / NOT_PROMOTED",
+  "server_status": "SERVER_BLOCKED",
+  "target_bt_status": "TARGET_BT_PENDING"
+}

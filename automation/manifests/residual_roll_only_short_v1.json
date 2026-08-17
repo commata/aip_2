@@ -1,0 +1,79 @@
+{
+  "git_sha": "0d01cc9329cc6296ecf2069120c5c66d784872d2",
+  "experiment_id": "residual_roll_only_short_v1_20260817",
+  "hypothesis": "effective roll-only training will retain the positive diagnostic Damage direction while removing pitch and yaw trajectory perturbations",
+  "changed_variable": "action structure: roll+pitch+yaw to roll-only",
+  "fixed_variables": {
+    "observation": "tactical16.v1",
+    "reward": "pr10_aim_residual",
+    "gate": "rear120_activation_v1",
+    "network": "SAC 128x128",
+    "iterations": 20,
+    "sampled_steps": 2560,
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "rl_action_repeat": 6,
+    "throttle": "BT-only",
+    "evaluation_suite": "0815_aim_s2102_revalidation_suite"
+  },
+  "training_seed": [4101, 4102],
+  "evaluation_seeds": [2801, 2802, 2803, 2804, 2805, 2806],
+  "observation": "tactical16.v1",
+  "reward_version": "pr10_aim_residual",
+  "gate_version": "rear120_activation_v1",
+  "action_structure": "roll-only effective residual; pitch/yaw/throttle correction forced zero",
+  "residual_scale": 0.125,
+  "checkpoints": [
+    {
+      "training_seed": 4101,
+      "path": "artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_roll_s4101_roll_v1r1",
+      "checkpoint_hash": "E2ABBFA07D0E2966997583040CD6F82933523E45A682CB719706AF97FD1FF5F8",
+      "iterations": 20,
+      "learner_steps": 4864,
+      "training_gate_active_ratio_mean": 0.8962144686547374,
+      "clean_damage_delta_mean": -0.0012600461776122618,
+      "clean_damage_delta_median": -0.0012972008330156548,
+      "clean_damage_delta_min": -0.004857192280768752,
+      "clean_damage_delta_max": 0.002463601318788866,
+      "clean_positive_pairs": 1,
+      "clean_pairs": 5,
+      "bootstrap_95_ci": [-0.003393033560857228, 0.0008335395365527187],
+      "evaluation_artifact": "artifacts/evaluations/offensive_residual_causal_rework/roll_only_short_s4101_20260817/evaluation.json",
+      "evaluation_sha256": "D4A9E7B040E376CE5F11C00DBFD01470E20845E1627D2EB2AEAEAE7E3218FFB0"
+    },
+    {
+      "training_seed": 4102,
+      "path": "artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_roll_s4102_roll_v1r1",
+      "checkpoint_hash": "85CFCB20111E7EBE83A8DCC53A06C6E0B7A0732F9D0D0B73A426AF0574153A77",
+      "iterations": 20,
+      "learner_steps": 4864,
+      "training_gate_active_ratio_mean": 0.9435131609281662,
+      "clean_damage_delta_mean": -0.0003712532833746174,
+      "clean_damage_delta_median": 0.00021155559428343018,
+      "clean_damage_delta_min": -0.004749338513001078,
+      "clean_damage_delta_max": 0.003890066281518001,
+      "clean_positive_pairs": 3,
+      "clean_pairs": 5,
+      "bootstrap_95_ci": [-0.0028625682049401744, 0.0020923298129761126],
+      "evaluation_artifact": "artifacts/evaluations/offensive_residual_causal_rework/roll_only_short_s4102_20260817/evaluation.json",
+      "evaluation_sha256": "D1F882B6052BC1A6629BD48D5F012644BA41A1826079FC5786B14C579CA04BF3"
+    }
+  ],
+  "contamination": {
+    "status": "TARGET_CRASH_CONTAMINATED",
+    "geometry": "crossing_left",
+    "used_for_promotion": false
+  },
+  "safety": {
+    "critical_nan": 0,
+    "invalid_action": 0,
+    "ownship_crashes": 0,
+    "pitch_correction_abs_max": 0.0,
+    "yaw_correction_abs_max": 0.0,
+    "action_clipping_ratio_max": 0.0
+  },
+  "result": "both independent training seeds reduced contamination-free aggregate Damage versus Pure 0815 BT",
+  "promotion_status": "REVALIDATION_FAILED / NOT_PROMOTED",
+  "server_status": "SERVER_BLOCKED",
+  "target_bt_status": "TARGET_BT_PENDING"
+}
