@@ -41,6 +41,8 @@ def test_combine_records_preserves_case_identity_and_zero_stochastic_claim():
     assert result["contract"]["deterministic_geometry_samples"] == 2
     assert result["contract"]["stochastic_independent_samples"] == 0
     assert {row["suite_case"] for row in result["records"]} == {"left", "right"}
+    assert {row["variant_name"] for row in result["records"]} == {"left", "right"}
+    assert {row["source_variant_name"] for row in result["records"]} == {None}
     assert result["summary"]["paired"]["hybrid_0.125"]["pairs"] == 2
 
 

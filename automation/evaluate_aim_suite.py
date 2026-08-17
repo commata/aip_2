@@ -49,6 +49,8 @@ def combine_results(
             raise ValueError(f"case {case['name']}: controller 집합 불일치")
         for row in case_records:
             copied = dict(row)
+            copied["source_variant_name"] = copied.get("variant_name")
+            copied["variant_name"] = str(case["name"])
             copied["suite_case"] = str(case["name"])
             copied["suite_seed_label"] = int(case["seed"])
             records.append(copied)
