@@ -90,6 +90,7 @@ class SubmissionRuntimeTests(unittest.TestCase):
         self.assertEqual(provider.residual_scale, 0.125)
         self.assertEqual(provider.rl_action_repeat, 6)
         self.assertEqual(provider.composition_mode, "saturation_aware")
+        self.assertEqual(provider.inference_timeout_s, 0.1667)
 
 
 if __name__ == "__main__":

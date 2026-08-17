@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import time
 import unittest
 
 import numpy as np
@@ -53,6 +54,25 @@ class _CountingProvider(ActionProvider):
     def compute_action(self, context) -> ActionResult:
         self.calls += 1
         return ActionResult(self.action.copy(), "test")
+
+
+class _FailingProvider(_CountingProvider):
+    def __init__(self, mode: str):
+        super().__init__([0.0, 0.0, 0.0, 0.0])
+        self.mode = mode
+
+    def compute_action(self, context) -> ActionResult:
+        self.calls += 1
+        if self.mode == "exception":
+            raise RuntimeError("inference failed")
+        if self.mode == "nonfinite":
+            return ActionResult(
+                np.array([np.nan, 0.0, 0.0, 0.0], dtype=np.float32),
+                "test",
+            )
+        if self.mode == "slow":
+            time.sleep(0.002)
+        return ActionResult(np.zeros(4, dtype=np.float32), "test")
 
 
 class Rear120GateTests(unittest.TestCase):
@@ -148,6 +168,41 @@ class Rear120GateTests(unittest.TestCase):
         self.assertEqual(rl.calls, 0)
         self.assertEqual(float(result.action[3]), float(bt.action[3]))
         self.assertEqual(provider.telemetry()["rl_inference_calls"], 0)
+
+    def test_inference_exception_nonfinite_and_timeout_fall_back_to_bt(self) -> None:
+        own, target = _horizontal_geometry(180.0)
+        context = ActionContext(
+            sim=None,
+            opponent_sim=None,
+            ownship_state=own,
+            target_state=target,
+            observation=np.zeros(10, dtype=np.float32),
+            info={"sim_time_s": 0.0},
+        )
+        for mode, telemetry_key in (
+            ("exception", "rl_exception_fallback_steps"),
+            ("nonfinite", "rl_nonfinite_fallback_steps"),
+            ("slow", "rl_timeout_fallback_steps"),
+        ):
+            with self.subTest(mode=mode):
+                bt = _CountingProvider([0.25, -0.4, 0.1, 0.73])
+                provider = ResidualInferenceActionProvider(
+                    bt,
+                    _FailingProvider(mode),
+                    residual_scale=0.125,
+                    gate_kind="rear120",
+                    inference_timeout_s=0.0001 if mode == "slow" else 0.1667,
+                )
+                result = provider.compute_action(context)
+                np.testing.assert_array_equal(result.action, bt.action)
+                self.assertEqual(result.source, "bt_residual_inference_fallback")
+                self.assertEqual(result.info["rl_fallback_reason"], {
+                    "exception": "inference_exception",
+                    "nonfinite": "nonfinite_output",
+                    "slow": "inference_timeout",
+                }[mode])
+                self.assertEqual(provider.telemetry()[telemetry_key], 1)
+                self.assertAlmostEqual(float(result.action[3]), 0.73, places=6)
 
 
 if __name__ == "__main__":

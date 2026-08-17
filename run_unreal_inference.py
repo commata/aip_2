@@ -172,6 +172,7 @@ def build_action_provider(args):
         safety_veto=activation.get("safety_veto"),
         rl_action_repeat=submission.rl_action_repeat,
         composition_mode=submission.composition_mode,
+        inference_timeout_s=submission.latency_threshold_s,
     )
 
 

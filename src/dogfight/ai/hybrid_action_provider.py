@@ -1008,6 +1008,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         safety_veto: SafetyVetoConfig | dict | None = None,
         rl_action_repeat: int = 6,
         composition_mode: str = "additive",
+        inference_timeout_s: float = 0.1667,
         confidence: float = 0.95,
     ):
         if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
@@ -1039,6 +1040,9 @@ class ResidualInferenceActionProvider(ActionProvider):
         self.gate_kind = gate_kind
         self.gate = gate
         self.rl_action_repeat = max(1, int(rl_action_repeat))
+        self.inference_timeout_s = float(inference_timeout_s)
+        if self.inference_timeout_s <= 0.0:
+            raise ValueError("inference_timeout_s must be positive")
         self.confidence = float(confidence)
         self.reset(None)
 
@@ -1051,6 +1055,10 @@ class ResidualInferenceActionProvider(ActionProvider):
         self._cached_residual: np.ndarray | None = None
         self._rl_inference_calls = 0
         self._rl_inference_latency_ms: list[float] = []
+        self._rl_fallback_steps = 0
+        self._rl_exception_fallback_steps = 0
+        self._rl_nonfinite_fallback_steps = 0
+        self._rl_timeout_fallback_steps = 0
         self._correction_steps = 0
         self._correction_abs_sum = np.zeros(4, dtype=np.float64)
         self._correction_abs_max = np.zeros(4, dtype=np.float64)
@@ -1128,13 +1136,44 @@ class ResidualInferenceActionProvider(ActionProvider):
         )
         if refreshed:
             start = perf_counter()
-            residual_result = self.residual_provider.compute_action(context)
-            self._rl_inference_latency_ms.append((perf_counter() - start) * 1000.0)
+            try:
+                residual_result = self.residual_provider.compute_action(context)
+            except Exception as exc:
+                latency_ms = (perf_counter() - start) * 1000.0
+                self._rl_inference_latency_ms.append(latency_ms)
+                return self._fallback_to_bt(
+                    gate_info,
+                    bt_action,
+                    reason="inference_exception",
+                    detail=type(exc).__name__,
+                )
+            latency_ms = (perf_counter() - start) * 1000.0
+            self._rl_inference_latency_ms.append(latency_ms)
             residual = np.asarray(residual_result.action, dtype=np.float32)
             if residual.shape != (4,):
-                raise ValueError(f"expected four residual axes, got shape {residual.shape}")
+                return self._fallback_to_bt(
+                    gate_info,
+                    bt_action,
+                    reason="invalid_shape",
+                    detail=str(residual.shape),
+                )
+            raw_policy = residual_result.info.get("raw_policy_action")
+            raw_policy = residual if raw_policy is None else np.asarray(raw_policy)
+            if not np.all(np.isfinite(residual)) or not np.all(np.isfinite(raw_policy)):
+                return self._fallback_to_bt(
+                    gate_info,
+                    bt_action,
+                    reason="nonfinite_output",
+                )
+            if latency_ms > self.inference_timeout_s * 1000.0:
+                return self._fallback_to_bt(
+                    gate_info,
+                    bt_action,
+                    reason="inference_timeout",
+                    detail=f"{latency_ms:.6f}ms",
+                )
             self._cached_residual = np.clip(
-                np.nan_to_num(residual, nan=0.0, posinf=1.0, neginf=-1.0),
+                residual,
                 -1.0,
                 1.0,
             )
@@ -1180,6 +1219,46 @@ class ResidualInferenceActionProvider(ActionProvider):
         )
         self._last_frame = frame
         return ActionResult(final, "bt_residual_inference", self.confidence, frame)
+
+    def _fallback_to_bt(
+        self,
+        gate_info: dict,
+        bt_action: np.ndarray,
+        *,
+        reason: str,
+        detail: str = "",
+    ) -> ActionResult:
+        self._cached_residual = None
+        self._rl_fallback_steps += 1
+        if reason in {"inference_exception", "invalid_shape"}:
+            self._rl_exception_fallback_steps += 1
+        elif reason == "nonfinite_output":
+            self._rl_nonfinite_fallback_steps += 1
+        elif reason == "inference_timeout":
+            self._rl_timeout_fallback_steps += 1
+        frame = self._frame_info(
+            gate_info=gate_info,
+            bt_action=bt_action,
+            residual=None,
+            final=bt_action.copy(),
+            refreshed=True,
+            clipped=False,
+            saturated=False,
+        )
+        frame.update(
+            {
+                "rl_fallback": True,
+                "rl_fallback_reason": reason,
+                "rl_fallback_detail": detail,
+            }
+        )
+        self._last_frame = frame
+        return ActionResult(
+            bt_action.copy(),
+            "bt_residual_inference_fallback",
+            self.confidence,
+            frame,
+        )
 
     def _frame_info(
         self,
@@ -1231,6 +1310,11 @@ class ResidualInferenceActionProvider(ActionProvider):
                 "residual_composition_mode": self.composition_mode,
                 "rl_inference_calls": self._rl_inference_calls,
                 "rl_action_repeat": self.rl_action_repeat,
+                "rl_inference_timeout_s": self.inference_timeout_s,
+                "rl_fallback_steps": self._rl_fallback_steps,
+                "rl_exception_fallback_steps": self._rl_exception_fallback_steps,
+                "rl_nonfinite_fallback_steps": self._rl_nonfinite_fallback_steps,
+                "rl_timeout_fallback_steps": self._rl_timeout_fallback_steps,
                 "rl_correction_steps": self._correction_steps,
                 "rl_correction_abs_mean": (
                     self._correction_abs_sum / max(1, self._correction_steps)
