@@ -154,6 +154,13 @@ def load_submission_config(
     )
 
 
+def load_bundle_observation_contract(bundle_path: str | Path) -> dict[str, Any]:
+    """Read the observation contract without constructing an RLlib module."""
+    metadata_path = Path(bundle_path).resolve() / "metadata.json"
+    _require_file(metadata_path, "bundle metadata")
+    return _bundle_observation_contract(_read_json(metadata_path, "bundle metadata"))
+
+
 def _bundle_observation_contract(bundle: dict[str, Any]) -> dict[str, Any]:
     metadata = bundle.get("metadata")
     if not isinstance(metadata, dict):
@@ -251,4 +258,3 @@ def _validate_wez(wez: dict[str, Any]) -> None:
 
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
-

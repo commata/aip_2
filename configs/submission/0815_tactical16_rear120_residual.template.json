@@ -26,7 +26,29 @@
   },
   "activation_gate": {
     "kind": "rear120_and_offensive_or_pre_aim",
-    "safety_veto": true
+    "offensive": {
+      "min_range_m": 152.4,
+      "enter_max_range_m": 1500.0,
+      "exit_max_range_m": 2000.0,
+      "enter_ata_deg": 30.0,
+      "exit_ata_deg": 45.0,
+      "enter_min_target_ata_deg": 120.0,
+      "exit_min_target_ata_deg": 110.0
+    },
+    "phase_pre_aim": {
+      "min_range_m": 152.4,
+      "enter_angle_margin_deg": 7.0,
+      "exit_angle_margin_deg": 10.0,
+      "enter_range_margin_m": 300.0,
+      "exit_range_margin_m": 550.0,
+      "min_hold_steps": 12
+    },
+    "safety_veto": {
+      "minimum_altitude_m": 350.0,
+      "minimum_speed_m_s": 170.0,
+      "maximum_closing_rate_m_s": 250.0,
+      "veto_if_all_surfaces_saturated": true
+    }
   },
   "wez": {
     "min_range_m": 152.4,

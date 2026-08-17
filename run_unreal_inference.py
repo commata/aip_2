@@ -16,10 +16,14 @@ if str(SRC) not in sys.path:
 
 from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.bt_rule_manager import activate_rule_xml
-from dogfight.ai.hybrid_action_provider import HybridActionProvider, OffensiveGateConfig
+from dogfight.ai.hybrid_action_provider import ResidualInferenceActionProvider
 from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
+from dogfight.submission import (
+    load_bundle_observation_contract,
+    load_submission_config,
+)
 from dogfight.unreal import AIType, ProviderCommandPolicy, UnrealAIPilotUDPClient
 
 # python run_unreal_inference.py --mode rl --bundle-dir artifacts\models\team01\v1 --team-name team01
@@ -27,7 +31,11 @@ from dogfight.unreal import AIType, ProviderCommandPolicy, UnrealAIPilotUDPClien
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run RL/BT/Hybrid inference and communicate with the Unreal AI server over UDP.")
-    parser.add_argument("--mode", choices=["rl", "bt", "hybrid"], required=True, help="Inference backend to use.")
+    parser.add_argument("--mode", choices=["rl", "bt", "hybrid"], help="Inference backend to use.")
+    parser.add_argument(
+        "--submission-config",
+        help="Single-source submission JSON. When set, mode is forced to hybrid residual.",
+    )
     parser.add_argument("--server-ip", default="192.168.10.115", help="Unreal server IP address.")
     parser.add_argument("--server-port", type=int, default=9999, help="Unreal server UDP port.")
     parser.add_argument("--team-name", default="FDSA", help="Client team name sent to the Unreal server.")
@@ -51,7 +59,21 @@ def parse_args():
     )
     parser.add_argument("--packet-monitor", action="store_true", help="Render live RX/TX packet values in the terminal.")
     parser.add_argument("--packet-monitor-interval-sec", type=float, default=0.2, help="Refresh interval for the live packet monitor.")
-    parser.add_argument("--observation-mode", default="tactical16", choices=["classic12", "relative14", "tactical16", "custom"], help="Observation mode for RL inference.")
+    parser.add_argument(
+        "--observation-mode",
+        default="auto",
+        choices=[
+            "auto",
+            "classic12",
+            "relative14",
+            "tactical16",
+            "aim_residual10",
+            "aim_residual10_v2",
+            "aim_residual13_btaware",
+            "custom",
+        ],
+        help="Observation mode. auto requires bundle metadata and fails on mismatch.",
+    )
     parser.add_argument("--observation-module", default="", help="Optional custom observation module.")
     parser.add_argument("--ownship-force-side", type=int, default=1, help="Force side to use for the ownship in BT inference.")
     parser.add_argument("--target-force-side", type=int, default=2, help="Force side to use for the enemy in BT inference.")
@@ -114,6 +136,13 @@ def build_action_provider(args):
     if args.bundle_dir is None:
         raise ValueError("--bundle-dir is required for rl and hybrid modes")
 
+    submission = getattr(args, "_submission_config", None)
+    if args.mode == "hybrid" and submission is None:
+        raise ValueError(
+            "--submission-config is required for hybrid mode; legacy throttle/blend "
+            "hybrid is not a submission-safe residual path"
+        )
+
     rl_provider = RLActionProvider(
         bundle_dir=args.bundle_dir,
         algorithm_factory=build_inference_module_from_bundle,
@@ -126,26 +155,66 @@ def build_action_provider(args):
 
     bt_provider = BTActionProvider(
         dll_name=args.bt_dll,
-        enable_turn_throttle_optimization=args.bt_turn_throttle_mode == "optimized",
+        enable_turn_throttle_optimization=False,
     )
-    return HybridActionProvider(
-        primary_provider=rl_provider,
-        secondary_provider=bt_provider,
-        mode=args.hybrid_mode,
-        alpha=args.alpha,
-        residual_scale=args.residual_scale,
-        offensive_gate=OffensiveGateConfig(
-            min_range_m=args.offensive_min_range_m,
-            enter_max_range_m=args.offensive_enter_range_m,
-            exit_max_range_m=args.offensive_exit_range_m,
-            enter_ata_deg=args.offensive_enter_ata_deg,
-            exit_ata_deg=args.offensive_exit_ata_deg,
-            enter_min_target_ata_deg=args.offensive_enter_target_ata_deg,
-            exit_min_target_ata_deg=args.offensive_exit_target_ata_deg,
-        ),
-        primary_action_repeat=args.action_repeat,
-        min_throttle_blend_speed=args.min_throttle_blend_speed,
+    hard_gate = dict(submission.raw["hard_eligibility_gate"])
+    hard_gate.pop("kind", None)
+    hard_gate.setdefault("sim_hz", submission.expected_sim_hz)
+    activation = submission.raw["activation_gate"]
+    return ResidualInferenceActionProvider(
+        bt_provider=bt_provider,
+        residual_provider=rl_provider,
+        residual_scale=submission.residual_scale,
+        gate_kind="rear120",
+        rear120_gate=hard_gate,
+        aim_gate=activation.get("phase_pre_aim"),
+        offensive_gate=activation.get("offensive"),
+        safety_veto=activation.get("safety_veto"),
+        rl_action_repeat=submission.rl_action_repeat,
+        composition_mode=submission.composition_mode,
     )
+
+
+def resolve_runtime_contract(args):
+    if args.submission_config:
+        submission = load_submission_config(args.submission_config)
+        args._submission_config = submission
+        args.mode = "hybrid"
+        args.bundle_dir = str(submission.bundle_path)
+        args.policy_id = submission.policy_id
+        args.observation_mode = submission.observation_mode
+        args.bt_dll = str(submission.bt_dll_path)
+        args.bt_rule_xml = str(submission.bt_xml_path)
+        args.bt_rule_alias = list(
+            submission.raw.get("bt", {}).get("rule_aliases", [])
+        )
+        args.residual_scale = submission.residual_scale
+        args.action_repeat = submission.rl_action_repeat
+        force_side = submission.raw.get("force_side", {})
+        args.ownship_force_side = int(force_side.get("ownship", 1))
+        args.target_force_side = int(force_side.get("target", 2))
+        return submission
+
+    args._submission_config = None
+    if args.mode is None:
+        raise ValueError("--mode or --submission-config is required")
+    if args.mode == "hybrid":
+        raise ValueError("hybrid mode requires --submission-config")
+    if args.mode == "rl":
+        if args.bundle_dir is None:
+            raise ValueError("--bundle-dir is required for rl mode")
+        bundle_contract = load_bundle_observation_contract(args.bundle_dir)
+        bundle_mode = bundle_contract["mode"]
+        if args.observation_mode == "auto":
+            args.observation_mode = bundle_mode
+        elif args.observation_mode != bundle_mode:
+            raise ValueError(
+                "observation mode mismatch: "
+                f"cli={args.observation_mode!r}, bundle={bundle_mode!r}"
+            )
+    elif args.observation_mode == "auto":
+        args.observation_mode = "classic12"
+    return None
 
 
 def parse_ai_type(value: str) -> AIType:
@@ -161,6 +230,7 @@ def parse_ai_type(value: str) -> AIType:
 
 def main():
     args = parse_args()
+    submission = resolve_runtime_contract(args)
     observation_hook = load_observation_hook(args.observation_module) if args.observation_module else None
     with activate_rule_xml(args.bt_rule_xml, ROOT, aliases=args.bt_rule_alias):
         action_provider = build_action_provider(args)
@@ -171,11 +241,12 @@ def main():
             ownship_force_side=args.ownship_force_side,
             target_force_side=args.target_force_side,
             action_repeat=(
-                1
-                if args.mode == "hybrid" and args.hybrid_mode == "offensive_residual"
-                else args.action_repeat
+                1 if args.mode == "hybrid" else args.action_repeat
             ),
             debug_action_repeat=args.debug_action_repeat,
+            wez_config=submission.wez_config if submission else None,
+            health_source=(submission.health_source if submission else "simulator"),
+            expected_sim_hz=(submission.expected_sim_hz if submission else 60),
         )
         client = UnrealAIPilotUDPClient(
             command_policy=command_policy,
