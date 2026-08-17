@@ -204,6 +204,35 @@ class Rear120GateTests(unittest.TestCase):
                 self.assertEqual(provider.telemetry()[telemetry_key], 1)
                 self.assertAlmostEqual(float(result.action[3]), 0.73, places=6)
 
+    def test_gate_off_is_exact_bt_for_600_frames_and_200_seconds(self) -> None:
+        own, target = _horizontal_geometry(90.0)
+        context = ActionContext(
+            sim=None,
+            opponent_sim=None,
+            ownship_state=own,
+            target_state=target,
+            observation=np.zeros(10, dtype=np.float32),
+            info={"sim_time_s": 0.0},
+        )
+        for frame_count in (600, 200 * 60):
+            with self.subTest(frame_count=frame_count):
+                bt = _CountingProvider([0.25, -0.4, 0.1, 0.73])
+                rl = _CountingProvider([1.0, 1.0, 1.0, 0.0])
+                provider = ResidualInferenceActionProvider(
+                    bt,
+                    rl,
+                    residual_scale=0.125,
+                    gate_kind="rear120",
+                    composition_mode="saturation_aware",
+                )
+                for frame in range(frame_count):
+                    context.info["sim_time_s"] = frame / 60.0
+                    result = provider.compute_action(context)
+                    np.testing.assert_array_equal(result.action, bt.action)
+                self.assertEqual(bt.calls, frame_count)
+                self.assertEqual(rl.calls, 0)
+                self.assertEqual(provider.telemetry()["rl_inference_calls"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
