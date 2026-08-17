@@ -1,0 +1,61 @@
+{
+  "status": "TRAINING_COMPLETE_EVALUATION_PENDING",
+  "run": {
+    "config": "experiments/0815_aim_residual_proxy_mixed_longrun_s2102.yaml",
+    "output_tag": "mixed10_longrun_s2102",
+    "training_seed": 2102,
+    "observation": "aim_residual10_v2",
+    "algorithm": "SAC",
+    "gate": "aim",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "throttle": "BT_ONLY",
+    "target_profile_weights": "autopilot_crossing:2,bt_0815:1,bt_aip2:1",
+    "geometry_variants": 6
+  },
+  "training_result": {
+    "effective_learner_time_s": 18002.86799999763,
+    "sampled_steps": 1540736,
+    "learner_steps": 3081216,
+    "completed_episodes": 6633,
+    "last_iteration": 11920,
+    "estimated_crash_episodes": 0,
+    "critical_nan_rows": 0,
+    "periodic_bundle_count": 39,
+    "native_checkpoint_count_including_final": 10,
+    "final_checkpoint_file_count": 24,
+    "final_checkpoint_bytes": 947943
+  },
+  "curriculum": {
+    "target_profile_ratios": {
+      "autopilot_crossing": 0.4964571083974069,
+      "bt_0815": 0.25508819538670285,
+      "bt_aip2": 0.24845469621589025
+    },
+    "geometry_ratio_min": 0.15799788934117293,
+    "geometry_ratio_max": 0.17428011457862205
+  },
+  "cleanup_verification": {
+    "f16_init_sha256": "BDCECF4FB64AC0069E3D7C43FB3969240E019EB5190B6FD5AAAAEBF5CD6BC7CB",
+    "temporary_rule_alias_present": false,
+    "stderr_runtime_exception": false
+  },
+  "artifact_hashes": {
+    "final_policy_sha256": "AA01B3308D58910D058633AD66C561497B6736CBA747402390E3A81AE9EC7B2B",
+    "final_metadata_sha256": "3F96D60148FA8561A16B9C36FCAD1C5B7C81151EBE4832F4B07BE1AD92040D13",
+    "training_log_sha256": "DB3500EA6525A894A2D0220188D9E3EFF77CA16724B8473B9A60F834769BA856",
+    "config_sha256": "F2B659A4547C20F8BD585A6A86FA4ADE6E2682DF4D696F9A78879007AAAF72E0",
+    "stdout_sha256": "13D1371ECCF7FD221609A74940BC74005CB34C0B80A92FAC6B8BB3EDBC3BA78F",
+    "stderr_sha256": "2436321329C0538A6F04BA4B3F7657DCC9AE22841F11785CC43AD234BCAE3CBA"
+  },
+  "research_status": {
+    "policy_selection": "PENDING",
+    "cross_seed_comparison": "PENDING",
+    "unseen_mirror_evaluation": "PENDING",
+    "proxy_full_fight": "PENDING",
+    "target_bt_validation": "TARGET_BT_PENDING",
+    "server_validation": "SERVER_BLOCKED",
+    "promotion": "NOT_PROMOTED"
+  },
+  "interpretation": "독립 seed 장시간 학습의 실행 건전성만 확정한다. reward와 final bundle 생성은 Pure 0815 BT 대비 성능 개선 근거가 아니며, periodic policy 선별과 frozen paired 평가 전에는 후보를 승격하지 않는다."
+}
