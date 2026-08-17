@@ -1,0 +1,58 @@
+{
+  "schema_version": "shot_window_research.v1",
+  "research_issue": 13,
+  "branch": "codex/shot-window-residual-model-search",
+  "base_merge_sha": "e48452a06029c31fef0fa063812016d691c8e846",
+  "status": "DIAGNOSTIC_PENDING",
+  "baseline": "Pure 0815 BT",
+  "primary_metric": "hybrid_damage_minus_pure_bt_damage",
+  "training_seeds": [5101, 5102],
+  "conflict_training_seed": 5103,
+  "screening": {
+    "seeds": [5201, 5202, 5203, 5204, 5205, 5206],
+    "suite": "automation/scenarios/0815_aim_mirror",
+    "purpose": "development_only"
+  },
+  "held_out_revalidation": {
+    "frozen_before_results": true,
+    "seeds": [5301, 5302, 5303, 5304, 5305, 5306],
+    "scenarios": [
+      "automation/scenarios/0815_aim_mirror_holdout/lateral_left.json",
+      "automation/scenarios/0815_aim_mirror_holdout/lateral_right.json",
+      "automation/scenarios/0815_aim_mirror_holdout/crossing_left.json",
+      "automation/scenarios/0815_aim_mirror_holdout/crossing_right.json",
+      "automation/scenarios/0815_aim_mirror_holdout/vertical_high.json",
+      "automation/scenarios/0815_aim_mirror_holdout/vertical_low.json"
+    ],
+    "target_crash_policy": "TARGET_CRASH_CONTAMINATED 제외"
+  },
+  "shot_window_v1": {
+    "states": ["DISARMED", "ARMED", "ACTIVE", "COOLDOWN"],
+    "enter_angle_margin_deg": 1.5,
+    "exit_angle_margin_deg": 2.5,
+    "enter_range_margin_m": 25.0,
+    "exit_range_margin_m": 75.0,
+    "enter_min_target_ata_deg": 150.0,
+    "exit_min_target_ata_deg": 140.0,
+    "max_active_steps": 30,
+    "max_active_duration_s": 0.5,
+    "cooldown_steps": 30,
+    "cooldown_duration_s": 0.5,
+    "require_condition_exit_for_rearm": true,
+    "sim_hz": 60
+  },
+  "fixed_conditions": {
+    "observation": "tactical16.v1",
+    "algorithm": "SAC",
+    "residual_scale": 0.125,
+    "composition_mode": "saturation_aware",
+    "residual_axis_mask": "roll_pitch_yaw",
+    "rl_action_repeat": 6,
+    "throttle_policy": "bt_only",
+    "pure_bt_exact_outside_gate": true
+  },
+  "external_status": {
+    "server": "SERVER_BLOCKED",
+    "target_bt": "TARGET_BT_PENDING"
+  }
+}
