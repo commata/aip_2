@@ -1,0 +1,71 @@
+{
+  "status": "PROVISIONAL_FROZEN_NEED_MORE_EVIDENCE",
+  "screening_contract": {
+    "bundle_count": 44,
+    "scenario_names": ["crossing_left", "crossing_right"],
+    "seed": 2601,
+    "scale": 0.125,
+    "gate": "aim",
+    "composition": "saturation_aware",
+    "max_engage_time_s": 30
+  },
+  "screening": {
+    "crash_regressions": 0,
+    "both_direction_damage_and_first_damage_nonregression": ["000300", "003300", "003600"],
+    "final_policy_rejected": true,
+    "final_counterexample": {
+      "left_damage_delta": -0.0012172054531420784,
+      "left_first_damage_delta_s": 0.34999999999999964,
+      "right_los_delta_deg": 0.04130789771998167,
+      "right_los_rate_delta_deg_s": 0.041777796731497396
+    }
+  },
+  "development_contract": {
+    "scenario": "automation/scenarios/0815_aim_validation_mixed.json",
+    "seeds": [2501, 2502, 2503, 2504, 2505, 2506, 2507, 2508, 2509, 2510, 2511, 2512, 2513, 2514, 2515, 2516, 2517, 2518],
+    "known_coverage_limit": "crossing_right and vertical_low are absent"
+  },
+  "candidates": {
+    "000300": {
+      "weights_sha256": "CCBF1C5A4398105EF218BDBEEDAC92D7CE027D37FCEABCC40B1FD6F143325EB8",
+      "damage_delta_mean": 0.004298268367741159,
+      "damage_delta_worst": -0.003546869335433911,
+      "los_delta_mean_deg": -0.40793176728673575,
+      "los_rate_delta_mean_deg_s": -0.015520380086431073,
+      "cone_delta_mean_s": 0.05740740740740743,
+      "first_damage_delta_mean_s": -0.0009259259259258239,
+      "action_saturation_ratio": 0.27252495706445584,
+      "gate_active_ratio": 0.8621822645428695,
+      "roll_applied_to_requested_ratio": 0.5972811486443236,
+      "damage_bootstrap95": [0.0006725179113443786, 0.008602504129102437],
+      "los_bootstrap95_deg": [-1.0217942195437448, 0.009746364678925399],
+      "los_rate_bootstrap95_deg_s": [-0.04304589179963972, 0.004368937220257256],
+      "cone_bootstrap95_s": [0.03148148148148147, 0.08796296296296297],
+      "first_damage_bootstrap95_s": [-0.011111111111110924, 0.008333333333333748]
+    },
+    "003300": {
+      "weights_sha256": "E51199A72DC0B62017E7237CEA0FB79C461A24896C5FD763DAA881F573AB4C1B",
+      "damage_delta_mean": 0.001050779278052083,
+      "damage_delta_worst": -0.024754064639463058,
+      "first_damage_delta_mean_s": 0.0027777777777777185
+    },
+    "003600": {
+      "weights_sha256": "F3D5AD6D38A19C9DB8C668E827A50B5A91934B81A4D099C724D57405F53CB64B",
+      "damage_delta_mean": -0.0032808774266530616,
+      "damage_delta_worst": -0.048774918652171984,
+      "first_damage_delta_mean_s": 0.008333333333333352
+    }
+  },
+  "selected": {
+    "tag": "000300",
+    "status": "PROVISIONAL_FROZEN",
+    "confidence": "낮음",
+    "next_required_evidence": ["independent S2102", "unseen mirror seeds", "trajectory and saturation/headroom review"]
+  },
+  "artifact_hashes": {
+    "screening_summary_sha256": "465F689983E83A4EB6660610C998A80E29F07AB6DCB8BE74D8D4057FE969853A",
+    "dev_000300_evaluation_sha256": "A628B78DD6664FFC241E639034C82B76C4DE27308B935BEBAB62EEBE3E83CDBA",
+    "dev_003300_evaluation_sha256": "3B4CFF05EE88DCA54A2F2524DC7FBBFCB10F1036A2E66D62DA32802F1C0C0342",
+    "dev_003600_evaluation_sha256": "DCD1F2074290D2920FFA590DE967C48ACD77778E233FAEC5C434A95B0E09A914"
+  }
+}
