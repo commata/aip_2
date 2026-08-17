@@ -22,7 +22,7 @@ class _Provider(ActionProvider):
         return ActionResult(np.array([0.0, 0.0, 0.0, 0.8], dtype=np.float32), "test")
 
 
-def _submission() -> SubmissionConfig:
+def _submission(*, shot_window: bool = False) -> SubmissionConfig:
     raw = {
         "hard_eligibility_gate": {
             "kind": "rear120",
@@ -39,6 +39,19 @@ def _submission() -> SubmissionConfig:
             "safety_veto": {},
         },
     }
+    if shot_window:
+        raw["activation_gate"] = {
+            **raw["activation_gate"],
+            "kind": "shot_window_v1",
+            "shot_window": {
+                "enter_range_margin_m": 25.0,
+                "exit_range_margin_m": 75.0,
+                "max_active_steps": 30,
+                "cooldown_steps": 30,
+                "require_condition_exit_for_rearm": True,
+                "sim_hz": 60,
+            },
+        }
     return SubmissionConfig(
         source_path=Path("submission.json"),
         raw=raw,
@@ -91,6 +104,24 @@ class SubmissionRuntimeTests(unittest.TestCase):
         self.assertEqual(provider.rl_action_repeat, 6)
         self.assertEqual(provider.composition_mode, "saturation_aware")
         self.assertEqual(provider.inference_timeout_s, 0.1667)
+
+    def test_submission_builds_shot_window_runtime_contract(self) -> None:
+        args = Namespace(
+            mode="hybrid",
+            bundle_dir="policy",
+            policy_id="default_policy",
+            explore=False,
+            bt_dll="bt.dll",
+            _submission_config=_submission(shot_window=True),
+        )
+        with patch.object(runtime, "RLActionProvider", _Provider), patch.object(
+            runtime, "BTActionProvider", _Provider
+        ):
+            provider = runtime.build_action_provider(args)
+
+        self.assertEqual(provider.gate_kind, "shot_window")
+        self.assertEqual(provider.gate.config.max_active_steps, 30)
+        self.assertEqual(provider.gate.config.cooldown_steps, 30)
 
 
 if __name__ == "__main__":

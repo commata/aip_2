@@ -275,6 +275,7 @@ class DogFightEnv(gym.Env):
             aim_gate=residual.get("aim_gate") or None,
             offensive_gate=residual.get("offensive_gate") or None,
             rear120_gate=residual.get("rear120_gate") or None,
+            shot_window_gate=residual.get("shot_window_gate") or None,
             safety_veto=residual.get("safety_veto") or None,
             composition_mode=str(residual.get("composition_mode", "additive")),
             residual_axis_mask=str(

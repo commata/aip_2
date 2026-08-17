@@ -142,6 +142,26 @@ def load_submission_config(
     for required_gate in ("hard_eligibility_gate", "activation_gate"):
         if not isinstance(payload.get(required_gate), dict):
             raise ValueError(f"submission config requires {required_gate}")
+    hard_gate = payload["hard_eligibility_gate"]
+    if hard_gate.get("kind") != "rear120":
+        raise ValueError("submission hard_eligibility_gate kind must be rear120")
+    activation_gate = payload["activation_gate"]
+    activation_kind = str(activation_gate.get("kind", ""))
+    if activation_kind not in {
+        "rear120_and_offensive_or_pre_aim",
+        "shot_window_v1",
+    }:
+        raise ValueError("unsupported submission activation_gate kind")
+    if activation_kind == "shot_window_v1":
+        shot_window = activation_gate.get("shot_window")
+        if not isinstance(shot_window, dict):
+            raise ValueError("shot_window_v1 requires activation_gate.shot_window")
+        max_active_steps = int(shot_window.get("max_active_steps", 0))
+        cooldown_steps = int(shot_window.get("cooldown_steps", -1))
+        if max_active_steps <= 0 or cooldown_steps < 0:
+            raise ValueError("invalid submission shot-window duration contract")
+        if int(shot_window.get("sim_hz", expected_sim_hz)) != expected_sim_hz:
+            raise ValueError("shot-window sim_hz must match expected_sim_hz")
 
     return SubmissionConfig(
         source_path=source,

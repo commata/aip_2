@@ -151,7 +151,7 @@ class DogFightCallbacks(DefaultCallbacks):
 
         provider = info.get("ownship_provider_telemetry", {}) or {}
         gate_kind = provider.get("residual_training_gate_kind")
-        if gate_kind in ("aim", "offensive", "rear120"):
+        if gate_kind in ("aim", "offensive", "combined", "rear120", "shot_window"):
             prefix = (
                 "rear120_activation"
                 if gate_kind == "rear120"
@@ -172,6 +172,16 @@ class DogFightCallbacks(DefaultCallbacks):
                     f"{prefix}_min_active_steps", 0
                 )
                 / sim_hz,
+                "gate_p95_active_s": provider.get(
+                    f"{prefix}_p95_active_steps", 0
+                )
+                / sim_hz,
+                "gate_max_active_s": provider.get(
+                    f"{prefix}_max_active_steps", 0
+                )
+                / sim_hz,
+                "window_timeout_count": provider.get("window_timeout_count", 0),
+                "window_reentry_count": provider.get("window_reentry_count", 0),
                 "rl_correction_steps": correction_steps,
                 "rl_correction_ratio": correction_steps / max(1.0, gate_steps),
                 "action_clipping_ratio": float(

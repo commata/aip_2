@@ -56,7 +56,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--gate-kind",
-        choices=("aim", "offensive", "combined", "rear120"),
+        choices=("aim", "offensive", "combined", "rear120", "shot_window"),
         default="aim",
     )
     parser.add_argument(
@@ -131,7 +131,7 @@ def main() -> None:
             -5000.0,
             0.0,
             0.0,
-            0.0 if args.gate_kind == "rear120" else 180.0,
+            0.0 if args.gate_kind in ("rear120", "shot_window") else 180.0,
             220.0,
         ],
         "initial_scenario": {
@@ -142,6 +142,10 @@ def main() -> None:
             "scale": args.scale,
             "residual_axis_mask": args.residual_axis_mask,
             "gate_kind": args.gate_kind,
+            "shot_window_gate": {
+                "max_active_steps": 30,
+                "cooldown_steps": 30,
+            },
             "batch_contract": {
                 "mode": (
                     "rear120_segment"
@@ -240,6 +244,20 @@ def main() -> None:
                 "end_condition": info.get("end_condition"),
                 "training_batch_contract": info.get("training_batch_contract", {}),
             }
+            if args.gate_kind == "shot_window":
+                result["shot_window"] = {
+                    key: telemetry.get(key)
+                    for key in (
+                        "window_entry_count",
+                        "window_exit_count",
+                        "window_timeout_count",
+                        "window_reentry_count",
+                        "active_duration_mean",
+                        "active_duration_p95",
+                        "active_duration_max",
+                        "cooldown_duration",
+                    )
+                }
         finally:
             env.close()
     encoded = json.dumps(result, ensure_ascii=False, indent=2)
