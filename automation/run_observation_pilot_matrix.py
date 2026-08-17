@@ -45,10 +45,13 @@ def expand_matrix(payload: dict) -> list[tuple[str, dict]]:
     seeds = list(matrix.get("seeds") or [])
     observations = list(matrix.get("observations") or [])
     seed_overrides = dict(matrix.get("seed_overrides") or {})
+    allow_single_conflict_seed = bool(matrix.get("allow_single_conflict_seed", False))
     run_suffix = str(matrix.get("run_suffix") or "").strip()
     matrix_notes = str(matrix.get("notes") or "").strip()
-    if len(seeds) < 2:
+    if len(seeds) < 2 and not allow_single_conflict_seed:
         raise ValueError("pilot_matrix.seeds must contain at least two independent seeds")
+    if not seeds:
+        raise ValueError("pilot_matrix.seeds must not be empty")
     if not observations:
         raise ValueError("pilot_matrix.observations must not be empty")
 

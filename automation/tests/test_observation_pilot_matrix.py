@@ -43,6 +43,17 @@ def test_requires_two_seeds() -> None:
         expand_matrix(payload)
 
 
+def test_explicit_conflict_seed_allows_one_predeclared_seed() -> None:
+    payload = _payload()
+    payload["pilot_matrix"]["seeds"] = [5103]
+    payload["pilot_matrix"]["allow_single_conflict_seed"] = True
+
+    expanded = expand_matrix(payload)
+
+    assert len(expanded) == 2
+    assert [item["runtime"]["seed"] for _, item in expanded] == [5103, 5103]
+
+
 def test_seed_specific_overrides_keep_independent_initial_bundles() -> None:
     payload = _payload()
     payload["pilot_matrix"]["seed_overrides"] = {

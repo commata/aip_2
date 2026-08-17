@@ -65,3 +65,16 @@ s3101→seed5101, s3102→seed5102로 bundle 계보를 고정해 각각 20 itera
 iteration 5부터 두 seed mean이 모두 음수였고 seed5102 crossing-left는 Damage Δ -0.013294, LOS Δ +3.879°의 대규모 회귀를 보였다. 따라서 fine-tuning checkpoint를 cherry-pick하지 않는다. Gate timing, curriculum sample density, reward dominance, decay, warm initialization을 분리한 뒤에도 SAC update가 seed별 상반 방향으로 policy를 이동시키는 evidence가 남았다.
 
 판정: `REVALIDATION_FAILED / NOT_PROMOTED`. repository가 실제 지원하는 PPO를 동일 Stage-1 Gate/reward/action/observation/seed/budget에서 algorithm만 바꾸는 최후 비교로 진행한다.
+
+## PPO 단일 변수 비교
+
+SAC와 동일한 Stage-1 Gate/reward/action/observation/scale/seed/budget을 유지하고 algorithm만 PPO로 바꿨다. seed당 20 iteration, 2,560 env step, 213 episode를 완료했다.
+
+| seed | clean mean Damage Δ | positive | 오염 제외 | 최소 geometry Δ | crash |
+|---:|---:|---:|---:|---:|---:|
+| 5101 | -0.000769 | 2/5 | crossing-left target crash 1건 | -0.003994 | 0 |
+| 5102 | +0.001316 | 4/6 | 없음 | -0.001118 | 0 |
+
+두 seed의 방향이 충돌하므로 양수 seed 5102만 선택하지 않는다. 기존 manifest에 사전 고정한 conflict seed 5103을 같은 계약으로 추가해 알고리즘 효과의 재현 방향을 판별한다. held-out seed 5301~5306은 아직 열지 않았다.
+
+현재 상태: `SHORT_TRAINING`, `NOT_PROMOTED`.
