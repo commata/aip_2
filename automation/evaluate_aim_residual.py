@@ -206,6 +206,8 @@ def run_match(
             "--aim-min-hold-steps", str(args.aim_min_hold_steps),
             "--offensive-enter-ata-deg", str(args.offensive_enter_ata_deg),
             "--offensive-exit-ata-deg", str(args.offensive_exit_ata_deg),
+            "--offensive-enter-range-m", str(args.offensive_enter_range_m),
+            "--offensive-exit-range-m", str(args.offensive_exit_range_m),
             "--offensive-enter-target-ata-deg", str(args.offensive_enter_target_ata_deg),
             "--offensive-exit-target-ata-deg", str(args.offensive_exit_target_ata_deg),
             "--rear120-enter-target-ata-deg", str(args.rear120_enter_target_ata_deg),
@@ -672,6 +674,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aim-min-hold-steps", type=int, default=12)
     parser.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
     parser.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
+    parser.add_argument("--offensive-enter-range-m", type=float, default=1500.0)
+    parser.add_argument("--offensive-exit-range-m", type=float, default=2000.0)
     parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=120.0)
     parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
     parser.add_argument("--rear120-enter-target-ata-deg", type=float, default=120.0)
