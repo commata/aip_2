@@ -8,12 +8,12 @@ output:
 
 pilot_matrix:
   run_suffix: reward_no_aim_progress_v1
-  seeds: [4201, 4202]
+  seeds: [4201, 4202, 4203]
   observations:
     - label: t16_all
       mode: tactical16
       contract: {version: tactical16.v1, normalization_version: tactical16.norm.v1, health_source: unavailable_constant_one}
-  notes: "PR10 Tactical16 all-axis baseline에서 aim_progress_scale만 1.0에서 0.0으로 변경한 reward 단일-variable short pilot."
+  notes: "PR10 Tactical16 all-axis baseline에서 aim_progress_scale만 1.0에서 0.0으로 변경한 reward 단일-variable short pilot. seed 4201/4202 Damage 방향 충돌을 판별하기 위해 독립 seed 4203 추가."
 
 env_config:
   reward:
