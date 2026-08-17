@@ -1,0 +1,14 @@
+{
+  "name": "shot_window_screening_suite_v1",
+  "purpose": "Shot-Window 구조와 short checkpoint development screening",
+  "independence_note": "결과 확인 전에 seed와 geometry를 고정했으며 held-out revalidation에는 사용하지 않는다.",
+  "cases": [
+    {"name": "lateral_left", "scenario": "automation/scenarios/0815_aim_mirror/lateral_left.json", "seed": 5201},
+    {"name": "lateral_right", "scenario": "automation/scenarios/0815_aim_mirror/lateral_right.json", "seed": 5202},
+    {"name": "crossing_left", "scenario": "automation/scenarios/0815_aim_mirror/crossing_left.json", "seed": 5203},
+    {"name": "crossing_right", "scenario": "automation/scenarios/0815_aim_mirror/crossing_right.json", "seed": 5204},
+    {"name": "vertical_high", "scenario": "automation/scenarios/0815_aim_mirror/vertical_high.json", "seed": 5205},
+    {"name": "vertical_low", "scenario": "automation/scenarios/0815_aim_mirror/vertical_low.json", "seed": 5206}
+  ]
+}
+

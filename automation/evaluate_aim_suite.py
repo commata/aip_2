@@ -101,10 +101,21 @@ def parser() -> argparse.ArgumentParser:
     )
     value.add_argument(
         "--gate-kind",
-        choices=("aim", "offensive", "combined", "rear120"),
+        choices=("aim", "offensive", "combined", "rear120", "shot_window"),
         default="aim",
     )
     value.add_argument("--max-engage-time", type=float, default=30.0)
+    value.add_argument("--shot-window-max-active-steps", type=int, default=30)
+    value.add_argument("--shot-window-cooldown-steps", type=int, default=30)
+    value.add_argument(
+        "--shot-window-residual-decay", choices=("none", "linear"), default="none"
+    )
+    value.add_argument("--shot-window-residual-decay-floor", type=float, default=0.0)
+    value.add_argument(
+        "--shot-window-rearm-mode",
+        choices=("condition_exit", "time_only"),
+        default="condition_exit",
+    )
     value.add_argument("--episode-step-limit", type=int, default=1800)
     value.add_argument("--timeout-seconds", type=float, default=120.0)
     value.add_argument("--resume", action="store_true")
@@ -141,6 +152,11 @@ def main() -> int:
             "--episode-step-limit", str(args.episode_step_limit),
             "--timeout-seconds", str(args.timeout_seconds),
             "--rl-action-repeat", "6",
+            "--shot-window-max-active-steps", str(args.shot_window_max_active_steps),
+            "--shot-window-cooldown-steps", str(args.shot_window_cooldown_steps),
+            "--shot-window-residual-decay", args.shot_window_residual_decay,
+            "--shot-window-residual-decay-floor", str(args.shot_window_residual_decay_floor),
+            "--shot-window-rearm-mode", args.shot_window_rearm_mode,
             "--quiet",
         ]
         for alias in args.bt_rule_alias:

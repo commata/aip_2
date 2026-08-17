@@ -212,6 +212,17 @@ def run_match(
             "--offensive-exit-target-ata-deg", str(args.offensive_exit_target_ata_deg),
             "--rear120-enter-target-ata-deg", str(args.rear120_enter_target_ata_deg),
             "--rear120-exit-target-ata-deg", str(args.rear120_exit_target_ata_deg),
+            "--shot-window-enter-angle-margin-deg", str(args.shot_window_enter_angle_margin_deg),
+            "--shot-window-exit-angle-margin-deg", str(args.shot_window_exit_angle_margin_deg),
+            "--shot-window-enter-range-margin-m", str(args.shot_window_enter_range_margin_m),
+            "--shot-window-exit-range-margin-m", str(args.shot_window_exit_range_margin_m),
+            "--shot-window-enter-target-ata-deg", str(args.shot_window_enter_target_ata_deg),
+            "--shot-window-exit-target-ata-deg", str(args.shot_window_exit_target_ata_deg),
+            "--shot-window-max-active-steps", str(args.shot_window_max_active_steps),
+            "--shot-window-cooldown-steps", str(args.shot_window_cooldown_steps),
+            "--shot-window-residual-decay", args.shot_window_residual_decay,
+            "--shot-window-residual-decay-floor", str(args.shot_window_residual_decay_floor),
+            "--shot-window-rearm-mode", args.shot_window_rearm_mode,
             "--safety-minimum-altitude-m", str(args.safety_minimum_altitude_m),
             "--safety-minimum-speed-m-s", str(args.safety_minimum_speed_m_s),
             "--safety-maximum-closing-rate-m-s", str(args.safety_maximum_closing_rate_m_s),
@@ -307,6 +318,14 @@ def build_record(
         "gate_exits": finite(provider.get(f"{gate_metric_prefix}_exits")) or 0.0,
         "gate_mean_active_steps": finite(provider.get(f"{gate_metric_prefix}_mean_active_steps")) or 0.0,
         "gate_max_active_steps": finite(provider.get(f"{gate_metric_prefix}_max_active_steps")) or 0.0,
+        "window_entry_count": finite(provider.get("window_entry_count")) or 0.0,
+        "window_exit_count": finite(provider.get("window_exit_count")) or 0.0,
+        "window_timeout_count": finite(provider.get("window_timeout_count")) or 0.0,
+        "window_reentry_count": finite(provider.get("window_reentry_count")) or 0.0,
+        "active_duration_mean": finite(provider.get("active_duration_mean")) or 0.0,
+        "active_duration_p95": finite(provider.get("active_duration_p95")) or 0.0,
+        "active_duration_max": finite(provider.get("active_duration_max")) or 0.0,
+        "cooldown_duration": finite(provider.get("cooldown_duration")) or 0.0,
         "rl_inference_calls": finite(provider.get("rl_inference_calls")) or 0.0,
         "rl_correction_steps": finite(provider.get("rl_correction_steps")) or 0.0,
         "correction_roll_mean": _axis(provider, "rl_correction_abs_mean", 0),
@@ -367,6 +386,9 @@ def aggregate(records: list[dict[str, Any]]) -> dict[str, Any]:
         "damage_cone_time_s", "time_to_first_wez_s", "time_to_first_damage_s",
         "mean_speed_m_s", "min_speed_m_s", "min_altitude_m", "gate_active_ratio",
         "gate_entries", "gate_exits", "gate_mean_active_steps", "gate_max_active_steps",
+        "window_entry_count", "window_exit_count", "window_timeout_count",
+        "window_reentry_count", "active_duration_mean", "active_duration_p95",
+        "active_duration_max", "cooldown_duration",
         "rl_inference_calls", "correction_roll_mean", "correction_pitch_mean",
         "correction_yaw_mean", "action_clipped_steps", "action_saturated_steps",
         "requested_roll_correction_mean", "requested_pitch_correction_mean",
@@ -644,7 +666,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scales", nargs="+", type=float, default=[0.125])
     parser.add_argument(
         "--gate-kind",
-        choices=["aim", "offensive", "combined", "rear120"],
+        choices=["aim", "offensive", "combined", "rear120", "shot_window"],
         default="aim",
     )
     parser.add_argument(
@@ -680,6 +702,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
     parser.add_argument("--rear120-enter-target-ata-deg", type=float, default=120.0)
     parser.add_argument("--rear120-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--shot-window-enter-angle-margin-deg", type=float, default=1.5)
+    parser.add_argument("--shot-window-exit-angle-margin-deg", type=float, default=2.5)
+    parser.add_argument("--shot-window-enter-range-margin-m", type=float, default=25.0)
+    parser.add_argument("--shot-window-exit-range-margin-m", type=float, default=75.0)
+    parser.add_argument("--shot-window-enter-target-ata-deg", type=float, default=150.0)
+    parser.add_argument("--shot-window-exit-target-ata-deg", type=float, default=140.0)
+    parser.add_argument("--shot-window-max-active-steps", type=int, default=30)
+    parser.add_argument("--shot-window-cooldown-steps", type=int, default=30)
+    parser.add_argument(
+        "--shot-window-residual-decay", choices=("none", "linear"), default="none"
+    )
+    parser.add_argument("--shot-window-residual-decay-floor", type=float, default=0.0)
+    parser.add_argument(
+        "--shot-window-rearm-mode",
+        choices=["condition_exit", "time_only"],
+        default="condition_exit",
+    )
     parser.add_argument("--safety-minimum-altitude-m", type=float, default=350.0)
     parser.add_argument("--safety-minimum-speed-m-s", type=float, default=170.0)
     parser.add_argument("--safety-maximum-closing-rate-m-s", type=float, default=250.0)

@@ -1,0 +1,24 @@
+{
+  "status": "DIAGNOSTIC_COMPLETE",
+  "checkpoint": "rear120_t16 bundle_000020",
+  "scale": 0.125,
+  "screening_seeds": [5201, 5202, 5203, 5204, 5205, 5206],
+  "contaminated_pairs": 0,
+  "variants": [
+    {"checkpoint_seed": 3101, "gate": "rear120_v1", "duration_s": null, "damage_delta_mean": -0.0007025326111063102, "positive_pairs": 3, "pairs": 6, "gate_active_ratio": 0.9921471433876919, "rl_inference_mean": 152.5},
+    {"checkpoint_seed": 3101, "gate": "shot_window_v1", "duration_s": 0.25, "damage_delta_mean": -0.001133610572876827, "positive_pairs": 2, "pairs": 6, "gate_active_ratio": 0.023012840222984998, "rl_inference_mean": 4.5},
+    {"checkpoint_seed": 3101, "gate": "shot_window_v1", "duration_s": 0.5, "damage_delta_mean": -0.0006691721517211683, "positive_pairs": 3, "pairs": 6, "gate_active_ratio": 0.04429052055186955, "rl_inference_mean": 7.333333333333333},
+    {"checkpoint_seed": 3101, "gate": "shot_window_v1", "duration_s": 0.75, "damage_delta_mean": -0.0006235529803530667, "positive_pairs": 3, "pairs": 6, "gate_active_ratio": 0.06475453384377063, "rl_inference_mean": 11.333333333333334},
+    {"checkpoint_seed": 3101, "gate": "shot_window_v1", "duration_s": 1.0, "damage_delta_mean": 0.00039185215382353533, "positive_pairs": 3, "pairs": 6, "gate_active_ratio": 0.08522909132460425, "rl_inference_mean": 14.0},
+    {"checkpoint_seed": 3101, "gate": "shot_window_v1", "duration_s": 1.5, "damage_delta_mean": -0.00011898265551609406, "positive_pairs": 3, "pairs": 6, "gate_active_ratio": 0.12611683231440265, "rl_inference_mean": 20.666666666666668},
+    {"checkpoint_seed": 3102, "gate": "shot_window_v1", "duration_s": 0.5, "damage_delta_mean": -0.0016438328172450611, "positive_pairs": 3, "pairs": 6, "gate_active_ratio": 0.043422354006025364, "rl_inference_mean": 7.333333333333333},
+    {"checkpoint_seed": 3102, "gate": "shot_window_v1", "duration_s": 1.0, "damage_delta_mean": 0.00020847686364914667, "positive_pairs": 5, "pairs": 6, "gate_active_ratio": 0.08522909132460425, "rl_inference_mean": 14.0}
+  ],
+  "selected": {
+    "duration_s": 1.0,
+    "pooled_damage_delta_mean": 0.000300164508736341,
+    "positive_pairs": 8,
+    "pairs": 12,
+    "promotion_claim": false
+  }
+}

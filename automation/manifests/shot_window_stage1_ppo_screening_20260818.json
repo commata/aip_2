@@ -1,0 +1,40 @@
+{
+  "status": "SHORT_TRAINING",
+  "decision": "CONFLICT_SEED_REQUIRED",
+  "algorithm": "PPO",
+  "fixed_contract": {
+    "observation": "tactical16.v1",
+    "gate": "shot_window_v1",
+    "max_active_frames": 60,
+    "cooldown_frames": 30,
+    "rearm": "condition_exit",
+    "residual_scale": 0.125,
+    "action_structure": "roll_pitch_yaw_residual_throttle_bt_only",
+    "training_iterations_per_seed": 20,
+    "training_steps_per_seed": 2560,
+    "training_episodes_per_seed": 213,
+    "screening_seeds": [5201, 5202, 5203, 5204, 5205, 5206]
+  },
+  "results": {
+    "5101": {
+      "clean_pairs": 5,
+      "clean_mean_damage_delta": -0.0007689472175954392,
+      "clean_positive_pairs": 2,
+      "minimum_geometry_damage_delta": -0.003993853046847073,
+      "target_crash_contaminated_pairs": 1,
+      "ownship_crashes": 0,
+      "artifact": "artifacts/evaluations/shot_window_research/stage1_ppo_v1_s5101_i000020_screening_20260818/evaluation.json"
+    },
+    "5102": {
+      "clean_pairs": 6,
+      "clean_mean_damage_delta": 0.0013161277314919968,
+      "clean_positive_pairs": 4,
+      "minimum_geometry_damage_delta": -0.001118198012705074,
+      "target_crash_contaminated_pairs": 0,
+      "ownship_crashes": 0,
+      "artifact": "artifacts/evaluations/shot_window_research/stage1_ppo_v1_s5102_i000020_screening_20260818/evaluation.json"
+    }
+  },
+  "conflict_training_seed": 5103,
+  "heldout_opened": false
+}

@@ -1,0 +1,36 @@
+base_experiment: 0818_shot_window_stage1_curriculum_short.yaml
+
+name: 0818_shot_window_stage1_ppo_short
+
+output:
+  name: 0818_shot_window_residual_model_search
+  tag: shot_window_stage1_ppo_template
+
+pilot_matrix:
+  run_suffix: shot_window_stage1_ppo_v1
+  seeds: [5101, 5102]
+  observations:
+    - label: t16_all
+      mode: tactical16
+      contract: {version: tactical16.v1, normalization_version: tactical16.norm.v1, health_source: unavailable_constant_one}
+  notes: "SAC 학습 안정성 실패 근거에 따른 최후 single-variable PPO comparison. Gate/reward/action/observation/curriculum/seed/budget 고정."
+
+algo:
+  name: ppo
+  framework: torch
+  lr: 0.0003
+  gamma: 0.99
+  train_batch_size: 128
+  minibatch_size: 128
+  gae_lambda: 0.95
+  clip_param: 0.2
+  mlp:
+    enabled: true
+    fcnet_hiddens: [128, 128]
+    fcnet_activation: relu
+    head_fcnet_hiddens: []
+    head_fcnet_activation: relu
+
+runtime:
+  iterations: 20
+  max_effective_learner_time_s: 1800

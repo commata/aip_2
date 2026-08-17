@@ -43,6 +43,31 @@ def test_requires_two_seeds() -> None:
         expand_matrix(payload)
 
 
+def test_explicit_conflict_seed_allows_one_predeclared_seed() -> None:
+    payload = _payload()
+    payload["pilot_matrix"]["seeds"] = [5103]
+    payload["pilot_matrix"]["allow_single_conflict_seed"] = True
+
+    expanded = expand_matrix(payload)
+
+    assert len(expanded) == 2
+    assert [item["runtime"]["seed"] for _, item in expanded] == [5103, 5103]
+
+
+def test_seed_specific_overrides_keep_independent_initial_bundles() -> None:
+    payload = _payload()
+    payload["pilot_matrix"]["seed_overrides"] = {
+        "3101": {"runtime": {"init_bundle": "bundle_a"}},
+        "3102": {"runtime": {"init_bundle": "bundle_b"}},
+    }
+    expanded = expand_matrix(payload)
+
+    assert expanded[0][1]["runtime"]["init_bundle"] == "bundle_a"
+    assert expanded[1][1]["runtime"]["init_bundle"] == "bundle_b"
+    assert expanded[2][1]["runtime"]["init_bundle"] == "bundle_a"
+    assert expanded[3][1]["runtime"]["init_bundle"] == "bundle_b"
+
+
 def test_overlay_deep_merges_nested_experiment_config() -> None:
     payload = _deep_merge(
         {

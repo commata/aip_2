@@ -161,12 +161,19 @@ def build_action_provider(args):
     hard_gate.pop("kind", None)
     hard_gate.setdefault("sim_hz", submission.expected_sim_hz)
     activation = submission.raw["activation_gate"]
+    activation_kind = str(activation.get("kind", ""))
+    gate_kind = (
+        "shot_window"
+        if activation_kind.startswith("shot_window")
+        else "rear120"
+    )
     return ResidualInferenceActionProvider(
         bt_provider=bt_provider,
         residual_provider=rl_provider,
         residual_scale=submission.residual_scale,
-        gate_kind="rear120",
+        gate_kind=gate_kind,
         rear120_gate=hard_gate,
+        shot_window_gate=activation.get("shot_window"),
         aim_gate=activation.get("phase_pre_aim"),
         offensive_gate=activation.get("offensive"),
         safety_veto=activation.get("safety_veto"),

@@ -1,0 +1,21 @@
+{
+  "status": "REVALIDATION_FAILED",
+  "gate": "shot_window_v1",
+  "duration_s": 1.0,
+  "scale": 0.125,
+  "training_steps_total": 5120,
+  "contaminated_pairs": 0,
+  "ownship_crashes": 0,
+  "results": [
+    {"training_seed": 5101, "iteration": 5, "damage_delta_mean": -0.000445650323640856, "positive_pairs": 4, "pairs": 6},
+    {"training_seed": 5101, "iteration": 10, "damage_delta_mean": -0.002261749038603359, "positive_pairs": 3, "pairs": 6},
+    {"training_seed": 5101, "iteration": 15, "damage_delta_mean": -0.0010081213702057095, "positive_pairs": 2, "pairs": 6},
+    {"training_seed": 5101, "iteration": 20, "damage_delta_mean": -0.0008898712353287616, "positive_pairs": 2, "pairs": 6},
+    {"training_seed": 5102, "iteration": 5, "damage_delta_mean": -0.00042697631700476063, "positive_pairs": 3, "pairs": 6},
+    {"training_seed": 5102, "iteration": 10, "damage_delta_mean": -0.0010153871453437528, "positive_pairs": 4, "pairs": 6},
+    {"training_seed": 5102, "iteration": 15, "damage_delta_mean": -0.0009605670174030653, "positive_pairs": 2, "pairs": 6},
+    {"training_seed": 5102, "iteration": 20, "damage_delta_mean": -0.0014985227823273533, "positive_pairs": 1, "pairs": 6}
+  ],
+  "training_gate_active_ratio_mean": {"5101": 0.019392263728103327, "5102": 0.061520451625251237},
+  "next_hypothesis": "shot-window Stage-1 curriculum"
+}

@@ -1,0 +1,27 @@
+base_experiment: 0818_shot_window_stage1_curriculum_short.yaml
+
+name: 0818_shot_window_stage1_warm_short
+
+output:
+  name: 0818_shot_window_residual_model_search
+  tag: shot_window_stage1_warm_template
+
+pilot_matrix:
+  run_suffix: shot_window_stage1_warm_v1
+  seeds: [5101, 5102]
+  seed_overrides:
+    "5101":
+      runtime:
+        init_bundle: artifacts/models/0815_hybrid_submission_pilot/rear120_t16_s3101_r2/bundle_000020
+    "5102":
+      runtime:
+        init_bundle: artifacts/models/0815_hybrid_submission_pilot/rear120_t16_s3102_r2/bundle_000020
+  observations:
+    - label: t16_all
+      mode: tactical16
+      contract: {version: tactical16.v1, normalization_version: tactical16.norm.v1, health_source: unavailable_constant_one}
+  notes: "새 Gate diagnostic에서 양수였던 s3101/s3102 checkpoint를 각각 보존된 독립 초기화로 사용하는 Stage-1 fine-tuning."
+
+runtime:
+  iterations: 20
+  max_effective_learner_time_s: 1800

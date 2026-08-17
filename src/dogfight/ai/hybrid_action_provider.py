@@ -819,6 +819,401 @@ class CombinedResidualGate:
         }
 
 
+@dataclass(frozen=True)
+class ShotWindowGateConfig:
+    """Temporal contract for a short correction immediately before a shot."""
+
+    min_range_m: float = 152.4
+    enter_angle_margin_deg: float = 1.5
+    exit_angle_margin_deg: float = 2.5
+    enter_range_margin_m: float = 25.0
+    exit_range_margin_m: float = 75.0
+    enter_min_target_ata_deg: float = 150.0
+    exit_min_target_ata_deg: float = 140.0
+    max_active_steps: int = 30
+    cooldown_steps: int = 30
+    require_condition_exit_for_rearm: bool = True
+    residual_decay_mode: str = "none"
+    residual_decay_floor: float = 0.0
+    sim_hz: int = 60
+
+    def validate(self) -> None:
+        if self.min_range_m < 0.0:
+            raise ValueError("shot-window min range must be non-negative")
+        if not 0.0 <= self.enter_angle_margin_deg <= self.exit_angle_margin_deg:
+            raise ValueError("shot-window angle margins must satisfy 0 <= enter <= exit")
+        if not 0.0 <= self.enter_range_margin_m <= self.exit_range_margin_m:
+            raise ValueError("shot-window range margins must satisfy 0 <= enter <= exit")
+        if not (
+            0.0
+            <= self.exit_min_target_ata_deg
+            <= self.enter_min_target_ata_deg
+            <= 180.0
+        ):
+            raise ValueError(
+                "shot-window target ATA must satisfy 0 <= exit <= enter <= 180"
+            )
+        if self.max_active_steps <= 0 or self.cooldown_steps < 0:
+            raise ValueError("shot-window duration must be positive and cooldown non-negative")
+        if self.residual_decay_mode not in {"none", "linear"}:
+            raise ValueError("shot-window residual decay must be none or linear")
+        if not 0.0 <= self.residual_decay_floor <= 1.0:
+            raise ValueError("shot-window residual decay floor must be within [0, 1]")
+        if self.sim_hz <= 0:
+            raise ValueError("shot-window sim_hz must be positive")
+
+
+def _shot_window_effective_scale(
+    base_scale: float,
+    gate,
+    gate_info: dict,
+) -> float:
+    """Apply the configured per-window scale schedule without changing timing."""
+    if not bool(gate_info.get("active", False)):
+        return 0.0
+    config = getattr(gate, "config", None)
+    if config is None or config.residual_decay_mode == "none":
+        return float(base_scale)
+    elapsed = max(1, int(gate_info.get("active_elapsed_steps", 1)))
+    denominator = max(1, int(config.max_active_steps) - 1)
+    progress = min(1.0, max(0.0, (elapsed - 1) / denominator))
+    multiplier = 1.0 - progress * (1.0 - float(config.residual_decay_floor))
+    return float(base_scale) * multiplier
+
+
+class ShotWindowActivationGate:
+    """DISARMED/ARMED/ACTIVE/COOLDOWN gate with bounded intervention.
+
+    The legacy rear120 AND (offensive OR pre-aim) contract is retained only as
+    an arming envelope.  RL is exposed solely while the tighter phase-aware
+    shot condition is ACTIVE.  A timeout cannot immediately reactivate: the
+    shot condition must leave its hysteretic envelope and the cooldown must
+    finish before a new window can be entered.
+    """
+
+    DISARMED = "DISARMED"
+    ARMED = "ARMED"
+    ACTIVE = "ACTIVE"
+    COOLDOWN = "COOLDOWN"
+
+    def __init__(
+        self,
+        config: ShotWindowGateConfig | dict | None = None,
+        rear120_config: Rear120GateConfig | dict | None = None,
+        aim_config: AimGateConfig | dict | None = None,
+        offensive_config: OffensiveGateConfig | dict | None = None,
+        safety_config: SafetyVetoConfig | dict | None = None,
+    ):
+        if config is None:
+            config = ShotWindowGateConfig()
+        elif isinstance(config, dict):
+            config = ShotWindowGateConfig(**config)
+        config.validate()
+        self.config = config
+        self.arming_gate = Rear120ActivationGate(
+            rear120_config,
+            aim_config,
+            offensive_config,
+            safety_config,
+        )
+        self.reset()
+
+    def reset(self) -> None:
+        self.arming_gate.reset()
+        self.state = self.DISARMED
+        self.active = False
+        self.steps = 0
+        self.active_steps = 0
+        self.window_entry_count = 0
+        self.window_exit_count = 0
+        self.window_timeout_count = 0
+        self.window_condition_exit_count = 0
+        self.window_safety_exit_count = 0
+        self.window_reentry_count = 0
+        self._current_active_steps = 0
+        self._active_durations: list[int] = []
+        self._current_cooldown_steps = 0
+        self._cooldown_durations: list[int] = []
+        self._condition_exit_seen = False
+        self._last_exit_reason = ""
+        self._previous_aim_error_deg: float | None = None
+        self._previous_sim_time_s: float | None = None
+        self._state_steps = {
+            self.DISARMED: 0,
+            self.ARMED: 0,
+            self.ACTIVE: 0,
+            self.COOLDOWN: 0,
+        }
+        self.last_geometry = {
+            "state": self.state,
+            "active": False,
+            "entry": False,
+            "exit": False,
+        }
+
+    def update(
+        self,
+        ownship_state,
+        target_state,
+        *,
+        sim_time_s: float | None = None,
+        bt_action=None,
+    ) -> dict:
+        previous_state = self.state
+        previous_active = previous_state == self.ACTIVE
+        arming = self.arming_gate.update(
+            ownship_state,
+            target_state,
+            sim_time_s=sim_time_s,
+            bt_action=bt_action,
+        )
+        aim = arming["aim_gate"]
+        current_time_s = (
+            float(sim_time_s)
+            if sim_time_s is not None
+            else self.steps / float(self.config.sim_hz)
+        )
+        aim_error_rate_deg_s = 0.0
+        if (
+            self._previous_aim_error_deg is not None
+            and self._previous_sim_time_s is not None
+            and current_time_s > self._previous_sim_time_s
+            and np.isfinite(float(aim["aim_error_deg"]))
+        ):
+            aim_error_rate_deg_s = (
+                float(aim["aim_error_deg"]) - self._previous_aim_error_deg
+            ) / (current_time_s - self._previous_sim_time_s)
+        closing_rate_m_s = self._closing_rate(ownship_state, target_state)
+        shot_enter, shot_remain = self._shot_conditions(arming)
+        arm_condition = bool(arming["active"])
+        exit_reason = ""
+
+        if self.state == self.DISARMED:
+            if arm_condition:
+                self.state = self.ARMED
+        elif self.state == self.ARMED:
+            if not arm_condition:
+                self.state = self.DISARMED
+            elif shot_enter:
+                self.state = self.ACTIVE
+        elif self.state == self.ACTIVE:
+            if not arm_condition:
+                exit_reason = (
+                    "safety_veto" if arming["safety_veto"] else "arming_exit"
+                )
+                self._start_cooldown(exit_reason, condition_exit=True)
+            elif self._current_active_steps >= self.config.max_active_steps:
+                exit_reason = "timeout"
+                self._start_cooldown(exit_reason, condition_exit=False)
+            elif not shot_remain:
+                exit_reason = "condition_exit"
+                self._start_cooldown(exit_reason, condition_exit=True)
+        elif self.state == self.COOLDOWN:
+            self._condition_exit_seen = bool(
+                self._condition_exit_seen or not shot_remain or not arm_condition
+            )
+            cooldown_finished = (
+                self._current_cooldown_steps >= self.config.cooldown_steps
+            )
+            rearm_allowed = (
+                not self.config.require_condition_exit_for_rearm
+                or self._condition_exit_seen
+            )
+            if cooldown_finished and rearm_allowed:
+                self._finish_cooldown()
+                self.state = self.ARMED if arm_condition else self.DISARMED
+        else:
+            raise RuntimeError(f"unsupported shot-window state: {self.state!r}")
+
+        self.active = self.state == self.ACTIVE
+        entry = bool(self.active and not previous_active)
+        exit_event = bool(previous_active and not self.active)
+        if entry:
+            if self.window_entry_count:
+                self.window_reentry_count += 1
+            self.window_entry_count += 1
+            self._current_active_steps = 0
+        if self.active:
+            self._current_active_steps += 1
+            self.active_steps += 1
+        if exit_event:
+            self.window_exit_count += 1
+            self._active_durations.append(self._current_active_steps)
+            self._current_active_steps = 0
+        if self.state == self.COOLDOWN:
+            self._current_cooldown_steps += 1
+
+        self.steps += 1
+        self._state_steps[self.state] += 1
+        cfg = self.config
+        self.last_geometry = {
+            "distance_m": aim["distance_m"],
+            "aim_error_deg": aim["aim_error_deg"],
+            "aim_error_rate_deg_s": aim_error_rate_deg_s,
+            "closing_rate_m_s": closing_rate_m_s,
+            "target_ata_deg": arming["target_ata_deg"],
+            "phase": aim["phase"],
+            "phase_half_angle_deg": aim["phase_half_angle_deg"],
+            "phase_max_range_m": aim["phase_max_range_m"],
+            "shot_enter_max_error_deg": (
+                aim["phase_half_angle_deg"] + cfg.enter_angle_margin_deg
+            ),
+            "shot_enter_max_range_m": (
+                aim["phase_max_range_m"] + cfg.enter_range_margin_m
+            ),
+            "rear120_eligible": arming["rear120_eligible"],
+            "offensive_eligible": arming["offensive_eligible"],
+            "pre_aim_eligible": arming["pre_aim_eligible"],
+            "safety_veto": arming["safety_veto"],
+            "safety_veto_reasons": list(arming["safety_veto_reasons"]),
+            "arming_condition": arm_condition,
+            "shot_enter_condition": shot_enter,
+            "shot_remain_condition": shot_remain,
+            "condition_exit_seen": self._condition_exit_seen,
+            "state": self.state,
+            "previous_state": previous_state,
+            "active": self.active,
+            "entry": entry,
+            "exit": exit_event,
+            "exit_reason": exit_reason,
+            "last_exit_reason": self._last_exit_reason,
+            "active_elapsed_steps": self._current_active_steps,
+            "active_remaining_steps": max(
+                0, cfg.max_active_steps - self._current_active_steps
+            ),
+            "cooldown_elapsed_steps": self._current_cooldown_steps,
+            "cooldown_remaining_steps": max(
+                0, cfg.cooldown_steps - self._current_cooldown_steps
+            ),
+            "arming_gate": arming,
+        }
+        if np.isfinite(float(aim["aim_error_deg"])):
+            self._previous_aim_error_deg = float(aim["aim_error_deg"])
+            self._previous_sim_time_s = current_time_s
+        return dict(self.last_geometry)
+
+    def _shot_conditions(self, arming: dict) -> tuple[bool, bool]:
+        aim = arming["aim_gate"]
+        distance = float(aim["distance_m"])
+        error = float(aim["aim_error_deg"])
+        target_ata = float(arming["target_ata_deg"])
+        cfg = self.config
+        finite = bool(
+            np.isfinite(distance) and np.isfinite(error) and np.isfinite(target_ata)
+        )
+        if not finite:
+            return False, False
+        enter = bool(
+            cfg.min_range_m <= distance
+            <= float(aim["phase_max_range_m"]) + cfg.enter_range_margin_m
+            and error
+            <= float(aim["phase_half_angle_deg"]) + cfg.enter_angle_margin_deg
+            and target_ata >= cfg.enter_min_target_ata_deg
+        )
+        remain = bool(
+            cfg.min_range_m <= distance
+            <= float(aim["phase_max_range_m"]) + cfg.exit_range_margin_m
+            and error
+            <= float(aim["phase_half_angle_deg"]) + cfg.exit_angle_margin_deg
+            and target_ata >= cfg.exit_min_target_ata_deg
+        )
+        return enter, remain
+
+    @staticmethod
+    def _closing_rate(ownship_state, target_state) -> float:
+        if ownship_state is None or target_state is None:
+            return float("nan")
+        own = np.asarray(ownship_state, dtype=np.float64)
+        target = np.asarray(target_state, dtype=np.float64)
+        line = target[:3] - own[:3]
+        distance = float(np.linalg.norm(line))
+        if distance <= 1e-9:
+            return 0.0
+        relative_velocity = _body_velocity_to_ned(target) - _body_velocity_to_ned(own)
+        return -float(np.dot(relative_velocity, line / distance))
+
+    def _start_cooldown(self, reason: str, *, condition_exit: bool) -> None:
+        self.state = self.COOLDOWN
+        self._current_cooldown_steps = 0
+        self._condition_exit_seen = bool(condition_exit)
+        self._last_exit_reason = reason
+        if reason == "timeout":
+            self.window_timeout_count += 1
+        elif reason == "condition_exit":
+            self.window_condition_exit_count += 1
+        elif reason in {"safety_veto", "arming_exit"}:
+            self.window_safety_exit_count += int(reason == "safety_veto")
+
+    def _finish_cooldown(self) -> None:
+        self._cooldown_durations.append(self._current_cooldown_steps)
+        self._current_cooldown_steps = 0
+        self._condition_exit_seen = False
+
+    def telemetry(self) -> dict:
+        active_durations = list(self._active_durations)
+        if self.active and self._current_active_steps:
+            active_durations.append(self._current_active_steps)
+        cooldown_durations = list(self._cooldown_durations)
+        if self.state == self.COOLDOWN and self._current_cooldown_steps:
+            cooldown_durations.append(self._current_cooldown_steps)
+        cfg = self.config
+        return {
+            "shot_window_gate_config": {
+                **asdict(cfg),
+                "max_active_duration_s": cfg.max_active_steps / cfg.sim_hz,
+                "cooldown_duration_s": cfg.cooldown_steps / cfg.sim_hz,
+            },
+            "shot_window_gate_steps": self.steps,
+            "shot_window_gate_active_steps": self.active_steps,
+            "shot_window_gate_active_ratio": self.active_steps / max(1, self.steps),
+            "shot_window_gate_entries": self.window_entry_count,
+            "shot_window_gate_exits": self.window_exit_count,
+            "shot_window_gate_mean_active_steps": (
+                float(np.mean(active_durations)) if active_durations else 0.0
+            ),
+            "shot_window_gate_min_active_steps": (
+                min(active_durations) if active_durations else 0
+            ),
+            "shot_window_gate_p95_active_steps": (
+                float(np.percentile(active_durations, 95))
+                if active_durations
+                else 0.0
+            ),
+            "shot_window_gate_max_active_steps": (
+                max(active_durations) if active_durations else 0
+            ),
+            "window_entry_count": self.window_entry_count,
+            "window_exit_count": self.window_exit_count,
+            "window_timeout_count": self.window_timeout_count,
+            "window_condition_exit_count": self.window_condition_exit_count,
+            "window_safety_exit_count": self.window_safety_exit_count,
+            "window_reentry_count": self.window_reentry_count,
+            "active_duration_mean": (
+                float(np.mean(active_durations)) / cfg.sim_hz
+                if active_durations
+                else 0.0
+            ),
+            "active_duration_p95": (
+                float(np.percentile(active_durations, 95)) / cfg.sim_hz
+                if active_durations
+                else 0.0
+            ),
+            "active_duration_max": (
+                max(active_durations) / cfg.sim_hz if active_durations else 0.0
+            ),
+            "cooldown_duration": (
+                float(np.mean(cooldown_durations)) / cfg.sim_hz
+                if cooldown_durations
+                else 0.0
+            ),
+            "shot_window_gate_state": self.state,
+            "shot_window_gate_state_steps": dict(self._state_steps),
+            "shot_window_gate_active_final": self.active,
+            "shot_window_arming_gate": self.arming_gate.telemetry(),
+            "last_window": dict(self.last_geometry),
+        }
+
+
 def _compose_residual(
     bt_action, rl_action, scale: float, *, throttle_scale: float | None = None
 ) -> tuple[np.ndarray, dict]:
@@ -1027,6 +1422,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         aim_gate: AimGateConfig | dict | None = None,
         offensive_gate: OffensiveGateConfig | dict | None = None,
         rear120_gate: Rear120GateConfig | dict | None = None,
+        shot_window_gate: ShotWindowGateConfig | dict | None = None,
         safety_veto: SafetyVetoConfig | dict | None = None,
         rl_action_repeat: int = 6,
         composition_mode: str = "additive",
@@ -1047,6 +1443,14 @@ class ResidualInferenceActionProvider(ActionProvider):
             gate = CombinedResidualGate(aim_gate, offensive_gate)
         elif gate_kind == "rear120":
             gate = Rear120ActivationGate(
+                rear120_gate,
+                aim_gate,
+                offensive_gate,
+                safety_veto,
+            )
+        elif gate_kind == "shot_window":
+            gate = ShotWindowActivationGate(
+                shot_window_gate,
                 rear120_gate,
                 aim_gate,
                 offensive_gate,
@@ -1125,7 +1529,7 @@ class ResidualInferenceActionProvider(ActionProvider):
     def compute_action(self, context: ActionContext) -> ActionResult:
         bt_result = self._consume_bt_result(context)
         bt_action = clip_action(bt_result.action)
-        if self.gate_kind == "rear120":
+        if self.gate_kind in ("rear120", "shot_window"):
             gate_info = self.gate.update(
                 context.ownship_state,
                 context.target_state,
@@ -1212,10 +1616,15 @@ class ResidualInferenceActionProvider(ActionProvider):
 
         residual = np.asarray(self._cached_residual, dtype=np.float32)
         masked_residual = residual * self._residual_axis_vector
+        effective_scale = self.residual_scale
+        if self.gate_kind == "shot_window":
+            effective_scale = _shot_window_effective_scale(
+                self.residual_scale, self.gate, gate_info
+            )
         unclipped = _compose_aim_surface_residual(
             bt_action,
             masked_residual,
-            self.residual_scale,
+            effective_scale,
             self.composition_mode,
         )
         final = clip_action(unclipped)
@@ -1235,7 +1644,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             bt_action,
             masked_residual,
             final,
-            self.residual_scale,
+            effective_scale,
             active=True,
         )
         _update_authority_counters(self, diagnostics)
@@ -1249,6 +1658,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             refreshed=refreshed,
             clipped=clipped,
             saturated=saturated,
+            effective_residual_scale=effective_scale,
         )
         self._last_frame = frame
         return ActionResult(final, "bt_residual_inference", self.confidence, frame)
@@ -1304,6 +1714,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         clipped: bool,
         saturated: bool,
         masked_residual: np.ndarray | None = None,
+        effective_residual_scale: float = 0.0,
     ) -> dict:
         correction = final - bt_action
         effective_residual = residual if masked_residual is None else masked_residual
@@ -1311,7 +1722,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             bt_action,
             effective_residual,
             final,
-            self.residual_scale,
+            effective_residual_scale,
             active=bool(gate_info["active"]),
         )
         return {
@@ -1319,9 +1730,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             "gate_kind": self.gate_kind,
             "gate": gate_info,
             f"{self.gate_kind}_gate": gate_info,
-            "effective_residual_scale": (
-                self.residual_scale if gate_info["active"] else 0.0
-            ),
+            "effective_residual_scale": effective_residual_scale,
             "residual_composition_mode": self.composition_mode,
             "rl_action_repeat": self.rl_action_repeat,
             "rl_action_refreshed": refreshed,
@@ -1400,6 +1809,7 @@ class ResidualTrainingActionProvider(ActionProvider):
         aim_gate: AimGateConfig | dict | None = None,
         offensive_gate: OffensiveGateConfig | dict | None = None,
         rear120_gate: Rear120GateConfig | dict | None = None,
+        shot_window_gate: ShotWindowGateConfig | dict | None = None,
         safety_veto: SafetyVetoConfig | dict | None = None,
         composition_mode: str = "additive",
         confidence: float = 0.95,
@@ -1418,6 +1828,14 @@ class ResidualTrainingActionProvider(ActionProvider):
             gate = CombinedResidualGate(aim_gate, offensive_gate)
         elif gate_kind == "rear120":
             gate = Rear120ActivationGate(
+                rear120_gate,
+                aim_gate,
+                offensive_gate,
+                safety_veto,
+            )
+        elif gate_kind == "shot_window":
+            gate = ShotWindowActivationGate(
+                shot_window_gate,
                 rear120_gate,
                 aim_gate,
                 offensive_gate,
@@ -1498,7 +1916,7 @@ class ResidualTrainingActionProvider(ActionProvider):
         self._requested_throttle_abs_sum += abs(float(residual[3]))
         masked_residual = residual * self._residual_axis_vector
 
-        if self.gate_kind == "rear120":
+        if self.gate_kind in ("rear120", "shot_window"):
             gate_info = self.gate.update(
                 context.ownship_state,
                 context.target_state,
@@ -1517,12 +1935,17 @@ class ResidualTrainingActionProvider(ActionProvider):
                 context.target_state,
             )
 
+        effective_scale = self.residual_scale
+        if self.gate_kind == "shot_window":
+            effective_scale = _shot_window_effective_scale(
+                self.residual_scale, self.gate, gate_info
+            )
         unclipped = bt_action.copy()
         if gate_info["active"]:
             unclipped = _compose_aim_surface_residual(
                 bt_action,
                 masked_residual,
-                self.residual_scale,
+                effective_scale,
                 self.composition_mode,
             )
         final = clip_action(unclipped)
@@ -1544,7 +1967,7 @@ class ResidualTrainingActionProvider(ActionProvider):
             bt_action,
             masked_residual,
             final,
-            self.residual_scale,
+            effective_scale,
             active=bool(gate_info["active"]),
         )
         if gate_info["active"]:
@@ -1556,7 +1979,7 @@ class ResidualTrainingActionProvider(ActionProvider):
             "gate": gate_info,
             f"{self.gate_kind}_gate": gate_info,
             "effective_residual_scale": (
-                self.residual_scale if gate_info["active"] else 0.0
+                effective_scale if gate_info["active"] else 0.0
             ),
             "residual_composition_mode": self.composition_mode,
             "residual_axis_mask": self.residual_axis_mask,

@@ -25,6 +25,7 @@ from dogfight.ai.hybrid_action_provider import (
     RESIDUAL_AXIS_MASKS,
     ResidualInferenceActionProvider,
     SafetyVetoConfig,
+    ShotWindowGateConfig,
 )
 from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
@@ -73,7 +74,7 @@ def parse_args():
     parser.add_argument("--residual-scale", type=float, default=0.10)
     parser.add_argument(
         "--residual-gate",
-        choices=["aim", "offensive", "combined", "rear120"],
+        choices=["aim", "offensive", "combined", "rear120", "shot_window"],
         default="aim",
     )
     parser.add_argument(
@@ -110,6 +111,23 @@ def parse_args():
     parser.add_argument("--aim-min-hold-steps", type=int, default=12)
     parser.add_argument("--rear120-enter-target-ata-deg", type=float, default=120.0)
     parser.add_argument("--rear120-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--shot-window-enter-angle-margin-deg", type=float, default=1.5)
+    parser.add_argument("--shot-window-exit-angle-margin-deg", type=float, default=2.5)
+    parser.add_argument("--shot-window-enter-range-margin-m", type=float, default=25.0)
+    parser.add_argument("--shot-window-exit-range-margin-m", type=float, default=75.0)
+    parser.add_argument("--shot-window-enter-target-ata-deg", type=float, default=150.0)
+    parser.add_argument("--shot-window-exit-target-ata-deg", type=float, default=140.0)
+    parser.add_argument("--shot-window-max-active-steps", type=int, default=30)
+    parser.add_argument("--shot-window-cooldown-steps", type=int, default=30)
+    parser.add_argument(
+        "--shot-window-residual-decay", choices=("none", "linear"), default="none"
+    )
+    parser.add_argument("--shot-window-residual-decay-floor", type=float, default=0.0)
+    parser.add_argument(
+        "--shot-window-rearm-mode",
+        choices=["condition_exit", "time_only"],
+        default="condition_exit",
+    )
     parser.add_argument("--safety-minimum-altitude-m", type=float, default=350.0)
     parser.add_argument("--safety-minimum-speed-m-s", type=float, default=170.0)
     parser.add_argument("--safety-maximum-closing-rate-m-s", type=float, default=250.0)
@@ -124,7 +142,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw"):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw"):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -177,6 +195,7 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             aim_gate=aim_gate,
             offensive_gate=offensive_gate,
             rear120_gate=rear120_gate,
+            shot_window_gate=shot_window_gate,
             safety_veto=safety_veto,
             rl_action_repeat=rl_action_repeat,
             composition_mode=residual_composition,
@@ -223,6 +242,21 @@ def main():
         enter_target_ata_deg=args.rear120_enter_target_ata_deg,
         exit_target_ata_deg=args.rear120_exit_target_ata_deg,
     )
+    shot_window_gate = ShotWindowGateConfig(
+        enter_angle_margin_deg=args.shot_window_enter_angle_margin_deg,
+        exit_angle_margin_deg=args.shot_window_exit_angle_margin_deg,
+        enter_range_margin_m=args.shot_window_enter_range_margin_m,
+        exit_range_margin_m=args.shot_window_exit_range_margin_m,
+        enter_min_target_ata_deg=args.shot_window_enter_target_ata_deg,
+        exit_min_target_ata_deg=args.shot_window_exit_target_ata_deg,
+        max_active_steps=args.shot_window_max_active_steps,
+        cooldown_steps=args.shot_window_cooldown_steps,
+        residual_decay_mode=args.shot_window_residual_decay,
+        residual_decay_floor=args.shot_window_residual_decay_floor,
+        require_condition_exit_for_rearm=(
+            args.shot_window_rearm_mode == "condition_exit"
+        ),
+    )
     safety_veto = SafetyVetoConfig(
         minimum_altitude_m=args.safety_minimum_altitude_m,
         minimum_speed_m_s=args.safety_minimum_speed_m_s,
@@ -243,6 +277,7 @@ def main():
         aim_gate=aim_gate,
         offensive_gate=offensive_gate,
         rear120_gate=rear120_gate,
+        shot_window_gate=shot_window_gate,
         safety_veto=safety_veto,
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
@@ -263,6 +298,7 @@ def main():
         aim_gate=aim_gate,
         offensive_gate=offensive_gate,
         rear120_gate=rear120_gate,
+        shot_window_gate=shot_window_gate,
         safety_veto=safety_veto,
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
