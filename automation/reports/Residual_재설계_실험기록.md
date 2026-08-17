@@ -116,3 +116,16 @@ inference-time axis ablation의 양수 결과는 공동 action checkpoint에 대
 - training: `artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_roll_s4101_roll_v1r1`, `rear120_t16_roll_s4102_roll_v1r1`
 - evaluation: `artifacts/evaluations/offensive_residual_causal_rework/roll_only_short_s4101_20260817`, `roll_only_short_s4102_20260817`
 - manifest: `automation/manifests/residual_roll_only_short_v1.json`
+
+## Phase C2 — reward contribution 분석과 단일-term 가설
+
+PR #10 Tactical16 training record의 유효 episode reward contribution 평균은 다음과 같다. 초기 warm-up 등 `n/a` episode는 제외했다.
+
+| training seed | 유효 episode | Damage | Cone | aim progress | aim quality | LOS-rate | residual L2 | smooth |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 3101 | 16 | +10.7988 | +2.2850 | +6.3799 | +2.0264 | -0.5653 | -0.0112 | -0.0302 |
+| 3102 | 17 | +9.3546 | +2.1224 | +4.1982 | +1.7671 | -0.5161 | -0.0102 | -0.0279 |
+
+Damage가 가장 큰 term이라는 우선순위는 유지되지만, `aim_progress`는 두 번째로 크고 episode별 범위가 seed 3101 `[-21.05,+15.11]`, seed 3102 `[-31.27,+20.14]`다. 반면 실제 평가에서는 LOS가 감소해도 Damage가 감소했다. 따라서 `aim_progress`가 Damage chain보다 LOS 진행을 과도하게 최적화한다는 가설을 세운다.
+
+다음 pilot은 PR #10의 all-axis action을 복원하고 `aim_progress_scale`만 1.0에서 0.0으로 바꾼다. Tactical16, Gate, 다른 reward term, network, scale, target/geometry와 학습 budget은 고정한다. 이 실험은 roll-only 실패 후보 위에 reward를 추가하는 결합 실험이 아니라, 원래 PR #10 baseline에 대한 reward 단일-variable 비교다.
