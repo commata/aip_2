@@ -120,6 +120,10 @@ def parse_args():
     parser.add_argument("--shot-window-max-active-steps", type=int, default=30)
     parser.add_argument("--shot-window-cooldown-steps", type=int, default=30)
     parser.add_argument(
+        "--shot-window-residual-decay", choices=("none", "linear"), default="none"
+    )
+    parser.add_argument("--shot-window-residual-decay-floor", type=float, default=0.0)
+    parser.add_argument(
         "--shot-window-rearm-mode",
         choices=["condition_exit", "time_only"],
         default="condition_exit",
@@ -247,6 +251,8 @@ def main():
         exit_min_target_ata_deg=args.shot_window_exit_target_ata_deg,
         max_active_steps=args.shot_window_max_active_steps,
         cooldown_steps=args.shot_window_cooldown_steps,
+        residual_decay_mode=args.shot_window_residual_decay,
+        residual_decay_floor=args.shot_window_residual_decay_floor,
         require_condition_exit_for_rearm=(
             args.shot_window_rearm_mode == "condition_exit"
         ),

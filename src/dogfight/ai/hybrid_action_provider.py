@@ -833,6 +833,8 @@ class ShotWindowGateConfig:
     max_active_steps: int = 30
     cooldown_steps: int = 30
     require_condition_exit_for_rearm: bool = True
+    residual_decay_mode: str = "none"
+    residual_decay_floor: float = 0.0
     sim_hz: int = 60
 
     def validate(self) -> None:
@@ -853,8 +855,30 @@ class ShotWindowGateConfig:
             )
         if self.max_active_steps <= 0 or self.cooldown_steps < 0:
             raise ValueError("shot-window duration must be positive and cooldown non-negative")
+        if self.residual_decay_mode not in {"none", "linear"}:
+            raise ValueError("shot-window residual decay must be none or linear")
+        if not 0.0 <= self.residual_decay_floor <= 1.0:
+            raise ValueError("shot-window residual decay floor must be within [0, 1]")
         if self.sim_hz <= 0:
             raise ValueError("shot-window sim_hz must be positive")
+
+
+def _shot_window_effective_scale(
+    base_scale: float,
+    gate,
+    gate_info: dict,
+) -> float:
+    """Apply the configured per-window scale schedule without changing timing."""
+    if not bool(gate_info.get("active", False)):
+        return 0.0
+    config = getattr(gate, "config", None)
+    if config is None or config.residual_decay_mode == "none":
+        return float(base_scale)
+    elapsed = max(1, int(gate_info.get("active_elapsed_steps", 1)))
+    denominator = max(1, int(config.max_active_steps) - 1)
+    progress = min(1.0, max(0.0, (elapsed - 1) / denominator))
+    multiplier = 1.0 - progress * (1.0 - float(config.residual_decay_floor))
+    return float(base_scale) * multiplier
 
 
 class ShotWindowActivationGate:
@@ -1592,10 +1616,15 @@ class ResidualInferenceActionProvider(ActionProvider):
 
         residual = np.asarray(self._cached_residual, dtype=np.float32)
         masked_residual = residual * self._residual_axis_vector
+        effective_scale = self.residual_scale
+        if self.gate_kind == "shot_window":
+            effective_scale = _shot_window_effective_scale(
+                self.residual_scale, self.gate, gate_info
+            )
         unclipped = _compose_aim_surface_residual(
             bt_action,
             masked_residual,
-            self.residual_scale,
+            effective_scale,
             self.composition_mode,
         )
         final = clip_action(unclipped)
@@ -1615,7 +1644,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             bt_action,
             masked_residual,
             final,
-            self.residual_scale,
+            effective_scale,
             active=True,
         )
         _update_authority_counters(self, diagnostics)
@@ -1629,6 +1658,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             refreshed=refreshed,
             clipped=clipped,
             saturated=saturated,
+            effective_residual_scale=effective_scale,
         )
         self._last_frame = frame
         return ActionResult(final, "bt_residual_inference", self.confidence, frame)
@@ -1684,6 +1714,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         clipped: bool,
         saturated: bool,
         masked_residual: np.ndarray | None = None,
+        effective_residual_scale: float = 0.0,
     ) -> dict:
         correction = final - bt_action
         effective_residual = residual if masked_residual is None else masked_residual
@@ -1691,7 +1722,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             bt_action,
             effective_residual,
             final,
-            self.residual_scale,
+            effective_residual_scale,
             active=bool(gate_info["active"]),
         )
         return {
@@ -1699,9 +1730,7 @@ class ResidualInferenceActionProvider(ActionProvider):
             "gate_kind": self.gate_kind,
             "gate": gate_info,
             f"{self.gate_kind}_gate": gate_info,
-            "effective_residual_scale": (
-                self.residual_scale if gate_info["active"] else 0.0
-            ),
+            "effective_residual_scale": effective_residual_scale,
             "residual_composition_mode": self.composition_mode,
             "rl_action_repeat": self.rl_action_repeat,
             "rl_action_refreshed": refreshed,
@@ -1906,12 +1935,17 @@ class ResidualTrainingActionProvider(ActionProvider):
                 context.target_state,
             )
 
+        effective_scale = self.residual_scale
+        if self.gate_kind == "shot_window":
+            effective_scale = _shot_window_effective_scale(
+                self.residual_scale, self.gate, gate_info
+            )
         unclipped = bt_action.copy()
         if gate_info["active"]:
             unclipped = _compose_aim_surface_residual(
                 bt_action,
                 masked_residual,
-                self.residual_scale,
+                effective_scale,
                 self.composition_mode,
             )
         final = clip_action(unclipped)
@@ -1933,7 +1967,7 @@ class ResidualTrainingActionProvider(ActionProvider):
             bt_action,
             masked_residual,
             final,
-            self.residual_scale,
+            effective_scale,
             active=bool(gate_info["active"]),
         )
         if gate_info["active"]:
@@ -1945,7 +1979,7 @@ class ResidualTrainingActionProvider(ActionProvider):
             "gate": gate_info,
             f"{self.gate_kind}_gate": gate_info,
             "effective_residual_scale": (
-                self.residual_scale if gate_info["active"] else 0.0
+                effective_scale if gate_info["active"] else 0.0
             ),
             "residual_composition_mode": self.composition_mode,
             "residual_axis_mask": self.residual_axis_mask,

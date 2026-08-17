@@ -44,6 +44,7 @@ def expand_matrix(payload: dict) -> list[tuple[str, dict]]:
     matrix = payload.get("pilot_matrix") or {}
     seeds = list(matrix.get("seeds") or [])
     observations = list(matrix.get("observations") or [])
+    seed_overrides = dict(matrix.get("seed_overrides") or {})
     run_suffix = str(matrix.get("run_suffix") or "").strip()
     matrix_notes = str(matrix.get("notes") or "").strip()
     if len(seeds) < 2:
@@ -59,6 +60,9 @@ def expand_matrix(payload: dict) -> list[tuple[str, dict]]:
         for seed in seeds:
             item = deepcopy(payload)
             item.pop("pilot_matrix", None)
+            override = dict(seed_overrides.get(str(int(seed))) or {})
+            if override:
+                item = _deep_merge(item, override)
             tag = f"rear120_{label}_s{int(seed)}"
             if run_suffix:
                 tag = f"{tag}_{run_suffix}"

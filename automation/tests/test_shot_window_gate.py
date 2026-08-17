@@ -242,6 +242,37 @@ class ShotWindowGateTests(unittest.TestCase):
         np.testing.assert_array_equal(result.action, bt.action)
         self.assertEqual(result.info["rl_fallback_reason"], "inference_exception")
 
+    def test_linear_residual_decay_preserves_entry_and_reaches_floor(self) -> None:
+        bt = _Provider([0.0, 0.0, 0.0, 0.82])
+        rl = _Provider([1.0, 0.0, 0.0, -1.0])
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="shot_window",
+            shot_window_gate=ShotWindowGateConfig(
+                max_active_steps=3,
+                cooldown_steps=1,
+                residual_decay_mode="linear",
+                residual_decay_floor=0.0,
+            ),
+            composition_mode="additive",
+            rl_action_repeat=1,
+        )
+        own, target = _geometry(180.0)
+        provider.compute_action(_context(own, target, sim_time_s=0.0))
+        first = provider.compute_action(_context(own, target, sim_time_s=1 / 60.0))
+        middle = provider.compute_action(_context(own, target, sim_time_s=2 / 60.0))
+        last = provider.compute_action(_context(own, target, sim_time_s=3 / 60.0))
+
+        self.assertAlmostEqual(first.info["effective_residual_scale"], 0.125)
+        self.assertAlmostEqual(middle.info["effective_residual_scale"], 0.0625)
+        self.assertAlmostEqual(last.info["effective_residual_scale"], 0.0)
+        self.assertAlmostEqual(float(first.action[0]), 0.125)
+        self.assertAlmostEqual(float(middle.action[0]), 0.0625)
+        self.assertAlmostEqual(float(last.action[0]), 0.0)
+        self.assertAlmostEqual(float(last.action[3]), float(bt.action[3]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -220,6 +220,8 @@ def run_match(
             "--shot-window-exit-target-ata-deg", str(args.shot_window_exit_target_ata_deg),
             "--shot-window-max-active-steps", str(args.shot_window_max_active_steps),
             "--shot-window-cooldown-steps", str(args.shot_window_cooldown_steps),
+            "--shot-window-residual-decay", args.shot_window_residual_decay,
+            "--shot-window-residual-decay-floor", str(args.shot_window_residual_decay_floor),
             "--shot-window-rearm-mode", args.shot_window_rearm_mode,
             "--safety-minimum-altitude-m", str(args.safety_minimum_altitude_m),
             "--safety-minimum-speed-m-s", str(args.safety_minimum_speed_m_s),
@@ -708,6 +710,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--shot-window-exit-target-ata-deg", type=float, default=140.0)
     parser.add_argument("--shot-window-max-active-steps", type=int, default=30)
     parser.add_argument("--shot-window-cooldown-steps", type=int, default=30)
+    parser.add_argument(
+        "--shot-window-residual-decay", choices=("none", "linear"), default="none"
+    )
+    parser.add_argument("--shot-window-residual-decay-floor", type=float, default=0.0)
     parser.add_argument(
         "--shot-window-rearm-mode",
         choices=["condition_exit", "time_only"],
