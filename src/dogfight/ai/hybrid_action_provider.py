@@ -333,6 +333,8 @@ class Rear120ActivationGate:
         self.entries = 0
         self.exits = 0
         self.safety_veto_steps = 0
+        self._current_active_steps = 0
+        self._active_durations: list[int] = []
         self.last_geometry = {"active": False, "entry": False, "exit": False}
 
     def update(
@@ -364,6 +366,11 @@ class Rear120ActivationGate:
         self.entries += int(entry)
         self.exits += int(exit_event)
         self.safety_veto_steps += int(veto)
+        if self.active:
+            self._current_active_steps += 1
+        elif exit_event:
+            self._active_durations.append(self._current_active_steps)
+            self._current_active_steps = 0
         self.last_geometry = {
             "distance_m": aim["distance_m"],
             "aim_error_deg": aim["aim_error_deg"],
@@ -411,6 +418,9 @@ class Rear120ActivationGate:
 
     def telemetry(self) -> dict:
         result = self.rear.telemetry()
+        durations = list(self._active_durations)
+        if self.active and self._current_active_steps:
+            durations.append(self._current_active_steps)
         result.update(
             {
                 "rear120_activation_steps": self.steps,
@@ -418,6 +428,11 @@ class Rear120ActivationGate:
                 "rear120_activation_active_ratio": self.active_steps / max(1, self.steps),
                 "rear120_activation_entries": self.entries,
                 "rear120_activation_exits": self.exits,
+                "rear120_activation_mean_active_steps": (
+                    sum(durations) / len(durations) if durations else 0.0
+                ),
+                "rear120_activation_min_active_steps": min(durations) if durations else 0,
+                "rear120_activation_max_active_steps": max(durations) if durations else 0,
                 "rear120_activation_safety_veto_steps": self.safety_veto_steps,
                 "rear120_activation_safety_veto_ratio": self.safety_veto_steps / max(1, self.steps),
                 "rear120_activation_active_final": self.active,

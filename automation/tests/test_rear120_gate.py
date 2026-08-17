@@ -141,6 +141,20 @@ class Rear120GateTests(unittest.TestCase):
         self.assertFalse(result["active"])
         self.assertIn("low_altitude", result["safety_veto_reasons"])
 
+    def test_activation_telemetry_tracks_completed_and_open_durations(self) -> None:
+        gate = Rear120ActivationGate()
+        bt_action = np.array([0.2, -0.1, 0.0, 0.8])
+        for target_ata in (121.0, 115.0, 109.0, 121.0):
+            own, target = _horizontal_geometry(target_ata)
+            gate.update(own, target, sim_time_s=0.0, bt_action=bt_action)
+
+        telemetry = gate.telemetry()
+        self.assertEqual(telemetry["rear120_activation_entries"], 2)
+        self.assertEqual(telemetry["rear120_activation_exits"], 1)
+        self.assertEqual(telemetry["rear120_activation_min_active_steps"], 1)
+        self.assertEqual(telemetry["rear120_activation_max_active_steps"], 2)
+        self.assertEqual(telemetry["rear120_activation_mean_active_steps"], 1.5)
+
     def test_negative_gate_skips_rl_and_preserves_all_bt_axes(self) -> None:
         bt = _CountingProvider([0.25, -0.4, 0.1, 0.73])
         rl = _CountingProvider([1.0, 1.0, 1.0, -1.0])
