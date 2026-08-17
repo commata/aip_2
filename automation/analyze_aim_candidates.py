@@ -156,6 +156,44 @@ def representatives(pairs: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def pearson(pairs: list[dict[str, Any]], left: str, right: str) -> dict[str, Any]:
+    values = [
+        (x, y)
+        for pair in pairs
+        if (x := pair["delta"].get(left)) is not None
+        and (y := pair["delta"].get(right)) is not None
+    ]
+    if len(values) < 3:
+        return {"n": len(values), "pearson_r": None}
+    xs, ys = zip(*values)
+    mean_x, mean_y = fmean(xs), fmean(ys)
+    numerator = sum((x - mean_x) * (y - mean_y) for x, y in values)
+    denominator = math.sqrt(
+        sum((x - mean_x) ** 2 for x in xs) * sum((y - mean_y) ** 2 for y in ys)
+    )
+    return {"n": len(values), "pearson_r": numerator / denominator if denominator else None}
+
+
+def reward_chain_correlations(pairs: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "los_delta_vs_cone_delta": pearson(
+            pairs, "mean_los_deg", "damage_cone_time_s"
+        ),
+        "los_rate_delta_vs_cone_delta": pearson(
+            pairs, "los_rate_rms_deg_s", "damage_cone_time_s"
+        ),
+        "cone_delta_vs_damage_delta": pearson(
+            pairs, "damage_cone_time_s", "damage_dealt"
+        ),
+        "first_damage_delta_vs_damage_delta": pearson(
+            pairs, "time_to_first_damage_s", "damage_dealt"
+        ),
+        "saturation_delta_vs_damage_delta": pearson(
+            pairs, "action_saturated_ratio", "damage_dealt"
+        ),
+    }
+
+
 def analyze(
     payload: dict[str, Any], controller: str, *, bootstrap_samples: int, bootstrap_seed: int
 ) -> dict[str, Any]:
@@ -181,6 +219,7 @@ def analyze(
             for index, variant in enumerate(variants)
         },
         "representatives": representatives(pairs),
+        "reward_chain_correlations": reward_chain_correlations(pairs),
         "paired_records": pairs,
         "bootstrap": {"samples": bootstrap_samples, "seed": bootstrap_seed},
     }
@@ -226,6 +265,17 @@ def render_markdown(result: dict[str, Any], source: Path) -> str:
             f"- {label}: seed `{pair['seed']}`, `{pair['variant_name']}`, "
             f"Damage Δ {fmt(pair['delta']['damage_dealt'])}, "
             f"LOS Δ {fmt(pair['delta']['mean_los_deg'])}°"
+        )
+    lines += [
+        "",
+        "## Reward-chain 설명 상관",
+        "",
+        "표본 내 paired delta의 Pearson 상관이며 인과 또는 독립 검증 근거가 아니다.",
+        "",
+    ]
+    for label, values in result["reward_chain_correlations"].items():
+        lines.append(
+            f"- `{label}`: r={fmt(values['pearson_r'])}, n={values['n']}"
         )
     return "\n".join(lines) + "\n"
 

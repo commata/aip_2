@@ -42,3 +42,5 @@ def test_analysis_preserves_paired_deltas_variants_and_representatives():
     assert result["authority"]["roll_applied_to_requested_ratio"] == 0.4
     assert result["representatives"]["worst_damage"]["seed"] == 2
     assert result["representatives"]["best_damage"]["seed"] == 1
+    assert result["reward_chain_correlations"]["cone_delta_vs_damage_delta"]["n"] == 2
+    assert result["reward_chain_correlations"]["cone_delta_vs_damage_delta"]["pearson_r"] is None
