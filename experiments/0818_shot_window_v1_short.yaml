@@ -1,0 +1,37 @@
+base_experiment: 0815_submission_rear120_observation_pilot.yaml
+
+name: 0818_shot_window_v1_short
+
+output:
+  name: 0818_shot_window_residual_model_search
+  tag: shot_window_v1_short_template
+
+pilot_matrix:
+  run_suffix: shot_window_v1
+  seeds: [5101, 5102]
+  observations:
+    - label: t16_all
+      mode: tactical16
+      contract: {version: tactical16.v1, normalization_version: tactical16.norm.v1, health_source: unavailable_constant_one}
+  notes: "Gate v1을 명시적 temporal state machine으로 바꾼 단일-variable 20 iteration 독립 seed short pilot. reward/action/observation/scale은 PR #12 기준과 동일하게 고정한다."
+
+env_config:
+  residual_training:
+    gate_kind: shot_window
+    shot_window_gate:
+      min_range_m: 152.4
+      enter_angle_margin_deg: 1.5
+      exit_angle_margin_deg: 2.5
+      enter_range_margin_m: 25.0
+      exit_range_margin_m: 75.0
+      enter_min_target_ata_deg: 150.0
+      exit_min_target_ata_deg: 140.0
+      max_active_steps: 30
+      cooldown_steps: 30
+      require_condition_exit_for_rearm: true
+      sim_hz: 60
+
+runtime:
+  iterations: 20
+  max_effective_learner_time_s: 1800
+
