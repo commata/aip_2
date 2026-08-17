@@ -3,9 +3,9 @@
 ## 상태
 
 - branch: `codex/offensive-residual-causal-rework`
-- Gate 분석 코드 기준 HEAD: `dd063f260ee64170242b80b038566ff5aaa4b2a5`
+- 최신 실험 코드 기준 HEAD: `0d01cc9329cc6296ecf2069120c5c66d784872d2`
 - Issue: #11
-- 현재 상태: `DIAGNOSTIC_COMPLETE / TRAINING_PENDING / NOT_PROMOTED`
+- 현재 상태: `DIAGNOSTIC_COMPLETE / TRAINING_COMPLETE / REVALIDATION_FAILED / NOT_PROMOTED`
 - 외부 상태: `TARGET_BT_PENDING / SERVER_BLOCKED`
 
 ## Phase B — Gate 선택성 재검증
@@ -70,3 +70,49 @@ Gate v1은 통과/실패로 단순 표현하지 않는다. 의미 계약은 검�
 - static: `artifacts/evaluations/offensive_residual_causal_rework/gate_selectivity_v1_20260817`
 - local: `artifacts/evaluations/offensive_residual_causal_rework/gate_duration_t16_s3101_roll_20260817`
 - manifest: `automation/manifests/residual_gate_selectivity_v1.json`
+
+## Phase C1 — roll-only effective action short pilot
+
+### 가설
+
+기존 Tactical16 checkpoint를 inference에서 축별 마스킹했을 때 roll-only만 두 training seed의 contamination-free 평균 Damage 방향이 양수였다. 따라서 roll 축만 실제 학습 action으로 허용하면 pitch/yaw가 만든 폐루프 trajectory 교란을 제거하면서 Damage 개선 방향을 재현할 수 있다고 가정했다.
+
+### 변경 변수와 고정 변수
+
+변경 변수는 `residual_axis_mask=roll` 하나다. Tactical16 v1, Rear120 Gate v1, 기존 `aim_residual` reward, SAC 128x128, 20 iteration, residual scale 0.125, saturation-aware composition, action repeat 6, target/geometry distribution, throttle BT-only는 PR #10 pilot과 동일하게 고정했다.
+
+training seed는 4101·4102이며 각각 20 iteration, sampled step 2,560, learner step 4,864를 완료했다. 두 run 모두 crash 0, action clipping 0, pitch/yaw applied correction 0이었다. 첫 `roll_v1` 실행은 Ray CSV logger의 Windows 접근 권한 오류로 iteration 1 직후 중단됐다. 이 partial artifact는 보존했고 동일 설정을 새 run ID `roll_v1r1`로 재실행했다.
+
+### contamination-free paired 결과
+
+평가는 Pure 0815 BT와 evaluation seed 2801~2806을 고정했다. 모든 controller에서 target crash가 발생한 crossing-left는 `TARGET_CRASH_CONTAMINATED`로 표시하고 아래 5-geometry 주 판정에서 제외했다.
+
+| training seed | mean Damage Δ | median | min / max | positive pair | bootstrap 95% CI | First Damage Δ | LOS Δ | LOS-rate Δ | Cone Δ |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 4101 | -0.001260 | -0.001297 | -0.004857 / +0.002464 | 1/5 | [-0.003393, +0.000834] | 0.0000s | -0.002526° | +0.000769°/s | -0.0033s |
+| 4102 | -0.000371 | +0.000212 | -0.004749 / +0.003890 | 3/5 | [-0.002863, +0.002092] | +0.0033s | -0.002094° | +0.000412°/s | -0.0067s |
+
+per-geometry Damage Δ는 다음과 같다.
+
+| geometry | seed 4101 | seed 4102 | contamination |
+|---|---:|---:|---|
+| lateral-left | -0.002356 | -0.001605 | clean |
+| lateral-right | -0.001297 | +0.000396 | clean |
+| crossing-left | +0.002476 | -0.002423 | `TARGET_CRASH_CONTAMINATED` |
+| crossing-right | -0.004857 | -0.004749 | clean |
+| vertical-high | +0.002464 | +0.003890 | clean |
+| vertical-low | -0.000253 | +0.000212 | clean |
+
+두 seed 모두 ownship crash 0, target crash 1, inference P95 0.547/0.568ms, Gate active ratio 0.9936/0.9942였다. applied correction 평균은 roll 0.003615/0.001458, pitch/yaw 0이었다. Gate-active 구간이 여전히 episode 대부분이며, roll-only로 축을 좁혀도 Pure BT trajectory를 장시간 perturbation하는 문제는 남았다.
+
+### 판단
+
+두 독립 training seed 모두 contamination-free aggregate Damage가 Pure 0815 BT보다 낮다. LOS 평균은 두 seed 모두 소폭 감소했지만 Damage와 Cone은 악화됐다. 이는 LOS 개선을 승격 근거로 쓰지 않는 원칙의 또 다른 반례다.
+
+inference-time axis ablation의 양수 결과는 공동 action checkpoint에 대한 분포 밖 진단이었고, 실제 roll-only 재학습으로 재현되지 않았다. 이 가설은 `REVALIDATION_FAILED / NOT_PROMOTED`이며 scale sweep, 장시간 학습, 200초 전체전으로 확장하지 않는다.
+
+### artifact
+
+- training: `artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_roll_s4101_roll_v1r1`, `rear120_t16_roll_s4102_roll_v1r1`
+- evaluation: `artifacts/evaluations/offensive_residual_causal_rework/roll_only_short_s4101_20260817`, `roll_only_short_s4102_20260817`
+- manifest: `automation/manifests/residual_roll_only_short_v1.json`
