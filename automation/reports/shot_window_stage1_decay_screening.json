@@ -1,0 +1,28 @@
+{
+  "status": "REVALIDATION_FAILED",
+  "stage1": {
+    "training_steps_total": 5120,
+    "episodes_per_seed": 213,
+    "results": [
+      {"training_seed": 5101, "damage_delta_mean": -0.0005731447786656574, "positive_pairs": 1, "pairs": 6},
+      {"training_seed": 5102, "damage_delta_mean": -0.0006181920583116322, "positive_pairs": 1, "pairs": 6}
+    ]
+  },
+  "linear_decay_inference_diagnostic": {
+    "start_scale": 0.125,
+    "end_scale": 0.0,
+    "results": [
+      {"training_seed": 5101, "damage_delta_mean": -0.0011964407379053317, "positive_pairs": 2, "pairs": 6},
+      {"training_seed": 5102, "damage_delta_mean": -0.0011749993951372106, "positive_pairs": 1, "pairs": 6}
+    ],
+    "decision": "REJECTED_WITHOUT_RETRAINING"
+  },
+  "slew_diagnostic": {
+    "seed_5101_max_raw_successive_delta": 0.1317637711763382,
+    "seed_5102_max_raw_successive_delta": 0.041905537247657776,
+    "decision": "INSUFFICIENT_COMMON_CAUSAL_EVIDENCE"
+  },
+  "contaminated_pairs": 0,
+  "ownship_crashes": 0,
+  "next_hypothesis": "paired warm-start Stage-1 fine-tuning from s3101/s3102"
+}

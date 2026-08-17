@@ -37,3 +37,18 @@ seed 5101/5102를 각각 20 iteration, 2,560 env step 학습했다. 5/10/15/20 i
 판정: `REVALIDATION_FAILED / NOT_PROMOTED`. 다음 단일 변수는 reward나 axis가 아니라, policy가 실제 window transition을 충분히 보도록 damage 직전/cone 직전에서 시작하는 Stage-1 curriculum이다.
 
 현재 상태: `SHORT_TRAINING`, 후보 없음.
+
+## Stage-1 shot-window curriculum v1
+
+Gate 내부 경험 부족을 분리하기 위해 880m, cone center/edge 5개 geometry에서 1.2초 episode를 시작했다. 나머지 Gate/reward/action/observation/scale/target pool은 고정했다. 두 seed 모두 20 iteration/2,560 step에서 213 episode를 완료했다.
+
+| seed | clean mean Damage Δ | positive | LOS Δ | Cone Δ |
+|---:|---:|---:|---:|---:|
+| 5101 | -0.000573 | 1/6 | +0.00022° | +0.0056초 |
+| 5102 | -0.000618 | 1/6 | +0.00146° | 0초 |
+
+broad v1보다 평균 회귀는 작아졌지만 두 seed 모두 promotion 기준을 통과하지 못했다. 이어서 residual scale 0.125를 window 시작에서 유지하고 1.0초 끝에서 0까지 선형 감쇠하는 Family B를 inference-only로 비교했다. s5101 -0.001196(2/6), s5102 -0.001175(1/6)로 더 악화되어 재학습 없이 기각했다.
+
+raw policy action의 successive max jump는 s5101 0.132, s5102 0.042였고 실제 scale 적용 후 각각 0.0165/0.0053 이하이며 seed 간 크기도 일관되지 않았다. 따라서 slew가 공통 원인이라는 evidence가 부족해 Family C rate-limit 실험은 보류한다.
+
+반면 random-init Stage-1 policy의 signed action 방향은 두 seed에서 거의 반대였고, 기존 s3101/s3102 checkpoint는 새 1.0초 Gate inference diagnostic에서 각각 clean mean Damage Δ +0.000392/+0.000208이었다. 다음 최소 가설은 이 양수 초기점을 각각 유지한 채 동일 Stage-1 curriculum으로 20 iteration fine-tuning하는 것이다.
