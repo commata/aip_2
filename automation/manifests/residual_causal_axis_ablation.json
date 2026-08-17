@@ -1,0 +1,135 @@
+{
+  "git_sha": "5d0bd4c8188723249a4d43be8b3064d01d5045cd",
+  "experiment_id": "phase_a_t16_axis_ablation_20260817",
+  "hypothesis": "small residuals alter the next state seen by the stateful 60Hz BT; one or more axes dominate Damage degradation",
+  "changed_variable": "inference_time_residual_axis_mask",
+  "fixed_variables": {
+    "algorithm": "SAC",
+    "observation": "tactical16.v1",
+    "reward": "PR10 aim_residual configuration",
+    "gate": "rear120 AND (offensive OR phase pre-aim) AND NOT safety veto",
+    "composition": "saturation_aware",
+    "network": [128, 128],
+    "rl_action_repeat": 6,
+    "residual_scale": 0.125,
+    "suite": "automation/scenarios/0815_aim_s2102_revalidation_suite.json",
+    "target_backend": "autopilot proxy"
+  },
+  "training_seed": 0,
+  "training_seeds_of_reused_checkpoints": [3101, 3102],
+  "evaluation_seeds": [2801, 2802, 2803, 2804, 2805, 2806],
+  "observation": "tactical16",
+  "reward_version": "pr10_aim_residual",
+  "gate_version": "rear120_activation_v1",
+  "action_structure": "diagnostic masks: roll, pitch, yaw, pitch_yaw, roll_pitch_yaw",
+  "residual_scale": 0.125,
+  "checkpoint": [
+    "artifacts/models/0815_hybrid_submission_pilot/rear120_t16_s3101_r2",
+    "artifacts/models/0815_hybrid_submission_pilot/rear120_t16_s3102_r2"
+  ],
+  "checkpoint_hash": [
+    "2790F3303CAF98DD78F5889038601EADCE44D0B012FC0004BB6946F96C23C57F",
+    "A836531283CC1B20BC8A700161343B83267BD15CB4B701E3FBF8DB88715F0E2D"
+  ],
+  "causal_analysis": {
+    "tactical16_trajectories": 10,
+    "frozen_10d_trajectories": 12,
+    "state_diverged_after_final_command_count": 22,
+    "bt_raw_command_diverged_after_state_count": 22,
+    "tactical16_mean_gate_active_ratio": 0.9932335853288251,
+    "frozen_10d_mean_gate_active_ratio": 0.9945292242794417,
+    "tactical16_correction_abs_mean_roll_pitch_yaw": [
+      0.0028805641534951068,
+      0.0026196277414667446,
+      0.0023229162082739644
+    ]
+  },
+  "contamination_rule": "exclude a geometry when either paired episode has target_crash=true",
+  "contaminated_geometry": "crossing_left",
+  "clean_axis_results": [
+    {
+      "training_seed": 3101,
+      "axis": "roll",
+      "pairs": 5,
+      "mean_damage_delta": 0.000761160303753039,
+      "median_damage_delta": 0.00024784033473390643,
+      "min_damage_delta": -0.0023010669500587166,
+      "max_damage_delta": 0.004386709103708197,
+      "positive_pair_ratio": 0.6,
+      "bootstrap_ci95": [-0.0012374357028113625, 0.00292648926830128]
+    },
+    {
+      "training_seed": 3102,
+      "axis": "roll",
+      "pairs": 5,
+      "mean_damage_delta": 0.0018762526583191441,
+      "median_damage_delta": 0.0020682436802679227,
+      "min_damage_delta": -0.003976830764071737,
+      "max_damage_delta": 0.006085672732839997,
+      "positive_pair_ratio": 0.8,
+      "bootstrap_ci95": [-0.0013452629299311348, 0.00462316836479495]
+    },
+    {
+      "training_seed": 3101,
+      "axis": "pitch",
+      "mean_damage_delta": -0.0009908218016581928,
+      "positive_pair_ratio": 0.4
+    },
+    {
+      "training_seed": 3102,
+      "axis": "pitch",
+      "mean_damage_delta": -0.0007188520615535321,
+      "positive_pair_ratio": 0.6
+    },
+    {
+      "training_seed": 3101,
+      "axis": "yaw",
+      "mean_damage_delta": -0.0016400047778551308,
+      "positive_pair_ratio": 0.2
+    },
+    {
+      "training_seed": 3102,
+      "axis": "yaw",
+      "mean_damage_delta": -0.000909580702867041,
+      "positive_pair_ratio": 0.2
+    },
+    {
+      "training_seed": 3101,
+      "axis": "pitch_yaw",
+      "mean_damage_delta": -0.0010255171840296562,
+      "positive_pair_ratio": 0.2
+    },
+    {
+      "training_seed": 3102,
+      "axis": "pitch_yaw",
+      "mean_damage_delta": -0.0011644447759691535,
+      "positive_pair_ratio": 0.6
+    },
+    {
+      "training_seed": 3101,
+      "axis": "roll_pitch_yaw",
+      "mean_damage_delta": -0.0017188145280179867,
+      "positive_pair_ratio": 0.0
+    },
+    {
+      "training_seed": 3102,
+      "axis": "roll_pitch_yaw",
+      "mean_damage_delta": -0.0010046979407201118,
+      "positive_pair_ratio": 0.4
+    }
+  ],
+  "source_artifacts": [
+    {"path": "artifacts/evaluations/offensive_residual_causal_rework/axis_ablation_t16_s3101_roll_20260817/evaluation.json", "sha256": "7B0F35A85E677EAF2B565DD3F70F9B654D2609850F90A9527ACE544AD3EB11D3"},
+    {"path": "artifacts/evaluations/offensive_residual_causal_rework/axis_ablation_t16_s3101_pitch_20260817/evaluation.json", "sha256": "20344AED738A996556F9DB08CDE429EB890271EFCE7D51CAE7F8E2FCB4AC8CBD"},
+    {"path": "artifacts/evaluations/offensive_residual_causal_rework/axis_ablation_t16_s3101_yaw_20260817/evaluation.json", "sha256": "E9D4102B1AD9E0EEA373DA3B1A69C8B5429A1CEDAD0CF87168147C9D37CB7190"},
+    {"path": "artifacts/evaluations/offensive_residual_causal_rework/axis_ablation_t16_s3101_pitch_yaw_20260817/evaluation.json", "sha256": "F4B0852888C34A1481100A98438BE5F4E9CFF8665E190C2FF6EC18ACF1796B25"},
+    {"path": "artifacts/evaluations/offensive_residual_causal_rework/axis_ablation_t16_s3102_roll_20260817/evaluation.json", "sha256": "96BF76D24EC1C69BD13251F1B22B3F28E7EB65C09AD3D73EF2AC600C50985A7F"},
+    {"path": "artifacts/evaluations/offensive_residual_causal_rework/axis_ablation_t16_s3102_pitch_20260817/evaluation.json", "sha256": "D12098B5F567D194C9E4BDCB722DFD1B2E3D1F628ABCAD9A804B1EB638195A25"},
+    {"path": "artifacts/evaluations/offensive_residual_causal_rework/axis_ablation_t16_s3102_yaw_20260817/evaluation.json", "sha256": "E9DABE57FB61E0A3C9702E62B1D49F0499EF261C227815ED91CACAE425D166CD"},
+    {"path": "artifacts/evaluations/offensive_residual_causal_rework/axis_ablation_t16_s3102_pitch_yaw_20260817/evaluation.json", "sha256": "6464E9D2CA57EFAFBF2D0BDD05A3038E34B633B69E1CB7F52CC10D8FBA321E52"}
+  ],
+  "result": "roll-only is the only contamination-free axis mask with positive mean Damage direction for both reused training seeds; diagnostic evidence only",
+  "promotion_status": "DIAGNOSTIC_COMPLETE / NOT_PROMOTED",
+  "server_status": "SERVER_BLOCKED",
+  "target_bt_status": "TARGET_BT_PENDING"
+}
