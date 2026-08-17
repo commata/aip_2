@@ -31,6 +31,12 @@ DEFAULT_ENV_CONFIG = {
         "offensive_gate": {},
         "rear120_gate": {},
         "safety_veto": {},
+        "batch_contract": {
+            "mode": "disabled",
+            "minimum_target_ata_deg": 120.0,
+            "truncate_on_exit": True,
+            "mask_exit_reward": True,
+        },
     },
     "target_behavior_dll": "AIP_BASE_target.dll",
     "target_loiter": {"enabled": True, "bank": 30.0, "pitch": 0.0},

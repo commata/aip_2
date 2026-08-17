@@ -510,6 +510,12 @@ def _extract_custom_metrics(result: dict) -> dict:
                 "action_clipping_ratio",
                 "action_saturation_ratio",
                 "requested_throttle_residual_abs_mean",
+                "eligible_sample_fraction",
+                "rear120_sample_fraction",
+                "offensive_sample_fraction",
+                "pre_aim_sample_fraction",
+                "ineligible_sample_count",
+                "boundary_exit_transition_count",
             )
         },
     }
@@ -519,6 +525,7 @@ def _extract_custom_metrics(result: dict) -> dict:
             if (
                 key.startswith("aim_variant_fraction_")
                 or key.startswith("target_profile_fraction_")
+                or "_hist_" in key
             ) and value is not None:
                 extracted.setdefault(key, value)
     return extracted
