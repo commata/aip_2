@@ -91,6 +91,11 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--bt-rule-alias", action="append", default=[])
     value.add_argument("--scale", type=float, default=0.125)
     value.add_argument(
+        "--residual-axis-mask",
+        choices=("roll", "pitch", "yaw", "pitch_yaw", "roll_pitch_yaw"),
+        default="roll_pitch_yaw",
+    )
+    value.add_argument(
         "--gate-kind",
         choices=("aim", "offensive", "combined", "rear120"),
         default="aim",
@@ -119,6 +124,7 @@ def main() -> int:
             "--scales", str(args.scale),
             "--gate-kind", args.gate_kind,
             "--composition-mode", "saturation_aware",
+            "--residual-axis-mask", args.residual_axis_mask,
             "--ownship-bt-dll", args.ownship_bt_dll,
             "--target-backend", args.target_backend,
             "--target-bt-dll", args.target_bt_dll,
