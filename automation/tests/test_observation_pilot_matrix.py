@@ -13,6 +13,7 @@ def _payload():
         "env_config": {"residual_training": {"scale": 0.125}},
         "runtime": {"iterations": 20},
         "pilot_matrix": {
+            "run_suffix": "r1",
             "seeds": [3101, 3102],
             "observations": [
                 {"label": "r10", "mode": "aim_residual10_v2", "contract": {"version": "legacy"}},
@@ -25,10 +26,10 @@ def _payload():
 def test_expands_two_observations_and_two_independent_seeds() -> None:
     expanded = expand_matrix(_payload())
     assert [tag for tag, _ in expanded] == [
-        "rear120_r10_s3101",
-        "rear120_r10_s3102",
-        "rear120_t16_s3101",
-        "rear120_t16_s3102",
+        "rear120_r10_s3101_r1",
+        "rear120_r10_s3102_r1",
+        "rear120_t16_s3101_r1",
+        "rear120_t16_s3102_r1",
     ]
     assert [item["runtime"]["seed"] for _, item in expanded] == [3101, 3102, 3101, 3102]
     assert expanded[2][1]["env_config"]["observation_contract"]["version"] == "tactical16.v1"

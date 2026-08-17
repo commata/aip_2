@@ -1529,6 +1529,9 @@ def _run_training(args):
         "pitch_residual_abs_mean", "yaw_residual_abs_mean", "roll_residual_abs_max",
         "pitch_residual_abs_max", "yaw_residual_abs_max", "action_clipping_ratio",
         "action_saturation_ratio", "requested_throttle_residual_abs_mean",
+        "eligible_sample_fraction", "rear120_sample_fraction",
+        "offensive_sample_fraction", "pre_aim_sample_fraction",
+        "ineligible_sample_count", "boundary_exit_transition_count",
         "policy_loss", "vf_loss", "entropy", "kl", "clip_frac", "explained_var",
         "actor_loss", "critic_loss", "alpha_loss", "alpha", "target_entropy",
         "replay_buffer_size", "replay_buffer_memory_mb", "env_steps_per_sec",
@@ -1547,7 +1550,10 @@ def _run_training(args):
         for index, profile in enumerate(target_profiles)
     )
     csv_file = open(csv_path, "w", newline="", encoding="utf-8")
-    csv_writer = csv.DictWriter(csv_file, fieldnames=_CSV_FIELDS)
+    # Histogram metric keys are intentionally dynamic because only bins observed
+    # in an iteration are emitted.  Keep the fixed rear120 contract metrics in
+    # the progress CSV and leave histogram detail in RLlib's raw result log.
+    csv_writer = csv.DictWriter(csv_file, fieldnames=_CSV_FIELDS, extrasaction="ignore")
     csv_writer.writeheader()
     policy_probe_logger = PolicyProbeLogger(
         log_dir,

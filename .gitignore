@@ -44,6 +44,7 @@ artifacts/dashboard/
 artifacts/dashboard_yaml_smoke/
 artifacts/logs/
 artifacts/models/
+artifacts/experiment_matrix/
 artifacts/process_logs/
 artifacts/replays/
 artifacts/records/

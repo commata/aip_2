@@ -16,6 +16,7 @@ def expand_matrix(payload: dict) -> list[tuple[str, dict]]:
     matrix = payload.get("pilot_matrix") or {}
     seeds = list(matrix.get("seeds") or [])
     observations = list(matrix.get("observations") or [])
+    run_suffix = str(matrix.get("run_suffix") or "").strip()
     if len(seeds) < 2:
         raise ValueError("pilot_matrix.seeds must contain at least two independent seeds")
     if not observations:
@@ -30,6 +31,8 @@ def expand_matrix(payload: dict) -> list[tuple[str, dict]]:
             item = deepcopy(payload)
             item.pop("pilot_matrix", None)
             tag = f"rear120_{label}_s{int(seed)}"
+            if run_suffix:
+                tag = f"{tag}_{run_suffix}"
             item["name"] = f"0815_submission_{tag}"
             item.setdefault("output", {})["tag"] = tag
             item.setdefault("env", {})["observation_mode"] = mode
