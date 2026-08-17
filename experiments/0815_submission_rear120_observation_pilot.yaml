@@ -125,7 +125,6 @@ runtime:
   save_lightweight_bundle: true
   lightweight_bundle_frequency: 5
   save_native_checkpoint: false
-  print_every: 1
   math_threads: 2
 
 dashboard: {enabled: false}
