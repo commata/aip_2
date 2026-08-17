@@ -21,7 +21,9 @@ from dogfight.ai.hybrid_action_provider import (
     AimGateConfig,
     HybridActionProvider,
     OffensiveGateConfig,
+    Rear120GateConfig,
     ResidualInferenceActionProvider,
+    SafetyVetoConfig,
 )
 from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
@@ -70,7 +72,7 @@ def parse_args():
     parser.add_argument("--residual-scale", type=float, default=0.10)
     parser.add_argument(
         "--residual-gate",
-        choices=["aim", "offensive", "combined"],
+        choices=["aim", "offensive", "combined", "rear120"],
         default="aim",
     )
     parser.add_argument(
@@ -99,6 +101,11 @@ def parse_args():
     parser.add_argument("--aim-enter-range-margin-m", type=float, default=300.0)
     parser.add_argument("--aim-exit-range-margin-m", type=float, default=550.0)
     parser.add_argument("--aim-min-hold-steps", type=int, default=12)
+    parser.add_argument("--rear120-enter-target-ata-deg", type=float, default=120.0)
+    parser.add_argument("--rear120-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--safety-minimum-altitude-m", type=float, default=350.0)
+    parser.add_argument("--safety-minimum-speed-m-s", type=float, default=170.0)
+    parser.add_argument("--safety-maximum-closing-rate-m-s", type=float, default=250.0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--scenario-file", help="JSON file containing an initial_scenario object or a full env_config object.")
     parser.add_argument("--result-json", help="Write deterministic episode result and provider telemetry to this path.")
@@ -110,7 +117,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -162,6 +169,8 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             gate_kind=residual_gate,
             aim_gate=aim_gate,
             offensive_gate=offensive_gate,
+            rear120_gate=rear120_gate,
+            safety_veto=safety_veto,
             rl_action_repeat=rl_action_repeat,
             composition_mode=residual_composition,
         )
@@ -202,6 +211,15 @@ def main():
         exit_range_margin_m=args.aim_exit_range_margin_m,
         min_hold_steps=args.aim_min_hold_steps,
     )
+    rear120_gate = Rear120GateConfig(
+        enter_target_ata_deg=args.rear120_enter_target_ata_deg,
+        exit_target_ata_deg=args.rear120_exit_target_ata_deg,
+    )
+    safety_veto = SafetyVetoConfig(
+        minimum_altitude_m=args.safety_minimum_altitude_m,
+        minimum_speed_m_s=args.safety_minimum_speed_m_s,
+        maximum_closing_rate_m_s=args.safety_maximum_closing_rate_m_s,
+    )
 
     ownship_provider = build_provider(
         side="ownship",
@@ -216,6 +234,8 @@ def main():
         residual_composition=args.residual_composition,
         aim_gate=aim_gate,
         offensive_gate=offensive_gate,
+        rear120_gate=rear120_gate,
+        safety_veto=safety_veto,
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
         bt_turn_throttle_mode=args.bt_turn_throttle_mode,
@@ -233,6 +253,8 @@ def main():
         residual_composition=args.residual_composition,
         aim_gate=aim_gate,
         offensive_gate=offensive_gate,
+        rear120_gate=rear120_gate,
+        safety_veto=safety_veto,
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
         bt_turn_throttle_mode=args.bt_turn_throttle_mode,

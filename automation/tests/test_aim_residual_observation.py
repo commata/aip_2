@@ -5,11 +5,15 @@ import unittest
 import numpy as np
 
 from dogfight.envs.observation import (
+    TACTICAL16_CONTRACT_VERSION,
+    TACTICAL16_FEATURES,
+    TACTICAL16_HEALTH_CONSTANT_ONE,
     aim_residual_geometry,
     body_to_ned_rotation,
     build_observation,
     observation_size,
 )
+from GeoMathUtil import GeometryInfo
 from dogfight.sim.state_schema import StateIndex
 
 
@@ -86,6 +90,28 @@ class AimResidualObservationTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "bt_action"):
             build_observation("aim_residual13_btaware", own, target, None)
+
+    def test_tactical16_constant_health_contract_ignores_simulator_health(self) -> None:
+        own = state(0.0, 0.0, -5000.0, 0.0, (230.0, 0.0, 0.0))
+        target = state(800.0, 0.0, -5000.0, 0.0, (225.0, 0.0, 0.0))
+        own[StateIndex.HEALTH] = 0.2
+        target[StateIndex.HEALTH] = 0.4
+        wez = {"min_range_m": 152.4, "max_range_m": 914.4, "angle_deg": 2.0}
+
+        observation = build_observation(
+            "tactical16",
+            own,
+            target,
+            GeometryInfo(),
+            wez,
+            health_source=TACTICAL16_HEALTH_CONSTANT_ONE,
+        )
+
+        self.assertEqual(observation.shape, (len(TACTICAL16_FEATURES),))
+        self.assertEqual(TACTICAL16_CONTRACT_VERSION, "tactical16.v1")
+        self.assertEqual(float(observation[5]), 1.0)
+        self.assertEqual(float(observation[13]), 1.0)
+        self.assertEqual(float(observation[14]), 1.0)
 
 
 if __name__ == "__main__":

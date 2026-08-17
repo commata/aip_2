@@ -1,0 +1,67 @@
+{
+  "status": "BUNDLE_PENDING",
+  "mode": "bt_residual",
+  "observation_mode": "auto",
+  "observation_size": 16,
+  "observation_contract_version": "tactical16.v1",
+  "normalization_version": "tactical16.norm.v1",
+  "health_source": "unavailable_constant_one",
+  "bundle_path": "../../../artifacts/submission/0815_tactical16_rear120/policy",
+  "bundle_sha256": "PENDING_TACTICAL16_BUNDLE_SHA256",
+  "policy_id": "default_policy",
+  "bt": {
+    "dll_path": "C:/Users/shy66/Downloads/aip_final_0815/aip_final_0815/AIP_DCS_GDCC_0815.dll",
+    "dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "xml_path": "C:/Users/shy66/Downloads/aip_final_0815/aip_final_0815/Rule_DCS_GDCC_0815.xml",
+    "xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE",
+    "rule_aliases": ["Rule_DCS_GDCC_0815.xml"]
+  },
+  "residual_scale": 0.125,
+  "composition_mode": "saturation_aware",
+  "rl_action_repeat": 6,
+  "hard_eligibility_gate": {
+    "kind": "rear120",
+    "enter_target_ata_deg": 120.0,
+    "exit_target_ata_deg": 110.0
+  },
+  "activation_gate": {
+    "kind": "rear120_and_offensive_or_pre_aim",
+    "offensive": {
+      "min_range_m": 152.4,
+      "enter_max_range_m": 1500.0,
+      "exit_max_range_m": 2000.0,
+      "enter_ata_deg": 30.0,
+      "exit_ata_deg": 45.0,
+      "enter_min_target_ata_deg": 120.0,
+      "exit_min_target_ata_deg": 110.0
+    },
+    "phase_pre_aim": {
+      "min_range_m": 152.4,
+      "enter_angle_margin_deg": 7.0,
+      "exit_angle_margin_deg": 10.0,
+      "enter_range_margin_m": 300.0,
+      "exit_range_margin_m": 550.0,
+      "min_hold_steps": 12
+    },
+    "safety_veto": {
+      "minimum_altitude_m": 350.0,
+      "minimum_speed_m_s": 170.0,
+      "maximum_closing_rate_m_s": 250.0,
+      "veto_if_all_surfaces_saturated": true
+    }
+  },
+  "wez": {
+    "min_range_m": 152.4,
+    "max_range_m": 914.4,
+    "angle_deg": 2.0
+  },
+  "phase_config": [
+    {"phase": 1, "end_s": 100.0, "half_angle_deg": 1.0, "max_range_m": 914.4},
+    {"phase": 2, "end_s": 150.0, "half_angle_deg": 2.0, "max_range_m": 1066.8},
+    {"phase": 3, "end_s": 200.0, "half_angle_deg": 3.0, "max_range_m": 1219.2}
+  ],
+  "throttle_policy": "bt_only",
+  "force_side": {"ownship": 1, "target": 2},
+  "expected_sim_hz": 60,
+  "latency_threshold_s": 0.1667
+}

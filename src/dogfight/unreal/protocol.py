@@ -128,6 +128,30 @@ def pack_cmd(cmd: CMD) -> bytes:
     )
 
 
+def pack_set_plane_id(value: SetPlaneID) -> bytes:
+    return SET_PLANE_ID_STRUCT.pack(
+        int(MessageType.MT_SetPlaneID),
+        int(value.plane_id),
+    )
+
+
+def pack_plane_info(info: PlaneInfo) -> bytes:
+    return PLANE_INFO_STRUCT.pack(
+        int(MessageType.MT_PlaneInfo),
+        int(info.index),
+        int(info.plane_id),
+        float(info.position.x),
+        float(info.position.y),
+        float(info.position.z),
+        float(info.rotation.roll),
+        float(info.rotation.pitch),
+        float(info.rotation.yaw),
+        float(info.velocity.x),
+        float(info.velocity.y),
+        float(info.velocity.z),
+    )
+
+
 def unpack_message_type(buffer: bytes) -> MessageType:
     return MessageType(MESSAGE_TYPE_STRUCT.unpack_from(buffer)[0])
 
@@ -162,4 +186,16 @@ def unpack_plane_info(buffer: bytes) -> PlaneInfo:
         position=Vector3D(*unpacked[3:6]),
         rotation=Rotation3D(*unpacked[6:9]),
         velocity=Vector3D(*unpacked[9:12]),
+    )
+
+
+def unpack_cmd(buffer: bytes) -> CMD:
+    unpacked = CMD_STRUCT.unpack(buffer[: CMD_STRUCT.size])
+    return CMD(
+        plane_id=unpacked[1],
+        index=unpacked[2],
+        roll_cmd=unpacked[3],
+        pitch_cmd=unpacked[4],
+        yaw_cmd=unpacked[5],
+        throttle_cmd=unpacked[6],
     )

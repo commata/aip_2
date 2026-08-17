@@ -151,8 +151,12 @@ class DogFightCallbacks(DefaultCallbacks):
 
         provider = info.get("ownship_provider_telemetry", {}) or {}
         gate_kind = provider.get("residual_training_gate_kind")
-        if gate_kind in ("aim", "offensive"):
-            prefix = f"{gate_kind}_gate"
+        if gate_kind in ("aim", "offensive", "rear120"):
+            prefix = (
+                "rear120_activation"
+                if gate_kind == "rear120"
+                else f"{gate_kind}_gate"
+            )
             sim_hz = max(1.0, float(maneuver.get("sim_hz", 60)))
             gate_steps = float(provider.get(f"{prefix}_steps", 0))
             correction_steps = float(provider.get("rl_correction_steps", 0))
@@ -195,6 +199,28 @@ class DogFightCallbacks(DefaultCallbacks):
                         f"{axis}_{metric_name}",
                         float(value),
                     )
+
+        batch_contract = info.get("training_batch_contract", {}) or {}
+        for key in (
+            "eligible_sample_fraction",
+            "rear120_sample_fraction",
+            "offensive_sample_fraction",
+            "pre_aim_sample_fraction",
+            "ineligible_sample_count",
+            "boundary_exit_transition_count",
+        ):
+            if key in batch_contract:
+                self._record_metric(
+                    episode, metrics_logger, key, float(batch_contract[key])
+                )
+        for histogram_name, counts in batch_contract.get("histograms", {}).items():
+            for bin_name, count in counts.items():
+                self._record_metric(
+                    episode,
+                    metrics_logger,
+                    f"{histogram_name}_hist_{bin_name}",
+                    float(count),
+                )
 
         # ── Action distribution ───────────────────────────────────────────
         actions = self._episode_data(episode).get("actions", [])

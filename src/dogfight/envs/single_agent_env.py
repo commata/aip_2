@@ -28,9 +28,11 @@ from dogfight.envs.observation import (
     build_observation,
     normalize,
     observation_size as builtin_observation_size,
+    official_phase_wez_config,
 )
 from dogfight.envs.reward import compute_aim_residual_reward, compute_reward
 from dogfight.envs.termination import evaluate_termination
+from dogfight.envs.training_batch_contract import Rear120TrainingBatchTracker
 from dogfight.sim.state_schema import StateIndex
 
 
@@ -125,6 +127,9 @@ class DogFightEnv(gym.Env):
         self._geometry_guard = self.config.get("geometry_guard", {})
         self._wez = self.config["wez"]
         self._reward_config = self.config["reward"]
+        self._training_batch_tracker = Rear120TrainingBatchTracker(
+            self.config.get("residual_training", {}).get("batch_contract") or None
+        )
         self._artifacts_dir = self.config["artifacts_dir"]
         self._maneuver_telemetry = ManeuverTelemetryLogger(
             self.config.get("maneuver_telemetry_path"), sim_hz=self._sim_hz
@@ -269,6 +274,8 @@ class DogFightEnv(gym.Env):
             gate_kind=str(residual.get("gate_kind", "aim")),
             aim_gate=residual.get("aim_gate") or None,
             offensive_gate=residual.get("offensive_gate") or None,
+            rear120_gate=residual.get("rear120_gate") or None,
+            safety_veto=residual.get("safety_veto") or None,
             composition_mode=str(residual.get("composition_mode", "additive")),
         )
 
@@ -332,6 +339,10 @@ class DogFightEnv(gym.Env):
         JSBSimWrapper.Reset(self.battle_space_id)
         self._ownship_state = self._sim.reset()
         self._target_state = self._target_sim.reset()
+        self._training_batch_tracker.reset()
+        self._training_batch_tracker.validate_initial_state(
+            self._ownship_state, self._target_state
+        )
         self._update_initial_geometry_metrics(scenario_mode)
         self.current_timestep = 0
         self._reset_action_providers()
@@ -376,18 +387,17 @@ class DogFightEnv(gym.Env):
 
     def step(self, action) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         action = np.asarray(action, dtype=np.float32)
+        action_ownship_state = np.array(self._ownship_state, copy=True)
+        action_target_state = np.array(self._target_state, copy=True)
         
-        # Phase-based WEZ scaling (baserule.png)
+        # Phase-based WEZ scaling (official full-angle semantics)
         running_time = self._ep_step_count * self._delta_t
-        if running_time > 150.0:
-            self._wez["max_range_m"] = 4000.0 * 0.3048 # Phase 3: 4000 ft, 6 deg
-            self._wez["angle_deg"] = 6.0
-        elif running_time > 100.0:
-            self._wez["max_range_m"] = 3500.0 * 0.3048 # Phase 2: 3500 ft, 4 deg
-            self._wez["angle_deg"] = 4.0
-        else:
-            self._wez["max_range_m"] = 3000.0 * 0.3048 # Phase 1: 3000 ft, 2 deg
-            self._wez["angle_deg"] = 2.0
+        self._wez.update(
+            official_phase_wez_config(
+                running_time,
+                min_range_m=float(self._wez["min_range_m"]),
+            )
+        )
 
         failure = self._advance_simulation_step_ratio(action)
         if failure is not None:
@@ -405,6 +415,18 @@ class DogFightEnv(gym.Env):
             self._geo_info,
             self._geometry_guard,
         )
+        batch_sample = self._training_batch_tracker.record_action_state(
+            action_ownship_state,
+            action_target_state,
+            self._last_ownship_action_info,
+        )
+        batch_contract_exit = False
+        if not terminated and self._training_batch_tracker.should_truncate_after_step(
+            self._ownship_state, self._target_state
+        ):
+            truncated = True
+            batch_contract_exit = True
+            end_condition = "rear120 training segment exit"
         cur_obs = (
             self._build_terminal_observation()
             if terminated or truncated
@@ -425,6 +447,13 @@ class DogFightEnv(gym.Env):
             truncated,
             end_condition,
         )
+        if (
+            batch_contract_exit
+            and self._training_batch_tracker.config.mask_exit_reward
+        ):
+            components = {key: 0.0 for key in components}
+            components["eligibility_mask"] = 0.0
+            reward = 0.0
 
         ep_mean_dist, ep_min_dist = self._update_episode_metrics(
             action,
@@ -471,6 +500,8 @@ class DogFightEnv(gym.Env):
                 self._target_action_provider
             ),
             "maneuver_telemetry": self._maneuver_telemetry.summary(),
+            "training_batch_contract": self._training_batch_tracker.summary(),
+            "training_batch_sample": batch_sample,
             **self._initial_scenario_metrics,
         }
 
@@ -781,6 +812,11 @@ class DogFightEnv(gym.Env):
             self._geo_info,
             wez_cfg,
             bt_action=bt_action,
+            health_source=str(
+                getattr(self, "config", {}).get("observation_contract", {}).get(
+                    "health_source", "simulator"
+                )
+            ),
         )
 
     def get_reward(self):

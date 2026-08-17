@@ -1,0 +1,13 @@
+{
+  "name": "0815_aim_s2102_revalidation_suite",
+  "purpose": "S2102 periodic screening candidate independent geometry revalidation",
+  "independence_note": "screening에 사용한 proxy-longrun holdout과 다른 mirror geometry다. 각 seed는 deterministic case 식별자이며 stochastic 독립 표본 수로 세지 않는다.",
+  "cases": [
+    {"name": "lateral_left", "scenario": "automation/scenarios/0815_aim_mirror_holdout/lateral_left.json", "seed": 2801},
+    {"name": "lateral_right", "scenario": "automation/scenarios/0815_aim_mirror_holdout/lateral_right.json", "seed": 2802},
+    {"name": "crossing_left", "scenario": "automation/scenarios/0815_aim_mirror_holdout/crossing_left.json", "seed": 2803},
+    {"name": "crossing_right", "scenario": "automation/scenarios/0815_aim_mirror_holdout/crossing_right.json", "seed": 2804},
+    {"name": "vertical_high", "scenario": "automation/scenarios/0815_aim_mirror_holdout/vertical_high.json", "seed": 2805},
+    {"name": "vertical_low", "scenario": "automation/scenarios/0815_aim_mirror_holdout/vertical_low.json", "seed": 2806}
+  ]
+}

@@ -62,6 +62,36 @@ def finite(value: Any) -> float | None:
     return number if math.isfinite(number) else None
 
 
+def validate_observation_metadata(payload: dict[str, Any]) -> str:
+    metadata = payload.get("metadata", {})
+    obs_mode = (
+        metadata.get("obs_mode")
+        or payload.get("algorithm_config", {}).get("env_config", {}).get("observation_mode")
+    )
+    if obs_mode not in (
+        "aim_residual10",
+        "aim_residual10_v2",
+        "aim_residual13_btaware",
+        "tactical16",
+    ):
+        raise ValueError(f"bundle observation 불일치: {obs_mode!r}")
+    if obs_mode == "tactical16":
+        expected = {
+            "observation_size": 16,
+            "observation_contract_version": "tactical16.v1",
+            "normalization_version": "tactical16.norm.v1",
+            "health_source": "unavailable_constant_one",
+        }
+        mismatches = {
+            key: {"expected": value, "actual": metadata.get(key)}
+            for key, value in expected.items()
+            if metadata.get(key) != value
+        }
+        if mismatches:
+            raise ValueError(f"Tactical16 bundle contract 불일치: {mismatches}")
+    return str(obs_mode)
+
+
 def preflight(args: argparse.Namespace) -> dict[str, Any]:
     bundle = Path(args.bundle).resolve()
     metadata = bundle / "metadata.json"
@@ -73,16 +103,7 @@ def preflight(args: argparse.Namespace) -> dict[str, Any]:
     if missing:
         raise FileNotFoundError(f"필수 파일 누락: {missing}")
     payload = json.loads(metadata.read_text(encoding="utf-8"))
-    obs_mode = (
-        payload.get("metadata", {}).get("obs_mode")
-        or payload.get("algorithm_config", {}).get("env_config", {}).get("observation_mode")
-    )
-    if obs_mode not in (
-        "aim_residual10",
-        "aim_residual10_v2",
-        "aim_residual13_btaware",
-    ):
-        raise ValueError(f"bundle observation 불일치: {obs_mode!r}")
+    obs_mode = validate_observation_metadata(payload)
     args.observation_mode = obs_mode
     invalid = [scale for scale in args.scales if scale not in ALLOWED_SCALES]
     if invalid:
@@ -179,6 +200,15 @@ def run_match(
             "--aim-enter-range-margin-m", str(args.aim_enter_range_margin_m),
             "--aim-exit-range-margin-m", str(args.aim_exit_range_margin_m),
             "--aim-min-hold-steps", str(args.aim_min_hold_steps),
+            "--offensive-enter-ata-deg", str(args.offensive_enter_ata_deg),
+            "--offensive-exit-ata-deg", str(args.offensive_exit_ata_deg),
+            "--offensive-enter-target-ata-deg", str(args.offensive_enter_target_ata_deg),
+            "--offensive-exit-target-ata-deg", str(args.offensive_exit_target_ata_deg),
+            "--rear120-enter-target-ata-deg", str(args.rear120_enter_target_ata_deg),
+            "--rear120-exit-target-ata-deg", str(args.rear120_exit_target_ata_deg),
+            "--safety-minimum-altitude-m", str(args.safety_minimum_altitude_m),
+            "--safety-minimum-speed-m-s", str(args.safety_minimum_speed_m_s),
+            "--safety-maximum-closing-rate-m-s", str(args.safety_maximum_closing_rate_m_s),
         ]
 
     protected = ROOT / "aircraft" / "f16" / "f16_init.xml"
@@ -236,6 +266,10 @@ def build_record(
     provider = result.get("ownship_provider_telemetry", {}) or {}
     own_health = finite(result.get("ownship_health"))
     target_health = finite(result.get("target_health"))
+    gate_kind = provider.get("residual_inference_gate_kind")
+    gate_metric_prefix = (
+        "rear120_activation" if gate_kind == "rear120" else f"{gate_kind}_gate"
+    )
     record = {
         "run_id": run_id,
         "seed": seed,
@@ -243,7 +277,7 @@ def build_record(
         "variant_name": result.get("aim_curriculum_variant_name"),
         "controller": controller,
         "scale": scale,
-        "gate_kind": provider.get("residual_inference_gate_kind"),
+        "gate_kind": gate_kind,
         "outcome": "process_error" if returncode else result.get("outcome", "unknown"),
         "end_condition": result.get("end_condition", ""),
         "ownship_crash": bool(result.get("ownship_crash", False)),
@@ -261,10 +295,10 @@ def build_record(
             if own_health is not None and target_health is not None
             else None
         ),
-        "gate_active_ratio": finite(provider.get(f"{provider.get('residual_inference_gate_kind')}_gate_active_ratio")) or 0.0,
-        "gate_entries": finite(provider.get(f"{provider.get('residual_inference_gate_kind')}_gate_entries")) or 0.0,
-        "gate_exits": finite(provider.get(f"{provider.get('residual_inference_gate_kind')}_gate_exits")) or 0.0,
-        "gate_mean_active_steps": finite(provider.get(f"{provider.get('residual_inference_gate_kind')}_gate_mean_active_steps")) or 0.0,
+        "gate_active_ratio": finite(provider.get(f"{gate_metric_prefix}_active_ratio")) or 0.0,
+        "gate_entries": finite(provider.get(f"{gate_metric_prefix}_entries")) or 0.0,
+        "gate_exits": finite(provider.get(f"{gate_metric_prefix}_exits")) or 0.0,
+        "gate_mean_active_steps": finite(provider.get(f"{gate_metric_prefix}_mean_active_steps")) or 0.0,
         "rl_inference_calls": finite(provider.get("rl_inference_calls")) or 0.0,
         "rl_correction_steps": finite(provider.get("rl_correction_steps")) or 0.0,
         "correction_roll_mean": _axis(provider, "rl_correction_abs_mean", 0),
@@ -601,7 +635,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scales", nargs="+", type=float, default=[0.125])
     parser.add_argument(
         "--gate-kind",
-        choices=["aim", "offensive", "combined"],
+        choices=["aim", "offensive", "combined", "rear120"],
         default="aim",
     )
     parser.add_argument(
@@ -624,6 +658,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aim-enter-range-margin-m", type=float, default=300.0)
     parser.add_argument("--aim-exit-range-margin-m", type=float, default=550.0)
     parser.add_argument("--aim-min-hold-steps", type=int, default=12)
+    parser.add_argument("--offensive-enter-ata-deg", type=float, default=30.0)
+    parser.add_argument("--offensive-exit-ata-deg", type=float, default=45.0)
+    parser.add_argument("--offensive-enter-target-ata-deg", type=float, default=120.0)
+    parser.add_argument("--offensive-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--rear120-enter-target-ata-deg", type=float, default=120.0)
+    parser.add_argument("--rear120-exit-target-ata-deg", type=float, default=110.0)
+    parser.add_argument("--safety-minimum-altitude-m", type=float, default=350.0)
+    parser.add_argument("--safety-minimum-speed-m-s", type=float, default=170.0)
+    parser.add_argument("--safety-maximum-closing-rate-m-s", type=float, default=250.0)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--quiet", action="store_true", help="요약 JSON stdout 출력을 생략한다.")
     return parser.parse_args()

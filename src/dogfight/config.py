@@ -15,6 +15,11 @@ DEFAULT_ENV_CONFIG = {
     "episode_step_limit": 18000,
     "min_altitude": 300.0,
     "observation_mode": "classic12",
+    "observation_contract": {
+        "version": "legacy",
+        "normalization_version": "legacy",
+        "health_source": "simulator",
+    },
     "ownship_control_mode": "rl",
     "target_mode": "behavior_tree",
     "ownship_behavior_dll": None,
@@ -24,6 +29,14 @@ DEFAULT_ENV_CONFIG = {
         "composition_mode": "additive",
         "aim_gate": {},
         "offensive_gate": {},
+        "rear120_gate": {},
+        "safety_veto": {},
+        "batch_contract": {
+            "mode": "disabled",
+            "minimum_target_ata_deg": 120.0,
+            "truncate_on_exit": True,
+            "mask_exit_reward": True,
+        },
     },
     "target_behavior_dll": "AIP_BASE_target.dll",
     "target_loiter": {"enabled": True, "bank": 30.0, "pitch": 0.0},
@@ -64,6 +77,11 @@ DEFAULT_ENV_CONFIG = {
         "min_range_m": 500 * FEET_TO_METER,
         "max_range_m": 3000 * FEET_TO_METER,
     },
+    "phase_config": [
+        {"phase": 1, "end_s": 100.0, "half_angle_deg": 1.0, "max_range_m": 3000 * FEET_TO_METER},
+        {"phase": 2, "end_s": 150.0, "half_angle_deg": 2.0, "max_range_m": 3500 * FEET_TO_METER},
+        {"phase": 3, "end_s": 200.0, "half_angle_deg": 3.0, "max_range_m": 4000 * FEET_TO_METER},
+    ],
     # Head-on (Original)
     #"ownship": [1000.0, 0.0, -7000.0, 0.0, 0.0, 0.0, 300.0],
     #"target": [6000.0, 0.0, -7000.0, 0.0, 0.0, 180.0, 300.0],

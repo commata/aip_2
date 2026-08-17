@@ -90,6 +90,11 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--bt-rule-xml", required=True)
     value.add_argument("--bt-rule-alias", action="append", default=[])
     value.add_argument("--scale", type=float, default=0.125)
+    value.add_argument(
+        "--gate-kind",
+        choices=("aim", "offensive", "combined", "rear120"),
+        default="aim",
+    )
     value.add_argument("--max-engage-time", type=float, default=30.0)
     value.add_argument("--episode-step-limit", type=int, default=1800)
     value.add_argument("--timeout-seconds", type=float, default=120.0)
@@ -112,7 +117,7 @@ def main() -> int:
             "--scenario", str(case["scenario"]),
             "--seeds", str(case["seed"]),
             "--scales", str(args.scale),
-            "--gate-kind", "aim",
+            "--gate-kind", args.gate_kind,
             "--composition-mode", "saturation_aware",
             "--ownship-bt-dll", args.ownship_bt_dll,
             "--target-backend", args.target_backend,

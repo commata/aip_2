@@ -4,8 +4,10 @@ import unittest
 
 from automation.evaluate_aim_residual import (
     aggregate,
+    build_record,
     controller_observation_mode,
     merge_unique_records,
+    validate_observation_metadata,
 )
 
 
@@ -29,6 +31,41 @@ def record(controller: str, seed: int, variant: str, los: float = 2.0):
 
 
 class AimEvaluatorQualityTests(unittest.TestCase):
+    def test_rear120_record_uses_final_activation_not_hard_envelope(self) -> None:
+        result = {
+            "ownship_health": 1.0,
+            "target_health": 1.0,
+            "ownship_provider_telemetry": {
+                "residual_inference_gate_kind": "rear120",
+                "rear120_gate_active_ratio": 1.0,
+                "rear120_activation_active_ratio": 0.25,
+                "rear120_activation_entries": 2,
+                "rear120_activation_exits": 1,
+            },
+        }
+        row = build_record(
+            "run", 1, "hybrid_0.125", 0.125, result,
+            returncode=0, wall_seconds=0.0, resumed=False,
+        )
+        self.assertEqual(row["gate_active_ratio"], 0.25)
+        self.assertEqual(row["gate_entries"], 2.0)
+        self.assertEqual(row["gate_exits"], 1.0)
+
+    def test_tactical16_bundle_contract_is_explicitly_validated(self) -> None:
+        payload = {
+            "metadata": {
+                "obs_mode": "tactical16",
+                "observation_size": 16,
+                "observation_contract_version": "tactical16.v1",
+                "normalization_version": "tactical16.norm.v1",
+                "health_source": "unavailable_constant_one",
+            }
+        }
+        self.assertEqual(validate_observation_metadata(payload), "tactical16")
+        payload["metadata"]["health_source"] = "simulator"
+        with self.assertRaisesRegex(ValueError, "Tactical16 bundle contract"):
+            validate_observation_metadata(payload)
+
     def test_btaware_bundle_does_not_pre_tick_pure_bt_baseline(self) -> None:
         self.assertEqual(
             controller_observation_mode(

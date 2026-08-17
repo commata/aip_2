@@ -1,0 +1,42 @@
+{
+  "git_sha_before_report": "e2e251eacfbbc659d76af25f1d4c3663956682ce",
+  "issue": 9,
+  "status": "REVALIDATION_FAILED",
+  "confidence": "중간",
+  "fixed": {
+    "algorithm": "SAC",
+    "network": [128, 128],
+    "iterations": 20,
+    "sampled_steps_per_run": 2560,
+    "learner_steps_per_run": 4864,
+    "residual_scale": 0.125,
+    "composition_mode": "saturation_aware",
+    "throttle_policy": "bt_only",
+    "gate": "rear120_and_offensive_or_pre_aim_not_safety",
+    "training_target_weights": {"autopilot": 2, "0815": 1, "AIP2": 1}
+  },
+  "training_batch_contract": {
+    "mode": "rear120_segment",
+    "eligible_sample_fraction": 1.0,
+    "rear120_sample_fraction": 1.0,
+    "ineligible_sample_count": 0
+  },
+  "runs": [
+    {"mode": "aim_residual10_v2", "seed": 3101, "weights_sha256": "B5301A3FB0C708E341E9A3100993D88E9D0F6AD9FA9A29BB731B1BA3535EB3B7", "evaluation_sha256": "1226A89BBCACE9A7242F45742D8551699BE76C38E488E2A9ADC7CC8FB26FA2B8"},
+    {"mode": "aim_residual10_v2", "seed": 3102, "weights_sha256": "62B57782D7F3A7CBDA8B617D862C7A3F0694BEF4EDB656D4916F4348B7F2460D", "evaluation_sha256": "95ED7422ADCCFEEC906F7566565CFA01DF2E6E9B1E001763CC31B2238003E50B"},
+    {"mode": "tactical16", "seed": 3101, "weights_sha256": "2790F3303CAF98DD78F5889038601EADCE44D0B012FC0004BB6946F96C23C57F", "evaluation_sha256": "CE7372A60EFC1081CA1CB298458539C36558C7D8669042166A40DF6F9E8E45E8"},
+    {"mode": "tactical16", "seed": 3102, "weights_sha256": "A836531283CC1B20BC8A700161343B83267BD15CB4B701E3FBF8DB88715F0E2D", "evaluation_sha256": "3951D6E5EA86A6DDFFFACBA6A24AD2BA0F937FD039F2ECF281CC2AEFE1CE44DE"}
+  ],
+  "trajectory_artifacts": {
+    "root": "artifacts/evaluations/0815_submission_pilot/rear120_t16_s3102_r2_gatefix/plots",
+    "best_crossing_left_png_sha256": "29425D3B12A196792D5DB7BBF2F60BADD8A358D7698A73759AAAB081B601B9A8",
+    "worst_lateral_left_png_sha256": "53C4E464DA219A93CFC663443B5E2A3C5E175B1FA9A21F6B0A9615370C085D1D",
+    "median_vertical_low_png_sha256": "860F53DED26462E13F7E351B4A39FAB134302808B43FF3720F3527E410C2565C"
+  },
+  "remaining": {
+    "scale_comparison": "candidate_freeze_not_reached",
+    "full_fight_200s": "candidate_freeze_not_reached",
+    "target_bt": "TARGET_BT_PENDING",
+    "server": "SERVER_BLOCKED"
+  }
+}
