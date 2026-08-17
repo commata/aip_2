@@ -15,6 +15,11 @@ DEFAULT_ENV_CONFIG = {
     "episode_step_limit": 18000,
     "min_altitude": 300.0,
     "observation_mode": "classic12",
+    "observation_contract": {
+        "version": "legacy",
+        "normalization_version": "legacy",
+        "health_source": "simulator",
+    },
     "ownship_control_mode": "rl",
     "target_mode": "behavior_tree",
     "ownship_behavior_dll": None,

@@ -1165,12 +1165,19 @@ def _build_observation_bundle_metadata(
     if observation_size is None:
         observation_size = _to_positive_int(builtin_observation_size(mode))
 
+    contract = env_config.get("observation_contract")
+    if not isinstance(contract, dict):
+        contract = {}
     return {
         "obs_mode": mode,
         "observation_mode": mode,
         "observation_module": env_config.get("observation_module", ""),
         "observation_size": observation_size,
         "observation_summary": observation_summary,
+        "observation_contract_version": contract.get("version", "legacy"),
+        "normalization_version": contract.get("normalization_version", "legacy"),
+        "health_source": contract.get("health_source", "simulator"),
+        "wez_contract": dict(env_config.get("wez", {})),
     }
 
 

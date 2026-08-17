@@ -781,6 +781,11 @@ class DogFightEnv(gym.Env):
             self._geo_info,
             wez_cfg,
             bt_action=bt_action,
+            health_source=str(
+                self.config.get("observation_contract", {}).get(
+                    "health_source", "simulator"
+                )
+            ),
         )
 
     def get_reward(self):

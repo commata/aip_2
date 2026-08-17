@@ -5,6 +5,30 @@ import numpy as np
 from dogfight.sim.state_schema import StateIndex
 
 
+TACTICAL16_CONTRACT_VERSION = "tactical16.v1"
+TACTICAL16_NORMALIZATION_VERSION = "tactical16.norm.v1"
+TACTICAL16_HEALTH_SIMULATOR = "simulator"
+TACTICAL16_HEALTH_CONSTANT_ONE = "unavailable_constant_one"
+TACTICAL16_FEATURES = (
+    "ownship_roll_norm",
+    "ownship_pitch_norm",
+    "ownship_yaw_norm",
+    "ownship_speed_norm",
+    "ownship_alt_norm",
+    "ownship_health_norm",
+    "delta_n_norm",
+    "delta_e_norm",
+    "delta_d_norm",
+    "ata_norm",
+    "aa_norm",
+    "az_norm",
+    "el_norm",
+    "target_health_norm",
+    "in_wez",
+    "pursuit_score_norm",
+)
+
+
 def normalize(value: float, minimum: float, maximum: float) -> float:
     if maximum <= minimum:
         return 0.0
@@ -34,6 +58,7 @@ def build_observation(
     wez_config=None,
     *,
     bt_action=None,
+    health_source: str = TACTICAL16_HEALTH_SIMULATOR,
 ) -> np.ndarray:
     if mode == "aim_residual10":
         return _build_aim_residual10(ownship_state, target_state)
@@ -46,7 +71,13 @@ def build_observation(
             bt_action,
         )
     if mode == "tactical16":
-        return _build_tactical16(ownship_state, target_state, geo_info, wez_config)
+        return _build_tactical16(
+            ownship_state,
+            target_state,
+            geo_info,
+            wez_config,
+            health_source=health_source,
+        )
     if mode == "relative14":
         return _build_relative14(ownship_state, target_state, geo_info)
     return _build_classic12(ownship_state, target_state)
@@ -120,24 +151,9 @@ def describe_observation(mode: str) -> dict:
         return {
             "mode": "tactical16",
             "size": 16,
-            "features": [
-                "ownship_roll_norm",
-                "ownship_pitch_norm",
-                "ownship_yaw_norm",
-                "ownship_speed_norm",
-                "ownship_alt_norm",
-                "ownship_health_norm",
-                "delta_n_norm",
-                "delta_e_norm",
-                "delta_d_norm",
-                "ata_norm",
-                "aa_norm",
-                "az_norm",
-                "el_norm",
-                "target_health_norm",
-                "in_wez",
-                "pursuit_score_norm",
-            ],
+            "features": list(TACTICAL16_FEATURES),
+            "observation_contract_version": TACTICAL16_CONTRACT_VERSION,
+            "normalization_version": TACTICAL16_NORMALIZATION_VERSION,
             "description": (
                 "Full tactical observation: ownship attitude + speed + altitude + health, "
                 "relative geometry (ATA, AA, LOS), target health, WEZ flag, pursuit score. "
@@ -374,7 +390,14 @@ def _build_relative14(ownship_state, target_state, geo_info) -> np.ndarray:
     return observation
 
 
-def _build_tactical16(ownship_state, target_state, geo_info, wez_config=None) -> np.ndarray:
+def _build_tactical16(
+    ownship_state,
+    target_state,
+    geo_info,
+    wez_config=None,
+    *,
+    health_source: str = TACTICAL16_HEALTH_SIMULATOR,
+) -> np.ndarray:
     """16-feature tactical observation.
 
     Index map:
@@ -385,6 +408,14 @@ def _build_tactical16(ownship_state, target_state, geo_info, wez_config=None) ->
       14    in_wez flag  (-1 / +1)
       15    pursuit score (smooth ATA×range gradient, normalized to [-1,1])
     """
+    if health_source not in {
+        TACTICAL16_HEALTH_SIMULATOR,
+        TACTICAL16_HEALTH_CONSTANT_ONE,
+    }:
+        raise ValueError(f"unsupported Tactical16 health source: {health_source!r}")
+
+    ownship_state = np.asarray(ownship_state, dtype=np.float32)
+    target_state = np.asarray(target_state, dtype=np.float32)
     obs = np.zeros(16, dtype=np.float32)
 
     delta = target_state[:3] - ownship_state[:3]
@@ -399,7 +430,12 @@ def _build_tactical16(ownship_state, target_state, geo_info, wez_config=None) ->
     obs[2] = normalize(float(ownship_state[StateIndex.YAW]),       0.0, 360.0)
     obs[3] = normalize(float(ownship_state[StateIndex.KCAS]),      0.0, 600.0)
     obs[4] = normalize(float(ownship_state[StateIndex.ALT]),       0.0, 15000.0)
-    obs[5] = normalize(float(ownship_state[StateIndex.HEALTH]),    0.0,  1.0)
+    ownship_health = (
+        1.0
+        if health_source == TACTICAL16_HEALTH_CONSTANT_ONE
+        else float(ownship_state[StateIndex.HEALTH])
+    )
+    obs[5] = normalize(ownship_health, 0.0, 1.0)
 
     # Relative position
     obs[6] = normalize(float(delta[0]), -15000.0, 15000.0)
@@ -413,7 +449,12 @@ def _build_tactical16(ownship_state, target_state, geo_info, wez_config=None) ->
     obs[12] = normalize(float(el),    -90.0,  90.0)
 
     # Target health
-    obs[13] = normalize(float(target_state[StateIndex.HEALTH]), 0.0, 1.0)
+    target_health = (
+        1.0
+        if health_source == TACTICAL16_HEALTH_CONSTANT_ONE
+        else float(target_state[StateIndex.HEALTH])
+    )
+    obs[13] = normalize(target_health, 0.0, 1.0)
 
     # WEZ flag: +1 if ownship is inside weapon engagement zone, -1 otherwise
     if wez_config is not None:
