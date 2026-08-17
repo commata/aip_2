@@ -269,6 +269,8 @@ class DogFightEnv(gym.Env):
             gate_kind=str(residual.get("gate_kind", "aim")),
             aim_gate=residual.get("aim_gate") or None,
             offensive_gate=residual.get("offensive_gate") or None,
+            rear120_gate=residual.get("rear120_gate") or None,
+            safety_veto=residual.get("safety_veto") or None,
             composition_mode=str(residual.get("composition_mode", "additive")),
         )
 

@@ -29,6 +29,8 @@ DEFAULT_ENV_CONFIG = {
         "composition_mode": "additive",
         "aim_gate": {},
         "offensive_gate": {},
+        "rear120_gate": {},
+        "safety_veto": {},
     },
     "target_behavior_dll": "AIP_BASE_target.dll",
     "target_loiter": {"enabled": True, "bank": 30.0, "pitch": 0.0},

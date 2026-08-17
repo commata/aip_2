@@ -179,6 +179,263 @@ def _unsigned_ata_deg(observer_state, target_state) -> float:
     return float(np.degrees(np.arccos(np.clip(cosine, -1.0, 1.0))))
 
 
+def target_ata_deg(ownship_state, target_state) -> float:
+    """Return the unsigned angle from target nose to the target→ownship line."""
+    return _unsigned_ata_deg(target_state, ownship_state)
+
+
+@dataclass(frozen=True)
+class Rear120GateConfig:
+    enter_target_ata_deg: float = 120.0
+    exit_target_ata_deg: float = 110.0
+    sim_hz: int = 60
+
+    def validate(self) -> None:
+        if not 0.0 <= self.exit_target_ata_deg <= self.enter_target_ata_deg <= 180.0:
+            raise ValueError("rear gate must satisfy 0 <= exit <= enter <= 180")
+        if self.sim_hz <= 0:
+            raise ValueError("rear gate sim_hz must be positive")
+
+
+class Rear120EligibilityGate:
+    """Hard hysteretic target rear-sector envelope based on unsigned target ATA."""
+
+    def __init__(self, config: Rear120GateConfig | dict | None = None):
+        if config is None:
+            config = Rear120GateConfig()
+        elif isinstance(config, dict):
+            config = Rear120GateConfig(**config)
+        config.validate()
+        self.config = config
+        self.reset()
+
+    def reset(self) -> None:
+        self.active = False
+        self.steps = 0
+        self.active_steps = 0
+        self.entries = 0
+        self.exits = 0
+        self._current_active_steps = 0
+        self._completed_active_steps: list[int] = []
+        self.last_geometry = {
+            "target_ata_deg": float("nan"),
+            "active": False,
+            "entry": False,
+            "exit": False,
+        }
+
+    def update(self, ownship_state, target_state) -> dict:
+        previous = self.active
+        if ownship_state is None or target_state is None:
+            angle = float("nan")
+            next_active = False
+        else:
+            angle = target_ata_deg(ownship_state, target_state)
+            threshold = (
+                self.config.exit_target_ata_deg
+                if previous
+                else self.config.enter_target_ata_deg
+            )
+            next_active = bool(angle >= threshold)
+        entry = bool(next_active and not previous)
+        exit_event = bool(previous and not next_active)
+        self.active = bool(next_active)
+        self.steps += 1
+        self.active_steps += int(self.active)
+        self.entries += int(entry)
+        self.exits += int(exit_event)
+        if self.active:
+            self._current_active_steps += 1
+        elif exit_event:
+            self._completed_active_steps.append(self._current_active_steps)
+            self._current_active_steps = 0
+        self.last_geometry = {
+            "target_ata_deg": angle,
+            "active": self.active,
+            "entry": entry,
+            "exit": exit_event,
+        }
+        return dict(self.last_geometry)
+
+    def telemetry(self) -> dict:
+        durations = list(self._completed_active_steps)
+        if self.active and self._current_active_steps:
+            durations.append(self._current_active_steps)
+        elapsed_min = self.steps / float(self.config.sim_hz) / 60.0
+        return {
+            "rear120_gate_config": asdict(self.config),
+            "rear120_gate_steps": self.steps,
+            "rear120_gate_active_steps": self.active_steps,
+            "rear120_gate_active_ratio": self.active_steps / max(1, self.steps),
+            "rear120_gate_entries": self.entries,
+            "rear120_gate_exits": self.exits,
+            "rear120_gate_boundary_reentries": max(0, self.entries - 1),
+            "rear120_gate_transitions_per_min": (
+                (self.entries + self.exits) / elapsed_min if elapsed_min > 0.0 else 0.0
+            ),
+            "rear120_gate_mean_active_steps": (
+                float(np.mean(durations)) if durations else 0.0
+            ),
+            "rear120_gate_min_active_steps": min(durations) if durations else 0,
+            "rear120_gate_active_final": self.active,
+        }
+
+
+@dataclass(frozen=True)
+class SafetyVetoConfig:
+    minimum_altitude_m: float = 350.0
+    minimum_speed_m_s: float = 170.0
+    maximum_closing_rate_m_s: float = 250.0
+    veto_if_all_surfaces_saturated: bool = True
+
+    def validate(self) -> None:
+        if self.minimum_altitude_m < 0.0 or self.minimum_speed_m_s < 0.0:
+            raise ValueError("safety altitude and speed thresholds must be non-negative")
+        if self.maximum_closing_rate_m_s <= 0.0:
+            raise ValueError("maximum closing rate must be positive")
+
+
+class Rear120ActivationGate:
+    """rear120 AND (offensive OR phase pre-aim) AND NOT safety veto."""
+
+    def __init__(
+        self,
+        rear120_config: Rear120GateConfig | dict | None = None,
+        aim_config: AimGateConfig | dict | None = None,
+        offensive_config: OffensiveGateConfig | dict | None = None,
+        safety_config: SafetyVetoConfig | dict | None = None,
+    ):
+        self.rear = Rear120EligibilityGate(rear120_config)
+        self.aim = AimResidualGate(aim_config)
+        self.offensive = OffensiveResidualGate(offensive_config)
+        if safety_config is None:
+            safety_config = SafetyVetoConfig()
+        elif isinstance(safety_config, dict):
+            safety_config = SafetyVetoConfig(**safety_config)
+        safety_config.validate()
+        self.safety_config = safety_config
+        self.reset()
+
+    def reset(self) -> None:
+        self.rear.reset()
+        self.aim.reset()
+        self.offensive.reset()
+        self.active = False
+        self.steps = 0
+        self.active_steps = 0
+        self.entries = 0
+        self.exits = 0
+        self.safety_veto_steps = 0
+        self.last_geometry = {"active": False, "entry": False, "exit": False}
+
+    def update(
+        self,
+        ownship_state,
+        target_state,
+        *,
+        sim_time_s: float | None = None,
+        bt_action=None,
+    ) -> dict:
+        previous = self.active
+        rear = self.rear.update(ownship_state, target_state)
+        aim = self.aim.update(ownship_state, target_state, sim_time_s=sim_time_s)
+        offensive = self.offensive.update(ownship_state, target_state)
+        veto, veto_reasons = self._safety_veto(
+            ownship_state,
+            target_state,
+            bt_action,
+        )
+        self.active = bool(
+            rear["active"]
+            and (offensive["active"] or aim["active"])
+            and not veto
+        )
+        entry = bool(self.active and not previous)
+        exit_event = bool(previous and not self.active)
+        self.steps += 1
+        self.active_steps += int(self.active)
+        self.entries += int(entry)
+        self.exits += int(exit_event)
+        self.safety_veto_steps += int(veto)
+        self.last_geometry = {
+            "distance_m": aim["distance_m"],
+            "aim_error_deg": aim["aim_error_deg"],
+            "ata_deg": offensive["ata_deg"],
+            "target_ata_deg": rear["target_ata_deg"],
+            "phase": aim["phase"],
+            "rear120_eligible": rear["active"],
+            "offensive_eligible": offensive["active"],
+            "pre_aim_eligible": aim["active"],
+            "safety_veto": veto,
+            "safety_veto_reasons": veto_reasons,
+            "active": self.active,
+            "entry": entry,
+            "exit": exit_event,
+            "rear120_gate": rear,
+            "aim_gate": aim,
+            "offensive_gate": offensive,
+        }
+        return dict(self.last_geometry)
+
+    def _safety_veto(self, ownship_state, target_state, bt_action) -> tuple[bool, list[str]]:
+        if ownship_state is None or target_state is None:
+            return True, ["missing_state"]
+        own = np.asarray(ownship_state, dtype=np.float64)
+        target = np.asarray(target_state, dtype=np.float64)
+        cfg = self.safety_config
+        reasons: list[str] = []
+        if float(own[StateIndex.ALT]) <= cfg.minimum_altitude_m:
+            reasons.append("low_altitude")
+        if float(own[StateIndex.KCAS]) <= cfg.minimum_speed_m_s:
+            reasons.append("low_speed")
+        line = target[:3] - own[:3]
+        distance = float(np.linalg.norm(line))
+        if distance > 1e-9:
+            own_velocity = _body_velocity_to_ned(own)
+            target_velocity = _body_velocity_to_ned(target)
+            closing = -float(np.dot(target_velocity - own_velocity, line / distance))
+            if closing > cfg.maximum_closing_rate_m_s:
+                reasons.append("high_closure")
+        if cfg.veto_if_all_surfaces_saturated and bt_action is not None:
+            surfaces = np.asarray(bt_action, dtype=np.float64)[:3]
+            if bool(np.all(np.isclose(np.abs(surfaces), 1.0, atol=1e-6))):
+                reasons.append("no_surface_authority")
+        return bool(reasons), reasons
+
+    def telemetry(self) -> dict:
+        result = self.rear.telemetry()
+        result.update(
+            {
+                "rear120_activation_steps": self.steps,
+                "rear120_activation_active_steps": self.active_steps,
+                "rear120_activation_active_ratio": self.active_steps / max(1, self.steps),
+                "rear120_activation_entries": self.entries,
+                "rear120_activation_exits": self.exits,
+                "rear120_activation_safety_veto_steps": self.safety_veto_steps,
+                "rear120_activation_safety_veto_ratio": self.safety_veto_steps / max(1, self.steps),
+                "rear120_activation_active_final": self.active,
+                "rear120_activation_aim_gate": self.aim.telemetry(),
+                "rear120_activation_offensive_gate": self.offensive.telemetry(),
+            }
+        )
+        return result
+
+
+def _body_velocity_to_ned(state: np.ndarray) -> np.ndarray:
+    roll, pitch, yaw = np.radians(state[3:6])
+    cr, sr = np.cos(roll), np.sin(roll)
+    cp, sp = np.cos(pitch), np.sin(pitch)
+    cy, sy = np.cos(yaw), np.sin(yaw)
+    rotation = np.array(
+        [
+            [cy * cp, cy * sp * sr - sy * cr, cy * sp * cr + sy * sr],
+            [sy * cp, sy * sp * sr + cy * cr, sy * sp * cr - cy * sr],
+            [-sp, cp * sr, cp * cr],
+        ]
+    )
+    return rotation @ np.asarray(state[6:9], dtype=np.float64)
+
+
 @dataclass(frozen=True)
 class OffensiveGateConfig:
     min_range_m: float = 152.4
@@ -747,6 +1004,8 @@ class ResidualInferenceActionProvider(ActionProvider):
         gate_kind: str = "aim",
         aim_gate: AimGateConfig | dict | None = None,
         offensive_gate: OffensiveGateConfig | dict | None = None,
+        rear120_gate: Rear120GateConfig | dict | None = None,
+        safety_veto: SafetyVetoConfig | dict | None = None,
         rl_action_repeat: int = 6,
         composition_mode: str = "additive",
         confidence: float = 0.95,
@@ -762,6 +1021,13 @@ class ResidualInferenceActionProvider(ActionProvider):
             gate = OffensiveResidualGate(offensive_gate)
         elif gate_kind == "combined":
             gate = CombinedResidualGate(aim_gate, offensive_gate)
+        elif gate_kind == "rear120":
+            gate = Rear120ActivationGate(
+                rear120_gate,
+                aim_gate,
+                offensive_gate,
+                safety_veto,
+            )
         else:
             raise ValueError(f"unsupported residual inference gate: {gate_kind!r}")
         self.bt_provider = bt_provider
@@ -820,7 +1086,14 @@ class ResidualInferenceActionProvider(ActionProvider):
     def compute_action(self, context: ActionContext) -> ActionResult:
         bt_result = self._consume_bt_result(context)
         bt_action = clip_action(bt_result.action)
-        if self.gate_kind in ("aim", "combined"):
+        if self.gate_kind == "rear120":
+            gate_info = self.gate.update(
+                context.ownship_state,
+                context.target_state,
+                sim_time_s=context.info.get("sim_time_s"),
+                bt_action=bt_action,
+            )
+        elif self.gate_kind in ("aim", "combined"):
             gate_info = self.gate.update(
                 context.ownship_state,
                 context.target_state,
@@ -1002,6 +1275,8 @@ class ResidualTrainingActionProvider(ActionProvider):
         gate_kind: str = "aim",
         aim_gate: AimGateConfig | dict | None = None,
         offensive_gate: OffensiveGateConfig | dict | None = None,
+        rear120_gate: Rear120GateConfig | dict | None = None,
+        safety_veto: SafetyVetoConfig | dict | None = None,
         composition_mode: str = "additive",
         confidence: float = 0.95,
     ):
@@ -1016,6 +1291,13 @@ class ResidualTrainingActionProvider(ActionProvider):
             gate = OffensiveResidualGate(offensive_gate)
         elif gate_kind == "combined":
             gate = CombinedResidualGate(aim_gate, offensive_gate)
+        elif gate_kind == "rear120":
+            gate = Rear120ActivationGate(
+                rear120_gate,
+                aim_gate,
+                offensive_gate,
+                safety_veto,
+            )
         else:
             raise ValueError(f"unsupported residual training gate: {gate_kind!r}")
         self.bt_provider = bt_provider
@@ -1082,7 +1364,14 @@ class ResidualTrainingActionProvider(ActionProvider):
         )
         self._requested_throttle_abs_sum += abs(float(residual[3]))
 
-        if self.gate_kind in ("aim", "combined"):
+        if self.gate_kind == "rear120":
+            gate_info = self.gate.update(
+                context.ownship_state,
+                context.target_state,
+                sim_time_s=context.info.get("sim_time_s"),
+                bt_action=bt_action,
+            )
+        elif self.gate_kind in ("aim", "combined"):
             gate_info = self.gate.update(
                 context.ownship_state,
                 context.target_state,
