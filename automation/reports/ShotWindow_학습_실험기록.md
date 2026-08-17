@@ -52,3 +52,16 @@ broad v1보다 평균 회귀는 작아졌지만 두 seed 모두 promotion 기준
 raw policy action의 successive max jump는 s5101 0.132, s5102 0.042였고 실제 scale 적용 후 각각 0.0165/0.0053 이하이며 seed 간 크기도 일관되지 않았다. 따라서 slew가 공통 원인이라는 evidence가 부족해 Family C rate-limit 실험은 보류한다.
 
 반면 random-init Stage-1 policy의 signed action 방향은 두 seed에서 거의 반대였고, 기존 s3101/s3102 checkpoint는 새 1.0초 Gate inference diagnostic에서 각각 clean mean Damage Δ +0.000392/+0.000208이었다. 다음 최소 가설은 이 양수 초기점을 각각 유지한 채 동일 Stage-1 curriculum으로 20 iteration fine-tuning하는 것이다.
+
+## Paired warm-start Stage-1
+
+s3101→seed5101, s3102→seed5102로 bundle 계보를 고정해 각각 20 iteration fine-tuning했다. 로드 로그로 두 초기화가 정확히 대응됨을 확인했다.
+
+| seed | iter 5 Damage Δ | iter 5 positive | iter 20 Damage Δ | iter 20 positive |
+|---:|---:|---:|---:|---:|
+| 5101 | -0.000368 | 4/6 | -0.001046 | 4/6 |
+| 5102 | -0.002031 | 3/6 | -0.000919 | 1/6 |
+
+iteration 5부터 두 seed mean이 모두 음수였고 seed5102 crossing-left는 Damage Δ -0.013294, LOS Δ +3.879°의 대규모 회귀를 보였다. 따라서 fine-tuning checkpoint를 cherry-pick하지 않는다. Gate timing, curriculum sample density, reward dominance, decay, warm initialization을 분리한 뒤에도 SAC update가 seed별 상반 방향으로 policy를 이동시키는 evidence가 남았다.
+
+판정: `REVALIDATION_FAILED / NOT_PROMOTED`. repository가 실제 지원하는 PPO를 동일 Stage-1 Gate/reward/action/observation/seed/budget에서 algorithm만 바꾸는 최후 비교로 진행한다.

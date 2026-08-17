@@ -77,6 +77,23 @@
     },
     "next_hypothesis": "Shot-Window 진단에서 양수였던 s3101/s3102 checkpoint를 각각 초기화로 사용하는 Stage-1 fine-tuning"
   },
+  "stage1_warm_start_v1": {
+    "status": "REVALIDATION_FAILED",
+    "initial_bundles": {
+      "5101": "rear120_t16_s3101_r2/bundle_000020",
+      "5102": "rear120_t16_s3102_r2/bundle_000020"
+    },
+    "iteration_5": {
+      "5101": {"clean_mean_damage_delta": -0.00036808349663227286, "positive_pairs": 4, "pairs": 6},
+      "5102": {"clean_mean_damage_delta": -0.0020311351066726693, "positive_pairs": 3, "pairs": 6}
+    },
+    "iteration_20": {
+      "5101": {"clean_mean_damage_delta": -0.0010461452577720982, "positive_pairs": 4, "pairs": 6},
+      "5102": {"clean_mean_damage_delta": -0.0009189061691206035, "positive_pairs": 1, "pairs": 6}
+    },
+    "failure_cause": "SAC update가 양수 초기 policy를 첫 5 iteration부터 seed별 상반 방향으로 이동",
+    "next_hypothesis": "동일 Stage-1 계약에서 PPO single-variable algorithm comparison"
+  },
   "fixed_conditions": {
     "observation": "tactical16.v1",
     "algorithm": "SAC",

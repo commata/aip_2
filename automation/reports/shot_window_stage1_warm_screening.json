@@ -1,0 +1,15 @@
+{
+  "status": "REVALIDATION_FAILED",
+  "initialization_pair": {"5101": "s3101", "5102": "s3102"},
+  "results": [
+    {"training_seed": 5101, "iteration": 5, "damage_delta_mean": -0.00036808349663227286, "positive_pairs": 4, "pairs": 6},
+    {"training_seed": 5101, "iteration": 20, "damage_delta_mean": -0.0010461452577720982, "positive_pairs": 4, "pairs": 6},
+    {"training_seed": 5102, "iteration": 5, "damage_delta_mean": -0.0020311351066726693, "positive_pairs": 3, "pairs": 6},
+    {"training_seed": 5102, "iteration": 20, "damage_delta_mean": -0.0009189061691206035, "positive_pairs": 1, "pairs": 6}
+  ],
+  "largest_regression": {"training_seed": 5102, "iteration": 5, "case": "crossing_left", "damage_delta": -0.0132938233663209, "los_delta_deg": 3.878872494911845},
+  "contaminated_pairs": 0,
+  "ownship_crashes": 0,
+  "decision": "REJECTED",
+  "next_hypothesis": "PPO single-variable algorithm comparison"
+}
