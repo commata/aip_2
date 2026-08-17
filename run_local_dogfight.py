@@ -60,6 +60,7 @@ def parse_args():
             "tactical16",
             "aim_residual10",
             "aim_residual10_v2",
+            "aim_residual13_btaware",
             "custom",
         ],
     )
@@ -67,7 +68,11 @@ def parse_args():
     parser.add_argument("--hybrid-mode", choices=["offensive_residual", "residual", "blend", "switch"], default="offensive_residual")
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--residual-scale", type=float, default=0.10)
-    parser.add_argument("--residual-gate", choices=["aim", "offensive"], default="aim")
+    parser.add_argument(
+        "--residual-gate",
+        choices=["aim", "offensive", "combined"],
+        default="aim",
+    )
     parser.add_argument(
         "--residual-composition",
         choices=["additive", "saturation_aware"],

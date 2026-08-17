@@ -450,6 +450,96 @@ class AimResidualGate:
         }
 
 
+class CombinedResidualGate:
+    """Activate only when phase-aware aim and offensive gates overlap."""
+
+    def __init__(
+        self,
+        aim_config: AimGateConfig | dict | None = None,
+        offensive_config: OffensiveGateConfig | dict | None = None,
+    ):
+        self.aim_gate = AimResidualGate(aim_config)
+        self.offensive_gate = OffensiveResidualGate(offensive_config)
+        self.reset()
+
+    def reset(self) -> None:
+        self.aim_gate.reset()
+        self.offensive_gate.reset()
+        self.active = False
+        self.steps = 0
+        self.active_steps = 0
+        self.entries = 0
+        self.exits = 0
+        self._current_active_steps = 0
+        self._completed_active_steps: list[int] = []
+        self.last_geometry: dict = {
+            "active": False,
+            "entry": False,
+            "exit": False,
+            "aim_gate": dict(self.aim_gate.last_geometry),
+            "offensive_gate": dict(self.offensive_gate.last_geometry),
+        }
+
+    def update(
+        self,
+        ownship_state,
+        target_state,
+        *,
+        sim_time_s: float | None = None,
+    ) -> dict:
+        previous = self.active
+        aim = self.aim_gate.update(
+            ownship_state,
+            target_state,
+            sim_time_s=sim_time_s,
+        )
+        offensive = self.offensive_gate.update(ownship_state, target_state)
+        self.active = bool(aim["active"] and offensive["active"])
+        entry = bool(self.active and not previous)
+        exit_event = bool(previous and not self.active)
+        self.entries += int(entry)
+        self.exits += int(exit_event)
+        self.steps += 1
+        self.active_steps += int(self.active)
+        if self.active:
+            self._current_active_steps += 1
+        elif exit_event:
+            self._completed_active_steps.append(self._current_active_steps)
+            self._current_active_steps = 0
+        self.last_geometry = {
+            "distance_m": aim["distance_m"],
+            "aim_error_deg": aim["aim_error_deg"],
+            "ata_deg": offensive["ata_deg"],
+            "target_ata_deg": offensive["target_ata_deg"],
+            "phase": aim["phase"],
+            "active": self.active,
+            "entry": entry,
+            "exit": exit_event,
+            "aim_gate": aim,
+            "offensive_gate": offensive,
+        }
+        return dict(self.last_geometry)
+
+    def telemetry(self) -> dict:
+        durations = list(self._completed_active_steps)
+        if self.active and self._current_active_steps:
+            durations.append(self._current_active_steps)
+        return {
+            "combined_gate_steps": self.steps,
+            "combined_gate_active_steps": self.active_steps,
+            "combined_gate_active_ratio": self.active_steps / max(1, self.steps),
+            "combined_gate_entries": self.entries,
+            "combined_gate_exits": self.exits,
+            "combined_gate_active_final": self.active,
+            "combined_gate_mean_active_steps": (
+                float(np.mean(durations)) if durations else 0.0
+            ),
+            "combined_gate_min_active_steps": min(durations) if durations else 0,
+            "combined_aim_gate": self.aim_gate.telemetry(),
+            "combined_offensive_gate": self.offensive_gate.telemetry(),
+        }
+
+
 def _compose_residual(
     bt_action, rl_action, scale: float, *, throttle_scale: float | None = None
 ) -> tuple[np.ndarray, dict]:
@@ -670,6 +760,8 @@ class ResidualInferenceActionProvider(ActionProvider):
             gate = AimResidualGate(aim_gate)
         elif gate_kind == "offensive":
             gate = OffensiveResidualGate(offensive_gate)
+        elif gate_kind == "combined":
+            gate = CombinedResidualGate(aim_gate, offensive_gate)
         else:
             raise ValueError(f"unsupported residual inference gate: {gate_kind!r}")
         self.bt_provider = bt_provider
@@ -688,6 +780,7 @@ class ResidualInferenceActionProvider(ActionProvider):
         self.bt_provider.reset(context)
         self.residual_provider.reset(context)
         self.gate.reset()
+        self._prepared_bt_result: ActionResult | None = None
         self._active_frames = 0
         self._cached_residual: np.ndarray | None = None
         self._rl_inference_calls = 0
@@ -700,10 +793,34 @@ class ResidualInferenceActionProvider(ActionProvider):
         _reset_authority_counters(self)
         self._last_frame: dict = {}
 
+    @property
+    def prepared_bt_action(self) -> np.ndarray | None:
+        if self._prepared_bt_result is None:
+            return None
+        return clip_action(self._prepared_bt_result.action).copy()
+
+    def prepare_bt_action(self, context: ActionContext) -> np.ndarray:
+        if self._prepared_bt_result is None:
+            result = self.bt_provider.compute_action(context)
+            self._prepared_bt_result = ActionResult(
+                clip_action(result.action),
+                result.source,
+                result.confidence,
+                dict(result.info),
+            )
+        return clip_action(self._prepared_bt_result.action).copy()
+
+    def _consume_bt_result(self, context: ActionContext) -> ActionResult:
+        if self._prepared_bt_result is None:
+            return self.bt_provider.compute_action(context)
+        result = self._prepared_bt_result
+        self._prepared_bt_result = None
+        return result
+
     def compute_action(self, context: ActionContext) -> ActionResult:
-        bt_result = self.bt_provider.compute_action(context)
+        bt_result = self._consume_bt_result(context)
         bt_action = clip_action(bt_result.action)
-        if self.gate_kind == "aim":
+        if self.gate_kind in ("aim", "combined"):
             gate_info = self.gate.update(
                 context.ownship_state,
                 context.target_state,
@@ -897,6 +1014,8 @@ class ResidualTrainingActionProvider(ActionProvider):
             gate = AimResidualGate(aim_gate)
         elif gate_kind == "offensive":
             gate = OffensiveResidualGate(offensive_gate)
+        elif gate_kind == "combined":
+            gate = CombinedResidualGate(aim_gate, offensive_gate)
         else:
             raise ValueError(f"unsupported residual training gate: {gate_kind!r}")
         self.bt_provider = bt_provider
@@ -912,6 +1031,7 @@ class ResidualTrainingActionProvider(ActionProvider):
     def reset(self, context: ActionContext | None = None) -> None:
         self.bt_provider.reset(context)
         self.gate.reset()
+        self._prepared_bt_result: ActionResult | None = None
         self._correction_steps = 0
         self._correction_abs_sum = np.zeros(4, dtype=np.float64)
         self._correction_abs_max = np.zeros(4, dtype=np.float64)
@@ -921,8 +1041,33 @@ class ResidualTrainingActionProvider(ActionProvider):
         _reset_authority_counters(self)
         self._last_frame: dict = {}
 
+    @property
+    def prepared_bt_action(self) -> np.ndarray | None:
+        if self._prepared_bt_result is None:
+            return None
+        return clip_action(self._prepared_bt_result.action).copy()
+
+    def prepare_bt_action(self, context: ActionContext) -> np.ndarray:
+        """Tick BT once and cache the command for observation and composition."""
+        if self._prepared_bt_result is None:
+            result = self.bt_provider.compute_action(context)
+            self._prepared_bt_result = ActionResult(
+                clip_action(result.action),
+                result.source,
+                result.confidence,
+                dict(result.info),
+            )
+        return clip_action(self._prepared_bt_result.action).copy()
+
+    def _consume_bt_result(self, context: ActionContext) -> ActionResult:
+        if self._prepared_bt_result is None:
+            return self.bt_provider.compute_action(context)
+        result = self._prepared_bt_result
+        self._prepared_bt_result = None
+        return result
+
     def compute_action(self, context: ActionContext) -> ActionResult:
-        bt_result = self.bt_provider.compute_action(context)
+        bt_result = self._consume_bt_result(context)
         bt_action = clip_action(bt_result.action)
         residual = np.asarray(
             context.info.get("residual_action", np.zeros(4)),
@@ -937,7 +1082,7 @@ class ResidualTrainingActionProvider(ActionProvider):
         )
         self._requested_throttle_abs_sum += abs(float(residual[3]))
 
-        if self.gate_kind == "aim":
+        if self.gate_kind in ("aim", "combined"):
             gate_info = self.gate.update(
                 context.ownship_state,
                 context.target_state,

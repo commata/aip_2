@@ -1,0 +1,121 @@
+{
+  "status": "PROVISIONAL_FROZEN_NEED_MORE_EVIDENCE",
+  "screening_contract": {
+    "bundle_count": 44,
+    "scenario_names": ["crossing_left", "crossing_right"],
+    "seed": 2601,
+    "scale": 0.125,
+    "gate": "aim",
+    "composition": "saturation_aware",
+    "max_engage_time_s": 30
+  },
+  "screening": {
+    "crash_regressions": 0,
+    "both_direction_damage_and_first_damage_nonregression": ["000300", "003300", "003600"],
+    "final_policy_rejected": true,
+    "final_counterexample": {
+      "left_damage_delta": -0.0012172054531420784,
+      "left_first_damage_delta_s": 0.34999999999999964,
+      "right_los_delta_deg": 0.04130789771998167,
+      "right_los_rate_delta_deg_s": 0.041777796731497396
+    }
+  },
+  "development_contract": {
+    "scenario": "automation/scenarios/0815_aim_validation_mixed.json",
+    "seeds": [2501, 2502, 2503, 2504, 2505, 2506, 2507, 2508, 2509, 2510, 2511, 2512, 2513, 2514, 2515, 2516, 2517, 2518],
+    "known_coverage_limit": "crossing_right and vertical_low are absent"
+  },
+  "candidates": {
+    "000300": {
+      "weights_sha256": "CCBF1C5A4398105EF218BDBEEDAC92D7CE027D37FCEABCC40B1FD6F143325EB8",
+      "damage_delta_mean": 0.004298268367741159,
+      "damage_delta_worst": -0.003546869335433911,
+      "los_delta_mean_deg": -0.40793176728673575,
+      "los_rate_delta_mean_deg_s": -0.015520380086431073,
+      "cone_delta_mean_s": 0.05740740740740743,
+      "first_damage_delta_mean_s": -0.0009259259259258239,
+      "action_saturation_ratio": 0.27252495706445584,
+      "gate_active_ratio": 0.8621822645428695,
+      "roll_applied_to_requested_ratio": 0.5972811486443236,
+      "damage_bootstrap95": [0.0006725179113443786, 0.008602504129102437],
+      "los_bootstrap95_deg": [-1.0217942195437448, 0.009746364678925399],
+      "los_rate_bootstrap95_deg_s": [-0.04304589179963972, 0.004368937220257256],
+      "cone_bootstrap95_s": [0.03148148148148147, 0.08796296296296297],
+      "first_damage_bootstrap95_s": [-0.011111111111110924, 0.008333333333333748]
+    },
+    "003300": {
+      "weights_sha256": "E51199A72DC0B62017E7237CEA0FB79C461A24896C5FD763DAA881F573AB4C1B",
+      "damage_delta_mean": 0.001050779278052083,
+      "damage_delta_worst": -0.024754064639463058,
+      "first_damage_delta_mean_s": 0.0027777777777777185
+    },
+    "003600": {
+      "weights_sha256": "F3D5AD6D38A19C9DB8C668E827A50B5A91934B81A4D099C724D57405F53CB64B",
+      "damage_delta_mean": -0.0032808774266530616,
+      "damage_delta_worst": -0.048774918652171984,
+      "first_damage_delta_mean_s": 0.008333333333333352
+    }
+  },
+  "selected": {
+    "tag": "000300",
+    "status": "PROVISIONAL_FROZEN",
+    "confidence": "낮음",
+    "next_required_evidence": ["independent S2102", "unseen mirror seeds", "trajectory and saturation/headroom review"]
+  },
+  "representative_trajectory_review": {
+    "worst_damage": {
+      "seed": 2518,
+      "variant": "vertical_high",
+      "damage_delta": -0.003546869335433911,
+      "los_delta_deg": -0.053670330765284824,
+      "los_rate_delta_deg_s": 0.0038451342322112225,
+      "gate_active_ratio": 0.9651500484027106,
+      "roll_applied_to_requested_active": 0.35969522909015733,
+      "roll_authority_blocked_active_ratio": 0.5255767301905717,
+      "roll_bt_saturation_active_ratio": 0.6770310932798396,
+      "interpretation": "Aim 일부 지표와 활성 구간 평균 누적 Damage는 좋아졌지만 episode 최종 Damage는 감소했다. 높은 Gate 점유와 roll authority 차단 때문에 성공 기동이 아니다."
+    },
+    "nearest_mean_damage": {
+      "seed": 2505,
+      "variant": "lateral_left",
+      "damage_delta": 0.003956772111171514,
+      "los_delta_deg": -0.017272899187717128,
+      "los_rate_delta_deg_s": -0.011004384932772115,
+      "gate_active_ratio": 0.9263736263736264,
+      "roll_authority_blocked_active_ratio": 0.16963226571767498
+    },
+    "best_damage": {
+      "seed": 2501,
+      "variant": "crossing_left",
+      "damage_delta": 0.025858469906130943,
+      "los_delta_deg": 0.0009550897813754844,
+      "los_rate_delta_deg_s": -0.015219263302473252,
+      "cone_delta_s": 0.18333333333333357,
+      "gate_active_ratio": 0.6686468646864686,
+      "roll_authority_blocked_active_ratio": 0.12833168805528133,
+      "interpretation": "Damage와 Cone은 개선됐지만 episode 평균 LOS는 소폭 악화했다. crossing-left 단일 성공 사례로 일반화하지 않는다."
+    }
+  },
+  "reward_chain_correlations": {
+    "scope": "18 development paired deltas; descriptive only",
+    "los_delta_vs_cone_delta_r": -0.6188161984469844,
+    "los_rate_delta_vs_cone_delta_r": -0.5133607284010834,
+    "cone_delta_vs_damage_delta_r": 0.7586257991876296,
+    "first_damage_delta_vs_damage_delta_r": 0.0979581032376938,
+    "saturation_delta_vs_damage_delta_r": -0.487913624596134,
+    "interpretation": "LOS/LOS-rate 감소와 Cone 증가, Cone과 Damage 증가 사이의 기대 방향은 보이지만 first Damage만으로 Damage를 설명하지 못한다. crossing-left 과대표집 때문에 인과 또는 일반화 근거로 쓰지 않는다."
+  },
+  "artifact_hashes": {
+    "screening_summary_sha256": "465F689983E83A4EB6660610C998A80E29F07AB6DCB8BE74D8D4057FE969853A",
+    "dev_000300_evaluation_sha256": "A628B78DD6664FFC241E639034C82B76C4DE27308B935BEBAB62EEBE3E83CDBA",
+    "dev_003300_evaluation_sha256": "3B4CFF05EE88DCA54A2F2524DC7FBBFCB10F1036A2E66D62DA32802F1C0C0342",
+    "dev_003600_evaluation_sha256": "DCD1F2074290D2920FFA590DE967C48ACD77778E233FAEC5C434A95B0E09A914",
+    "candidate_analysis_sha256": "4000738CF1FCE4874784F8B0064239114732A75B2A6A9C5D468D492EC9894AB9",
+    "gate_authority_seed2518_sha256": "6289C53E7446FD1962E27C1AEAC9CD559623E9832321EEE6CEB38002BAE69A1C",
+    "gate_authority_seed2505_sha256": "8631745B5FB45E4445CED1E60A6D98FF506E4E71DDFCE9860C3D2CF59F9BA3DA",
+    "gate_authority_seed2501_sha256": "1BF18C5FBA34B55456094BF8F857D3648C4A86323CB7778EF40D38BC393D097A",
+    "trajectory_plot_seed2518_sha256": "40EAA839C7A4428E67179038C77BA9B3A742F9EBE346F133EFD661E9513CC7F3",
+    "trajectory_plot_seed2505_sha256": "AA8B0EFB3C79E3E41E7EB277C87B727AEE3C9926DA76213A33CC25C318865E35",
+    "trajectory_plot_seed2501_sha256": "9DFA3831C83BD2ECE057FA132D5FF4503A3BB2B70DDA2917435A9CED87EE5E96"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "profile_id": "bt_aip3",
+  "backend_type": "behavior_tree",
+  "dll": {
+    "default_path": "C:\\Users\\shy66\\Downloads\\aip3\\aip3\\AIP_DCS_new3.dll",
+    "path_env": "AIP_PROXY_AIP3_DLL",
+    "bytes": 338944,
+    "sha256": "815B28647964BC9AAC393157C55F88936D3A5AF3EA411652EA38E085EE1DB4A8"
+  },
+  "xml": {
+    "default_path": "C:\\Users\\shy66\\Downloads\\aip3\\aip3\\Rule_sei_AIP3_default.xml",
+    "path_env": "AIP_PROXY_AIP3_XML",
+    "bytes": 811,
+    "sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+  },
+  "rule_aliases": ["Rule_sei_AIP2_default.xml", "Rule_sei_AIP3_default.xml"],
+  "source": "AIP3 제공 DLL/XML 및 AIP_DCS2 source; DLL은 AIP2 rule filename을 참조",
+  "smoke_status": "PASSED_SEED_511",
+  "behavior_cluster": "bt_0815_family",
+  "use": {"training": false, "validation": false, "held_out": true},
+  "held_out_limit": "0815와 같은 행동 cluster이므로 독립 전술 다양성 근거로 계산하지 않음"
+}
+

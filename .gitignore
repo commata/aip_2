@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+artifacts/test_tmp/
 .mypy_cache/
 .ruff_cache/
 .coverage
@@ -49,6 +50,7 @@ artifacts/records/
 artifacts/evaluations/
 artifacts/analysis/
 artifacts/smoke/
+artifacts/proxy_target_smoke/
 automation/state/
 automation/reports/generated/
 checkpoints/

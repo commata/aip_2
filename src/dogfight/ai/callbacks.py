@@ -12,6 +12,12 @@ def aim_variant_metric_name(name: object) -> str:
     return f"aim_variant_fraction_{normalized.lower() or 'unnamed'}"
 
 
+def target_profile_metric_name(name: object) -> str:
+    """target profile 이름을 안정적인 episode fraction metric으로 변환한다."""
+    normalized = re.sub(r"[^0-9A-Za-z_]+", "_", str(name).strip()).strip("_")
+    return f"target_profile_fraction_{normalized.lower() or 'unnamed'}"
+
+
 class DogFightCallbacks(DefaultCallbacks):
     """RLlib callbacks that collect per-episode dogfight metrics.
 
@@ -105,6 +111,16 @@ class DogFightCallbacks(DefaultCallbacks):
                     metrics_logger,
                     aim_variant_metric_name(variant_name),
                     float(str(variant_name) == str(selected_variant)),
+                )
+        selected_profile = info.get("target_profile_id")
+        profile_names = info.get("target_profile_ids", [])
+        if selected_profile is not None and isinstance(profile_names, (list, tuple)):
+            for profile_name in profile_names:
+                self._record_metric(
+                    episode,
+                    metrics_logger,
+                    target_profile_metric_name(profile_name),
+                    float(str(profile_name) == str(selected_profile)),
                 )
 
         # ── Aim and hybrid telemetry ─────────────────────────────────────

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import unittest
 
-from automation.evaluate_aim_residual import aggregate
+from automation.evaluate_aim_residual import (
+    aggregate,
+    controller_observation_mode,
+    merge_unique_records,
+)
 
 
 def record(controller: str, seed: int, variant: str, los: float = 2.0):
@@ -25,6 +29,22 @@ def record(controller: str, seed: int, variant: str, los: float = 2.0):
 
 
 class AimEvaluatorQualityTests(unittest.TestCase):
+    def test_btaware_bundle_does_not_pre_tick_pure_bt_baseline(self) -> None:
+        self.assertEqual(
+            controller_observation_mode(
+                "aim_residual13_btaware",
+                "pure_0815",
+            ),
+            "aim_residual10_v2",
+        )
+        self.assertEqual(
+            controller_observation_mode(
+                "aim_residual13_btaware",
+                "hybrid_0.125",
+            ),
+            "aim_residual13_btaware",
+        )
+
     def test_duplicate_seed_results_are_not_counted_as_unique(self) -> None:
         rows = [
             record("pure_0815", 1, "fixed"),
@@ -51,6 +71,30 @@ class AimEvaluatorQualityTests(unittest.TestCase):
 
         self.assertTrue(
             any("variant 불일치" in warning for warning in summary["data_quality_warnings"])
+        )
+
+    def test_resume_merge_preserves_prior_seeds_without_duplicates(self) -> None:
+        existing = [
+            record("pure_0815", 1, "left"),
+            record("hybrid_0.125", 1, "left", 1.9),
+        ]
+        additions = [
+            record("pure_0815", 1, "left"),
+            record("pure_0815", 2, "right"),
+            record("hybrid_0.125", 2, "right", 1.8),
+        ]
+
+        merged = merge_unique_records(existing, additions)
+
+        self.assertEqual(len(merged), 4)
+        self.assertEqual(
+            {(row["seed"], row["controller"]) for row in merged},
+            {
+                (1, "pure_0815"),
+                (1, "hybrid_0.125"),
+                (2, "pure_0815"),
+                (2, "hybrid_0.125"),
+            },
         )
 
 

@@ -17,6 +17,8 @@ def normalize(value: float, minimum: float, maximum: float) -> float:
 def observation_size(mode: str) -> int:
     if mode in ("aim_residual10", "aim_residual10_v2"):
         return 10
+    if mode == "aim_residual13_btaware":
+        return 13
     if mode == "tactical16":
         return 16
     if mode == "relative14":
@@ -24,11 +26,25 @@ def observation_size(mode: str) -> int:
     return 12  # classic12
 
 
-def build_observation(mode: str, ownship_state, target_state, geo_info, wez_config=None) -> np.ndarray:
+def build_observation(
+    mode: str,
+    ownship_state,
+    target_state,
+    geo_info,
+    wez_config=None,
+    *,
+    bt_action=None,
+) -> np.ndarray:
     if mode == "aim_residual10":
         return _build_aim_residual10(ownship_state, target_state)
     if mode == "aim_residual10_v2":
         return _build_aim_residual10_v2(ownship_state, target_state)
+    if mode == "aim_residual13_btaware":
+        return _build_aim_residual13_btaware(
+            ownship_state,
+            target_state,
+            bt_action,
+        )
     if mode == "tactical16":
         return _build_tactical16(ownship_state, target_state, geo_info, wez_config)
     if mode == "relative14":
@@ -78,6 +94,26 @@ def describe_observation(mode: str) -> dict:
                 "closing_rate_m_s": [-150.0, 150.0],
                 "ownship_speed_m_s": [100.0, 400.0],
                 "ownship_altitude_m": [0.0, 10000.0],
+            },
+        }
+    if mode == "aim_residual13_btaware":
+        return {
+            "mode": "aim_residual13_btaware",
+            "size": 13,
+            "features": [
+                *describe_observation("aim_residual10_v2")["features"],
+                "bt_roll_command",
+                "bt_pitch_command",
+                "bt_yaw_command",
+            ],
+            "description": (
+                "조준 잔차 학습용 13차원 BT-aware 관측: 10D v2를 그대로 "
+                "보존하고 같은 simulator frame에 실제 residual과 결합할 "
+                "BT roll/pitch/yaw 명령을 추가한다."
+            ),
+            "normalization": {
+                **describe_observation("aim_residual10_v2")["normalization"],
+                "bt_surface_commands": [-1.0, 1.0],
             },
         }
     if mode == "tactical16":
@@ -272,6 +308,27 @@ def _build_aim_residual10_v2(ownship_state, target_state) -> np.ndarray:
         ],
         dtype=np.float32,
     )
+    return np.clip(observation, -1.0, 1.0)
+
+
+def _build_aim_residual13_btaware(
+    ownship_state,
+    target_state,
+    bt_action,
+) -> np.ndarray:
+    if bt_action is None:
+        raise ValueError(
+            "aim_residual13_btaware requires the same-frame bt_action"
+        )
+    bt = np.asarray(bt_action, dtype=np.float32)
+    if bt.shape != (4,):
+        raise ValueError(f"bt_action must have shape (4,), got {bt.shape}")
+    observation = np.concatenate(
+        (
+            _build_aim_residual10_v2(ownship_state, target_state),
+            np.clip(bt[:3], -1.0, 1.0),
+        )
+    ).astype(np.float32)
     return np.clip(observation, -1.0, 1.0)
 
 

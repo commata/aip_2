@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from automation.target_profiles import TargetProfileError, apply_target_profile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +80,12 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
     _add_optional(argv, "--observation-mode", env, "observation_mode")
     _add_optional(argv, "--observation-module", env, "observation_module")
     _add_optional(argv, "--target-behavior-dll", env, "target_behavior_dll")
+    target_curriculum = env.get("target_profile_curriculum")
+    if target_curriculum:
+        argv += [
+            "--target-profile-curriculum-json",
+            json.dumps(target_curriculum, ensure_ascii=False, separators=(",", ":")),
+        ]
     _add_optional(argv, "--bt-rule-xml", env, "bt_rule_xml")
     _add_repeatable(argv, "--bt-rule-alias", env.get("bt_rule_aliases"))
     _add_optional(argv, "--target-rule-xml", env, "target_rule_xml")
@@ -89,6 +98,9 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
 
     _add_optional(argv, "--num-env-runners", runtime, "num_env_runners")
     _add_optional(argv, "--seed", runtime, "seed")
+    _add_optional(argv, "--ray-num-cpus", runtime, "ray_num_cpus")
+    if runtime.get("runtime_diagnostics", False):
+        argv.append("--runtime-diagnostics")
     if script_name != "train_curriculum":
         _add_optional(
             argv,
@@ -112,6 +124,12 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
             "native_checkpoint_frequency",
         )
         _add_optional(argv, "--print-every", runtime, "print_every")
+        _add_optional(
+            argv,
+            "--max-effective-learner-time-s",
+            runtime,
+            "max_effective_learner_time_s",
+        )
     else:
         _add_optional(argv, "--start-stage", runtime, "start_stage")
         _add_optional(argv, "--stages-module", curriculum, "stages_module")
@@ -150,6 +168,49 @@ def build_argv(exp: dict[str, Any], exp_path: Path) -> tuple[Path, list[str]]:
         argv += ["--notes", str(exp["notes"])]
     argv += ["--experiment-yaml", str(exp_path.resolve())]
     return SCRIPT_TARGETS[script_name], argv
+
+
+def build_subprocess_env(exp: dict[str, Any]) -> dict[str, str]:
+    """Build a reproducible math-library thread environment for training."""
+    runtime = _section(exp, "runtime")
+    value = runtime.get("math_threads")
+    env = os.environ.copy()
+    if value is None:
+        return env
+    try:
+        thread_count = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ExperimentError("runtime.math_threads must be a positive integer") from exc
+    if thread_count <= 0:
+        raise ExperimentError("runtime.math_threads must be a positive integer")
+    rendered = str(thread_count)
+    for name in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    ):
+        env[name] = rendered
+    return env
+
+
+def run_preserving_file(
+    command: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str],
+    protected_path: Path,
+) -> subprocess.CompletedProcess:
+    """Run one experiment and restore simulator-mutated tracked state exactly."""
+    original = protected_path.read_bytes() if protected_path.is_file() else None
+    try:
+        return subprocess.run(command, cwd=cwd, env=env)
+    finally:
+        if original is not None and (
+            not protected_path.is_file() or protected_path.read_bytes() != original
+        ):
+            protected_path.write_bytes(original)
+            print(f"[restore]    {protected_path.relative_to(cwd)}")
 
 
 def _section(exp: dict[str, Any], key: str) -> dict[str, Any]:
@@ -316,14 +377,30 @@ def main() -> int:
 
     try:
         exp = load_experiment(exp_path)
+        exp, target_profile = apply_target_profile(exp)
         script_path, script_args = build_argv(exp, exp_path)
-    except ExperimentError as exc:
+        subprocess_env = build_subprocess_env(exp)
+    except (ExperimentError, TargetProfileError) as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 2
 
     command = [sys.executable, str(script_path), *script_args]
     print(f"[experiment] {exp.get('name', exp_path.stem)}")
     print(f"[script]     {script_path.relative_to(ROOT)}")
+    if target_profile is not None and "profile_pool" in target_profile:
+        print(
+            "[target-pool] "
+            + ", ".join(
+                f"{item['profile_id']}:{item['weight']:g}"
+                for item in target_profile["profile_pool"]
+            )
+        )
+    elif target_profile is not None:
+        print(
+            "[target]     "
+            f"{target_profile['profile_id']} "
+            f"cluster={target_profile['behavior_cluster']}"
+        )
     print(f"[argv]       {' '.join(script_args)}")
     print(f"[run]        {' '.join(command)}")
 
@@ -331,7 +408,12 @@ def main() -> int:
         print("[dry-run] no training started.")
         return 0
 
-    completed = subprocess.run(command, cwd=ROOT)
+    completed = run_preserving_file(
+        command,
+        cwd=ROOT,
+        env=subprocess_env,
+        protected_path=ROOT / "aircraft" / "f16" / "f16_init.xml",
+    )
     return completed.returncode
 
 

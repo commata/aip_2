@@ -3,12 +3,16 @@ from __future__ import annotations
 import argparse
 from contextlib import ExitStack
 import csv
+import faulthandler
 import json
 import math
 import random
 import os
 from pathlib import Path
 import sys
+import tempfile
+import threading
+import time
 from typing import Any
 
 import numpy as np
@@ -26,6 +30,7 @@ if _existing_pythonpath:
     _pythonpath_entries.append(_existing_pythonpath)
 os.environ["PYTHONPATH"] = os.pathsep.join(_pythonpath_entries)
 _RAY_RAYLET_START_WAIT_TIME_S = "60"
+_RUNTIME_DIAGNOSTICS_ENABLED = False
 
 from DogFightEnvWrapper import DogFightWrapper
 from dogfight.ai.checkpoint_io import (
@@ -33,7 +38,7 @@ from dogfight.ai.checkpoint_io import (
     save_lightweight_policy_bundle,
 )
 from dogfight.ai.bt_rule_manager import activate_rule_xml
-from dogfight.ai.callbacks import aim_variant_metric_name
+from dogfight.ai.callbacks import aim_variant_metric_name, target_profile_metric_name
 from dogfight.ai.dashboard_logger import (
     DashboardJsonlLogger,
     copy_experiment_yaml,
@@ -50,13 +55,103 @@ from dogfight.envs.observation import (
 )
 
 
-def _ensure_ray_runtime_env() -> None:
+def _runtime_snapshot() -> dict[str, Any]:
+    """Return a compact process/memory snapshot without requiring psutil."""
+
+    snapshot: dict[str, Any] = {
+        "pid": os.getpid(),
+        "threads": threading.active_count(),
+    }
+    try:
+        import psutil
+
+        process = psutil.Process()
+        memory = process.memory_info()
+        virtual = psutil.virtual_memory()
+        snapshot.update(
+            {
+                "rss_mb": round(memory.rss / (1024 * 1024), 3),
+                "system_available_mb": round(virtual.available / (1024 * 1024), 3),
+                "children": [
+                    {"pid": child.pid, "name": child.name()}
+                    for child in process.children(recursive=True)
+                ],
+            }
+        )
+    except Exception as exc:  # pragma: no cover - diagnostics must never block training.
+        snapshot["snapshot_error"] = f"{type(exc).__name__}: {exc}"
+    return snapshot
+
+
+def _runtime_stage(stage: str, **details: Any) -> None:
+    """Emit a flushed monotonic stage marker for training hang diagnosis."""
+
+    if not _RUNTIME_DIAGNOSTICS_ENABLED:
+        return
+    payload = {
+        "event": "training_runtime_stage",
+        "stage": stage,
+        "monotonic_s": round(time.monotonic(), 6),
+        **_runtime_snapshot(),
+        **details,
+    }
+    print(f"[RUNTIME_DIAGNOSTIC] {json.dumps(payload, ensure_ascii=False)}", flush=True)
+
+
+def _set_runtime_diagnostics(enabled: bool) -> None:
+    """Enable stage markers and periodic Python stack dumps for a run."""
+
+    global _RUNTIME_DIAGNOSTICS_ENABLED
+    _RUNTIME_DIAGNOSTICS_ENABLED = bool(enabled)
+    if not enabled:
+        return
+    faulthandler.enable()
+    faulthandler.dump_traceback_later(60, repeat=True)
+    _runtime_stage("diagnostics_enabled")
+
+
+def _disable_runtime_diagnostics() -> None:
+    global _RUNTIME_DIAGNOSTICS_ENABLED
+    if _RUNTIME_DIAGNOSTICS_ENABLED:
+        faulthandler.cancel_dump_traceback_later()
+    _RUNTIME_DIAGNOSTICS_ENABLED = False
+
+
+def _algorithm_log_root(args) -> Path:
+    """Keep RLlib's per-run logger state inside the workspace artifacts tree."""
+
+    return ROOT / "artifacts" / "ray_results" / args.output_name / args.output_tag
+
+
+def _build_algorithm_logger_creator(args):
+    """Build the normal UnifiedLogger without writing to ~/ray_results."""
+
+    from ray.tune.logger import UnifiedLogger
+
+    root = _algorithm_log_root(args)
+    root.mkdir(parents=True, exist_ok=True)
+
+    def logger_creator(config):
+        logdir = tempfile.mkdtemp(prefix="run_", dir=root)
+        _runtime_stage("algorithm_logger_created", logdir=logdir)
+        return UnifiedLogger(config, logdir, loggers=None)
+
+    return logger_creator
+
+
+def _ensure_ray_runtime_env(*, num_cpus: int | None = None) -> None:
     """Restart Ray with local project paths available to worker actors."""
     import ray
 
     # 2026-05-29: Give slower PCs more time for raylet/GCS startup after shutdown.
     os.environ.setdefault("RAY_raylet_start_wait_time_s", _RAY_RAYLET_START_WAIT_TIME_S)
+    _runtime_stage("ray_shutdown_start")
     ray.shutdown()
+    _runtime_stage("ray_shutdown_done")
+    init_kwargs: dict[str, Any] = {}
+    if num_cpus is not None:
+        init_kwargs["num_cpus"] = int(num_cpus)
+    _runtime_stage("ray_init_start", ray_num_cpus=num_cpus)
     ray.init(
         ignore_reinit_error=True,
         include_dashboard=False,
@@ -68,7 +163,9 @@ def _ensure_ray_runtime_env() -> None:
                 ],
             }
         },
+        **init_kwargs,
     )
+    _runtime_stage("ray_init_done", ray_num_cpus=num_cpus)
 
 
 def env_creator(env_config):
@@ -419,7 +516,10 @@ def _extract_custom_metrics(result: dict) -> dict:
     for metrics in (cm, result.get("custom_metrics", {})):
         for raw_key, value in metrics.items():
             key = raw_key[:-5] if raw_key.endswith("_mean") else raw_key
-            if key.startswith("aim_variant_fraction_") and value is not None:
+            if (
+                key.startswith("aim_variant_fraction_")
+                or key.startswith("target_profile_fraction_")
+            ) and value is not None:
                 extracted.setdefault(key, value)
     return extracted
 
@@ -442,6 +542,11 @@ def _extract_progress_metrics(result: dict) -> dict:
         "episodes": first_present(
             env_metrics,
             ("num_episodes_lifetime", "num_episodes"),
+        ),
+        "learner_steps": _find_nested_metric(
+            result,
+            "num_env_steps_trained_lifetime",
+            "num_module_steps_trained_lifetime",
         ),
     }
 
@@ -561,6 +666,15 @@ def parse_args():
         help="Number of training iterations.",
     )
     parser.add_argument(
+        "--max-effective-learner-time-s",
+        type=float,
+        default=0.0,
+        help=(
+            "Stop after this many seconds of train() calls with both sampled and "
+            "learner step progress. 0 disables the time stop."
+        ),
+    )
+    parser.add_argument(
         "--framework",
         default="torch",
         choices=["torch"],
@@ -577,6 +691,17 @@ def parse_args():
         type=int,
         default=None,
         help="Independent training seed for Python, NumPy, Torch, RLlib, and env runners.",
+    )
+    parser.add_argument(
+        "--ray-num-cpus",
+        type=int,
+        default=None,
+        help="Optional Ray CPU resource cap for local runtime diagnosis/training.",
+    )
+    parser.add_argument(
+        "--runtime-diagnostics",
+        action="store_true",
+        help="Emit flushed stage/process snapshots and 60-second Python stack dumps.",
     )
     parser.add_argument(
         "--num-envs-per-env-runner",
@@ -603,6 +728,7 @@ def parse_args():
             "tactical16",
             "aim_residual10",
             "aim_residual10_v2",
+            "aim_residual13_btaware",
             "custom",
         ],
     )
@@ -614,9 +740,14 @@ def parse_args():
     parser.add_argument(
         "--target-mode",
         default="behavior_tree",
-        choices=["behavior_tree", "fixed", "loiter", "autopilot"],
+        choices=["behavior_tree", "fixed", "loiter", "autopilot", "profile_curriculum"],
     )
     parser.add_argument("--target-behavior-dll", default="AIP_BASE_target.dll")
+    parser.add_argument(
+        "--target-profile-curriculum-json",
+        default="",
+        help="Resolved weighted target profile curriculum JSON from run_experiment.py.",
+    )
     parser.add_argument("--bt-rule-xml", default="")
     parser.add_argument("--bt-rule-alias", action="append", default=[])
     parser.add_argument("--target-rule-xml", default="")
@@ -1254,8 +1385,18 @@ def _seed_training_runtime(seed: int | None) -> None:
             pass
 
 
+def _resolve_restore_checkpoint(value: str | Path) -> Path:
+    """Return an absolute existing checkpoint path accepted by pyarrow."""
+    checkpoint_path = Path(value).expanduser().resolve()
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"restore checkpoint not found: {checkpoint_path}")
+    return checkpoint_path
+
+
 def _run_training(args):
+    _runtime_stage("training_seed_start", training_seed=args.seed)
     _seed_training_runtime(args.seed)
+    _runtime_stage("training_seed_done", training_seed=args.seed)
     algorithm_name = normalize_algorithm_name(args.algorithm)
     if args.use_tune and (args.restore_checkpoint or args.init_bundle):
         raise RuntimeError(
@@ -1273,10 +1414,19 @@ def _run_training(args):
         "episode_step_limit": args.episode_step_limit,
     }
     deep_update(env_config, load_experiment_env_config(args.experiment_yaml, ROOT))
+    if args.target_profile_curriculum_json:
+        curriculum = json.loads(args.target_profile_curriculum_json)
+        if not isinstance(curriculum, list) or not curriculum:
+            raise ValueError(
+                "--target-profile-curriculum-json must contain a non-empty list"
+            )
+        env_config["target_profile_curriculum"] = curriculum
+        env_config["target_mode"] = "profile_curriculum"
     if args.reward_module:
         env_config["reward_module"] = args.reward_module
     if args.observation_module:
         env_config["observation_module"] = args.observation_module
+    _runtime_stage("env_preview_start")
     env_preview = env_creator(env_config)
     env_config["reward"] = dict(env_preview.config["reward"])
     env_config["wez"] = dict(env_preview.config["wez"])
@@ -1289,28 +1439,37 @@ def _run_training(args):
     probe_obs_dim = int(obs_shape[0]) if obs_shape else 0
     probe_action_dim = int(action_shape[0]) if action_shape else 4
     env_preview.close()
+    _runtime_stage(
+        "env_preview_done",
+        observation_dim=probe_obs_dim,
+        action_dim=probe_action_dim,
+    )
 
     env_name = "dogfight-single-agent-v0"
     register_env(env_name, env_creator)
 
+    _runtime_stage("algorithm_config_start", algorithm=algorithm_name)
     config = build_algorithm_config(
         algorithm_name=algorithm_name,
         env_name=env_name,
         env_config=env_config,
         args=_build_algorithm_args(args),
     )
+    _runtime_stage("algorithm_config_done", algorithm=algorithm_name)
 
-    _ensure_ray_runtime_env()
+    _ensure_ray_runtime_env(num_cpus=args.ray_num_cpus)
 
     if args.use_tune:
         _run_with_tune(args, algorithm_name, config, env_config)
         return
 
-    algorithm = config.build_algo()
+    _runtime_stage("algorithm_build_start", algorithm=algorithm_name)
+    algorithm = config.build_algo(
+        logger_creator=_build_algorithm_logger_creator(args),
+    )
+    _runtime_stage("algorithm_build_done", algorithm=algorithm_name)
     if args.restore_checkpoint:
-        checkpoint_path = Path(args.restore_checkpoint)
-        if not checkpoint_path.exists():
-            raise FileNotFoundError(f"restore checkpoint not found: {checkpoint_path}")
+        checkpoint_path = _resolve_restore_checkpoint(args.restore_checkpoint)
         print(f"restoring native RLlib checkpoint from {checkpoint_path}")
         algorithm.restore(str(checkpoint_path))
     elif args.init_bundle:
@@ -1328,7 +1487,8 @@ def _run_training(args):
     log_dir.mkdir(parents=True, exist_ok=True)
     csv_path = log_dir / "training_log.csv"
     _CSV_FIELDS = [
-        "iter", "sampled_steps", "episodes", "reward_mean", "ep_len_mean",
+        "iter", "sampled_steps", "learner_steps", "episodes", "reward_mean", "ep_len_mean",
+        "train_call_wall_s", "effective_learner_time_s",
         "win_rate", "loss_rate", "timeout_rate", "crash_rate",
         "ep_wez_steps", "ep_mean_distance", "ep_min_distance",
         "ep_reward_pursuit", "ep_reward_damage", "ep_reward_safety",
@@ -1365,6 +1525,11 @@ def _run_training(args):
     _CSV_FIELDS.extend(
         aim_variant_metric_name(variant.get("name", index))
         for index, variant in enumerate(scenario_variants)
+    )
+    target_profiles = env_config.get("target_profile_curriculum", [])
+    _CSV_FIELDS.extend(
+        target_profile_metric_name(profile.get("profile_id", index))
+        for index, profile in enumerate(target_profiles)
     )
     csv_file = open(csv_path, "w", newline="", encoding="utf-8")
     csv_writer = csv.DictWriter(csv_file, fieldnames=_CSV_FIELDS)
@@ -1420,12 +1585,37 @@ def _run_training(args):
         bundle_frequency = max(0, int(args.lightweight_bundle_frequency))
         native_frequency = _native_checkpoint_frequency(args)
 
+        effective_learner_time_s = 0.0
+        previous_sampled_steps = 0.0
+        previous_learner_steps = 0.0
         for iteration in range(args.iterations):
+            _runtime_stage("train_iteration_start", iteration=iteration)
+            train_call_started = time.monotonic()
             result = algorithm.train()
+            train_call_wall_s = time.monotonic() - train_call_started
+            _runtime_stage("train_iteration_done", iteration=iteration)
             env_metrics   = result.get("env_runners", {})
             reward_mean      = env_metrics.get("episode_return_mean", "n/a")
             episode_len_mean = env_metrics.get("episode_len_mean", "n/a")
             progress = _extract_progress_metrics(result)
+            sampled_steps_value = progress.get("sampled_steps")
+            learner_steps_value = progress.get("learner_steps")
+            has_sampling_progress = isinstance(sampled_steps_value, (int, float)) and (
+                float(sampled_steps_value) > previous_sampled_steps
+            )
+            has_learner_progress = isinstance(learner_steps_value, (int, float)) and (
+                float(learner_steps_value) > previous_learner_steps
+            )
+            if has_sampling_progress and has_learner_progress:
+                effective_learner_time_s += train_call_wall_s
+            if isinstance(sampled_steps_value, (int, float)):
+                previous_sampled_steps = max(
+                    previous_sampled_steps, float(sampled_steps_value)
+                )
+            if isinstance(learner_steps_value, (int, float)):
+                previous_learner_steps = max(
+                    previous_learner_steps, float(learner_steps_value)
+                )
             learner_stats = _extract_learner_stats(result)
             _fill_algorithm_runtime_stats(learner_stats, algorithm)
             if (
@@ -1442,9 +1632,12 @@ def _run_training(args):
             row = {
                 "iter":              iteration,
                 "sampled_steps":     progress["sampled_steps"],
+                "learner_steps":     progress["learner_steps"],
                 "episodes":          progress["episodes"],
                 "reward_mean":       reward_mean,
                 "ep_len_mean":       episode_len_mean,
+                "train_call_wall_s": train_call_wall_s,
+                "effective_learner_time_s": effective_learner_time_s,
                 **custom,
                 **learner_stats,
             }
@@ -1467,6 +1660,10 @@ def _run_training(args):
                 "iteration":       iteration,
                 "reward_mean":     reward_mean,
                 "episode_len_mean": episode_len_mean,
+                "sampled_steps": progress["sampled_steps"],
+                "learner_steps": progress["learner_steps"],
+                "train_call_wall_s": train_call_wall_s,
+                "effective_learner_time_s": effective_learner_time_s,
                 **custom,
                 **learner_stats,
             })
@@ -1504,6 +1701,16 @@ def _run_training(args):
                         checkpoint_dir,
                         label=f"periodic iter {iteration_number}",
                     )
+            if (
+                args.max_effective_learner_time_s > 0.0
+                and effective_learner_time_s >= args.max_effective_learner_time_s
+            ):
+                print(
+                    "effective learner time target reached: "
+                    f"{effective_learner_time_s:.3f}s >= "
+                    f"{args.max_effective_learner_time_s:.3f}s"
+                )
+                break
         csv_file.close()
         print(f"training log saved to {csv_path}")
         if dashboard_logger is not None:
@@ -1563,26 +1770,30 @@ def _run_training(args):
 
 def main():
     args = parse_args()
-    with ExitStack() as stack:
-        if args.bt_rule_xml:
-            stack.enter_context(
-                activate_rule_xml(
-                    args.bt_rule_xml,
-                    ROOT,
-                    aliases=args.bt_rule_alias,
-                    include_default=False,
+    _set_runtime_diagnostics(args.runtime_diagnostics)
+    try:
+        with ExitStack() as stack:
+            if args.bt_rule_xml:
+                stack.enter_context(
+                    activate_rule_xml(
+                        args.bt_rule_xml,
+                        ROOT,
+                        aliases=args.bt_rule_alias,
+                        include_default=False,
+                    )
                 )
-            )
-        if args.target_rule_xml:
-            stack.enter_context(
-                activate_rule_xml(
-                    args.target_rule_xml,
-                    ROOT,
-                    aliases=args.target_rule_alias,
-                    include_default=False,
+            if args.target_rule_xml:
+                stack.enter_context(
+                    activate_rule_xml(
+                        args.target_rule_xml,
+                        ROOT,
+                        aliases=args.target_rule_alias,
+                        include_default=False,
+                    )
                 )
-            )
-        _run_training(args)
+            _run_training(args)
+    finally:
+        _disable_runtime_diagnostics()
 
 
 if __name__ == "__main__":

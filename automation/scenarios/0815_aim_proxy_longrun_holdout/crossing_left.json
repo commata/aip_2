@@ -1,0 +1,13 @@
+{
+  "name": "0815_aim_proxy_longrun_holdout_crossing_left",
+  "mirror_axis": "lateral",
+  "mirror_pair": "crossing_right",
+  "env_config": {
+    "ownship": [0.0, 0.0, -5250.0, 0.0, 0.0, 0.0, 238.0],
+    "target": [1525.0, -475.0, -5250.0, 0.0, 0.0, 22.0, 234.0],
+    "initial_scenario": {"mode": "default", "legacy_use_random_scenario": false},
+    "ownship_randomization": {"enabled": false},
+    "target_randomization": {"enabled": false},
+    "target_autopilot": {"heading_cmd": 22.0, "altitude_cmd": 5250.0, "speed_cmd": 234.0}
+  }
+}

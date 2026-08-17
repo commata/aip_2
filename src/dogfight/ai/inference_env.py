@@ -21,7 +21,12 @@ class RLLibInferenceEnv(gym.Env):
         mode = config.get("observation_mode", "classic12")
         size = int(config.get("observation_size", observation_size(mode)))
 
-        if mode in ("tactical16", "aim_residual10", "aim_residual10_v2"):
+        if mode in (
+            "tactical16",
+            "aim_residual10",
+            "aim_residual10_v2",
+            "aim_residual13_btaware",
+        ):
             self.observation_space = gym.spaces.Box(
                 low=-1.0,
                 high=1.0,

@@ -833,6 +833,7 @@ def build_inference_module_from_bundle(metadata: dict) -> RLModuleInferenceAdapt
         "tactical16",
         "aim_residual10",
         "aim_residual10_v2",
+        "aim_residual13_btaware",
     }
     observation_low = -1.0 if bounded_observation else -np.inf
     observation_high = 1.0 if bounded_observation else np.inf

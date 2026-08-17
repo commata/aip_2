@@ -22,6 +22,7 @@ from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.hybrid_action_provider import ResidualTrainingActionProvider
 from dogfight.ai.maneuver_telemetry_logger import ManeuverTelemetryLogger
 from dogfight.ai.native_bt import AIPilot
+from dogfight.ai.target_profile_curriculum import TargetProfileCurriculum
 from dogfight.config import FEET_TO_METER, METER_TO_FEET, merge_env_config
 from dogfight.envs.observation import (
     build_observation,
@@ -96,6 +97,16 @@ class DogFightEnv(gym.Env):
         self._target_action_provider = target_action_provider
 
         self.config = merge_env_config(env_config)
+        target_curriculum_config = self.config.get("target_profile_curriculum") or []
+        if target_curriculum_config and self._target_action_provider is not None:
+            raise ValueError(
+                "target_profile_curriculum cannot be combined with target_action_provider"
+            )
+        self._target_profile_curriculum = (
+            TargetProfileCurriculum(target_curriculum_config)
+            if target_curriculum_config
+            else None
+        )
         if (
             self._ownship_action_provider is None
             and self.config["ownship_control_mode"] == "bt_residual"
@@ -150,6 +161,7 @@ class DogFightEnv(gym.Env):
             "tactical16",
             "aim_residual10",
             "aim_residual10_v2",
+            "aim_residual13_btaware",
         ):
             self.observation_space = gym.spaces.Box(
                 low=-1.0, high=1.0, shape=(self.num_observation,), dtype=np.float32
@@ -268,6 +280,8 @@ class DogFightEnv(gym.Env):
         return self._build_ai(self.config["ownship_behavior_dll"])
 
     def _build_target_ai(self):
+        if self._target_profile_curriculum is not None:
+            return None
         if self._target_action_provider is not None:
             return None
         if self.config["target_mode"] != "behavior_tree":
@@ -293,6 +307,8 @@ class DogFightEnv(gym.Env):
         else:
             self._initial_scenario_metrics = {}
 
+        self._select_target_profile_for_episode()
+
         # Apply per-episode position randomization if configured
         rand = self.config.get("ownship_randomization", {})
         if scenario_mode != "two_circle_headon" and rand.get("enabled", False):
@@ -317,13 +333,13 @@ class DogFightEnv(gym.Env):
         self._ownship_state = self._sim.reset()
         self._target_state = self._target_sim.reset()
         self._update_initial_geometry_metrics(scenario_mode)
+        self.current_timestep = 0
+        self._reset_action_providers()
         self.pre_obs = self.get_observation()
         self.info = {"end_condition": "", **self._initial_scenario_metrics}
         self.ownship_damage = 0.0
         self.target_damage = 0.0
         self.num_engage += 1
-        self.current_timestep = 0
-        self._reset_action_providers()
         # Reset episode accumulators
         self._in_wez = False
         self._ep_wez_steps = 0
@@ -341,6 +357,22 @@ class DogFightEnv(gym.Env):
         self._previous_residual_correction = np.zeros(4, dtype=np.float64)
         self._maneuver_telemetry.start_episode(seed=seed)
         return np.array(self.pre_obs, dtype=np.float32), dict(self.info)
+
+    def _select_target_profile_for_episode(self) -> None:
+        curriculum = self._target_profile_curriculum
+        if curriculum is None:
+            return
+        selection = curriculum.select_episode(self.np_random)
+        self._target_action_provider = curriculum.active_provider
+        self.config["target_mode"] = selection.backend_type
+        self._initial_scenario_metrics.update(
+            {
+                "target_profile_index": float(selection.index),
+                "target_profile_id": selection.profile_id,
+                "target_profile_ids": curriculum.profile_ids,
+                "target_behavior_cluster": selection.behavior_cluster,
+            }
+        )
 
     def step(self, action) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         action = np.asarray(action, dtype=np.float32)
@@ -360,7 +392,6 @@ class DogFightEnv(gym.Env):
         failure = self._advance_simulation_step_ratio(action)
         if failure is not None:
             return failure
-        cur_obs = self.get_observation()
 
         terminated, truncated, end_condition = evaluate_termination(
             self._ownship_state,
@@ -373,6 +404,11 @@ class DogFightEnv(gym.Env):
             self._episode_step_limit,
             self._geo_info,
             self._geometry_guard,
+        )
+        cur_obs = (
+            self._build_terminal_observation()
+            if terminated or truncated
+            else self.get_observation()
         )
 
         ownship_health = float(self._ownship_state[StateIndex.HEALTH])
@@ -673,9 +709,55 @@ class DogFightEnv(gym.Env):
             self._target_sim.step_fix()
 
     def get_observation(self):
-        return self._build_observation_for(self._ownship_state, self._target_state)
+        bt_action = None
+        if self._observation_mode == "aim_residual13_btaware":
+            bt_action = self._prepare_btaware_action()
+        return self._build_observation_for(
+            self._ownship_state,
+            self._target_state,
+            bt_action=bt_action,
+        )
 
-    def _build_observation_for(self, ownship_state, target_state) -> np.ndarray:
+    def _build_terminal_observation(self) -> np.ndarray:
+        """Build a terminal state without advancing a stateful BT unnecessarily."""
+        bt_action = (
+            np.zeros(4, dtype=np.float32)
+            if self._observation_mode == "aim_residual13_btaware"
+            else None
+        )
+        return self._build_observation_for(
+            self._ownship_state,
+            self._target_state,
+            bt_action=bt_action,
+        )
+
+    def _prepare_btaware_action(self) -> np.ndarray:
+        provider = self._ownship_action_provider
+        prepare = getattr(provider, "prepare_bt_action", None)
+        if not callable(prepare):
+            raise RuntimeError(
+                "aim_residual13_btaware requires a same-frame BT cache provider"
+            )
+        context = ActionContext(
+            sim=self._sim,
+            opponent_sim=self._target_sim,
+            ownship_state=np.array(self._ownship_state, copy=True),
+            target_state=np.array(self._target_state, copy=True),
+            observation=None,
+            info={
+                "timestep": self.current_timestep,
+                "sim_time_s": float(self._ownship_state[StateIndex.SIM_TIME]),
+            },
+        )
+        return prepare(context)
+
+    def _build_observation_for(
+        self,
+        ownship_state,
+        target_state,
+        *,
+        bt_action=None,
+    ) -> np.ndarray:
         if self._observation_fn is not None:
             observation = self._observation_fn(
                 np.array(ownship_state, copy=True),
@@ -698,6 +780,7 @@ class DogFightEnv(gym.Env):
             target_state,
             self._geo_info,
             wez_cfg,
+            bt_action=bt_action,
         )
 
     def get_reward(self):
@@ -1164,11 +1247,20 @@ class DogFightEnv(gym.Env):
         observation,
         *,
         info: dict | None = None,
+        rebuild_observation: bool = True,
     ) -> ActionContext:
-        if ownship_state is not None and target_state is not None:
+        if rebuild_observation and ownship_state is not None and target_state is not None:
+            bt_action = None
+            if self._observation_mode == "aim_residual13_btaware":
+                bt_action = (
+                    self._prepare_btaware_action()
+                    if sim is self._sim
+                    else np.zeros(4, dtype=np.float32)
+                )
             observation = self._build_observation_for(
                 np.array(ownship_state, copy=True),
                 np.array(target_state, copy=True),
+                bt_action=bt_action,
             )
         return ActionContext(
             sim=sim,
@@ -1186,7 +1278,16 @@ class DogFightEnv(gym.Env):
         ):
             if provider is None:
                 continue
-            provider.reset(self._build_action_context(sim, opponent, ownship_state, target_state, self.pre_obs))
+            provider.reset(
+                self._build_action_context(
+                    sim,
+                    opponent,
+                    ownship_state,
+                    target_state,
+                    self.pre_obs,
+                    rebuild_observation=False,
+                )
+            )
 
     @staticmethod
     def _provider_telemetry(provider) -> Dict[str, object]:
@@ -1303,6 +1404,8 @@ class DogFightEnv(gym.Env):
                     provider.close()
                 except Exception:
                     pass
+        if getattr(self, "_target_profile_curriculum", None) is not None:
+            self._target_profile_curriculum.close()
         self._maneuver_telemetry.close()
         sim_ai_pairs = (
             (getattr(self, "_sim", None), getattr(self, "_ownship_ai", None)),

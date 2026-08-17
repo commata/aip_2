@@ -1,0 +1,66 @@
+{
+  "status": "TRAINING_COMPLETE_PERFORMANCE_UNEVALUATED",
+  "git_commit_at_training_start": "3ea6641277f92dc46d6fa726f8a3ab929eea2e9d",
+  "training_config": "experiments/0815_aim_residual_proxy_mixed_longrun_s2101.yaml",
+  "restore_checkpoint": "artifacts/checkpoints/0815_hybrid_aim_proxy_pilot/mixed10_pilot_s2101/checkpoint_001200",
+  "contract": {
+    "observation": "aim_residual10_v2",
+    "algorithm": "SAC",
+    "gate": "aim",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "throttle": "bt_only",
+    "rl_action_repeat": 6,
+    "target_weights": {
+      "autopilot_crossing": 2.0,
+      "bt_0815": 1.0,
+      "bt_aip2": 1.0
+    }
+  },
+  "training": {
+    "effective_learner_time_s": 16200.051999999938,
+    "sampled_steps": 1890048,
+    "learner_steps": 3779840,
+    "completed_episodes_in_resume_log": 7442,
+    "episode_lifetime_offset": 711,
+    "estimated_crashes": 0,
+    "critical_nan_rows": 0,
+    "target_counts": {
+      "autopilot_crossing": 3746,
+      "bt_0815": 1841,
+      "bt_aip2": 1855
+    },
+    "geometry_counts": {
+      "crossing_left": 1251,
+      "crossing_right": 1203,
+      "lateral_left": 1232,
+      "lateral_right": 1263,
+      "vertical_high": 1243,
+      "vertical_low": 1250
+    }
+  },
+  "artifacts": {
+    "final_policy_weights_sha256": "AB1AAE535167F0DF95B420330E9738C560B829AE49058189F5E747DF217F861F",
+    "final_metadata_sha256": "450BBB78EB9281DF0467324CFBE5A9DC1F4F4746059C5028BF3ED73D3F277A41",
+    "training_log_sha256": "2917C2938EE37607E65A5E01CEC65BF6459A9DED69A37F7FEFB53B2F310788DF",
+    "policy_probe_csv_sha256": "CF9143942A17B9C1F79408414865C0196A83F623FD3CB56C7D8381805EE27987",
+    "policy_probe_jsonl_sha256": "9F9DFC43B1FECB7921595538CA1260786C10DAF3C9D46AEEB2F1E68E6B3589BF",
+    "config_sha256": "810DE4349BAF15CACCC84D131FB93849864B4A01DDF2B9020C23272D67F24A1C",
+    "checkpoint_final_files": 24,
+    "checkpoint_final_bytes": 948005,
+    "periodic_bundle_count": 43
+  },
+  "cleanup": {
+    "process_exit_code": 0,
+    "stderr_lines": 23,
+    "f16_init_sha256_after_exit": "BDCECF4FB64AC0069E3D7C43FB3969240E019EB5190B6FD5AAAAEBF5CD6BC7CB",
+    "temporary_rule_alias_removed": true,
+    "tracked_worktree_clean_before_documentation": true
+  },
+  "decision": {
+    "training": "COMPLETE",
+    "policy_performance": "UNEVALUATED",
+    "family": "NEED_MORE_EVIDENCE",
+    "next": "paired checkpoint selection and independent S2102 training"
+  }
+}

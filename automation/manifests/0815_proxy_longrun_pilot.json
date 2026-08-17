@@ -1,0 +1,79 @@
+{
+  "status": "NEED_MORE_EVIDENCE",
+  "git_commit_at_manifest_creation": "cf9a3713a0ba91143c36229972ce986dfb769c6f",
+  "training_config": "experiments/0815_aim_residual_proxy_mixed_pilot_s2101.yaml",
+  "contract": {
+    "observation": "aim_residual10_v2",
+    "algorithm": "SAC",
+    "gate": "aim",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "throttle": "bt_only",
+    "rl_action_repeat": 6,
+    "target_weights": {
+      "autopilot_crossing": 2.0,
+      "bt_0815": 1.0,
+      "bt_aip2": 1.0
+    }
+  },
+  "training": {
+    "effective_learner_time_s": 1801.2669999996142,
+    "sampled_steps": 198144,
+    "learner_steps": 396032,
+    "completed_episodes": 845,
+    "estimated_crashes": 0,
+    "critical_nan_rows": 0,
+    "target_counts": {
+      "autopilot_crossing": 432,
+      "bt_0815": 202,
+      "bt_aip2": 211
+    },
+    "geometry_counts": {
+      "crossing_left": 131,
+      "crossing_right": 138,
+      "lateral_left": 153,
+      "lateral_right": 153,
+      "vertical_high": 137,
+      "vertical_low": 133
+    }
+  },
+  "artifacts": {
+    "final_policy_weights_sha256": "7CC8FD45EC3899178CDDD67AEEF7C7206F30205082AB19AE13DE305B18B591EC",
+    "final_metadata_sha256": "02427095FA27070121E8F13563646ADEAFE6696470E8DEB3EC5D6070A338FC69",
+    "training_record_sha256": "A59FFA9D48C04C8959883BEDD4F00465FFA7B87CBC6FFA45493D4BDFBBC7A9CE",
+    "training_log_sha256": "F97F9DFA62FA7FC987A3F54C9E989EDC803267B87D26F3C01F88C2E6ADF7FF1E",
+    "policy_probe_sha256": "FC2E915566FDCC17A29C600DC546D8CA8B5E4800BD04AE9AA69ED790C5D09779",
+    "checkpoint_final_files": 24,
+    "checkpoint_final_bytes": 948767,
+    "bundle_1200_policy_weights_sha256": "EBAE4448924DA03FF8AD63C8181610E9A7B0F9A6ED77888B4BFC5FB8350C9B1B",
+    "bundle_1200_metadata_sha256": "C9ACFDD9A1158C9AABF9FDD2257BE45D4E6BE089CBA8F989C938E0CB02D61AA3"
+  },
+  "development_18_pair_delta": {
+    "damage_dealt": 0.00289532261049375,
+    "mean_los_deg": -0.184149076855884,
+    "los_rate_rms_deg_s": -0.00253684468636241,
+    "damage_cone_time_s": 0.0296296296296296,
+    "time_to_first_damage_s": -0.00555555555555549,
+    "min_altitude_m": 62.2821207999999,
+    "ownship_crashes": 0,
+    "gate_active_ratio": 0.855600105587977,
+    "action_saturation_ratio": 0.13571883027122
+  },
+  "exact_crossing_left_final_delta": {
+    "damage_dealt": -0.021682441955227,
+    "mean_los_deg": 3.83736443458771,
+    "los_rate_rms_deg_s": 0.23503251416045,
+    "damage_cone_time_s": -0.1,
+    "time_to_first_damage_s": 0.0,
+    "min_altitude_m": -977.9434848,
+    "pure_end_condition": "target destroyed",
+    "hybrid_end_condition": "target altitude below min"
+  },
+  "decision": {
+    "pilot_final": "ROLLBACK",
+    "longrun_family": "NEED_MORE_EVIDENCE",
+    "resume_checkpoint": 1200,
+    "confidence": "중간",
+    "reason": "후반 policy drift와 target 파괴 임계치 증폭 반례 때문에 final bundle을 승격할 수 없음"
+  }
+}

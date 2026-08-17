@@ -13,6 +13,7 @@ from dogfight.ai.action_provider import (
 from dogfight.ai.hybrid_action_provider import (
     AimGateConfig,
     AimResidualGate,
+    CombinedResidualGate,
     HybridActionProvider,
     OffensiveGateConfig,
     OffensiveResidualGate,
@@ -182,6 +183,39 @@ class OffensiveHybridTests(unittest.TestCase):
         self.assertEqual(gate.entries, 1)
         self.assertEqual(gate.exits, 1)
 
+    def test_combined_gate_requires_aim_and_offensive_overlap(self) -> None:
+        gate = CombinedResidualGate()
+        aim_only_target = state(1000.0, 0.0, 180.0)
+
+        aim_only = gate.update(self.own, aim_only_target, sim_time_s=0.0)
+        combined = gate.update(self.own, self.target, sim_time_s=0.0)
+
+        self.assertFalse(aim_only["active"])
+        self.assertTrue(aim_only["aim_gate"]["active"])
+        self.assertFalse(aim_only["offensive_gate"]["active"])
+        self.assertTrue(combined["active"])
+        telemetry = gate.telemetry()
+        self.assertEqual(telemetry["combined_gate_entries"], 1)
+        self.assertEqual(telemetry["combined_gate_active_steps"], 1)
+
+    def test_combined_inference_gate_off_is_exact_bt(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="combined",
+        )
+
+        result = provider.compute_action(
+            context(self.own, state(1000.0, 0.0, 180.0), sim_time_s=0.0)
+        )
+
+        np.testing.assert_array_equal(result.action, bt.action)
+        self.assertEqual(rl.calls, 0)
+        self.assertEqual(provider.telemetry()["combined_gate_active_ratio"], 0.0)
+
     def test_training_residual_forces_bt_throttle_and_gate_off_equality(self) -> None:
         bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
         provider = ResidualTrainingActionProvider(
@@ -329,6 +363,68 @@ class OffensiveHybridTests(unittest.TestCase):
             authority["negative_headroom"], [2.0, 0.0, 1.9], atol=1e-7
         )
         np.testing.assert_allclose(authority["applied_to_requested_ratio"], [1.0, 1.0, 1.0])
+
+    def test_btaware_prepare_is_consumed_once_by_residual_composition(self) -> None:
+        bt = CountingProvider([0.25, -0.5, 0.75, 0.8], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+        ctx = context(
+            self.own,
+            self.target,
+            residual=np.zeros(4, dtype=np.float32),
+            sim_time_s=0.0,
+        )
+
+        prepared = provider.prepare_bt_action(ctx)
+        prepared_again = provider.prepare_bt_action(ctx)
+        self.assertEqual(bt.calls, 1)
+        np.testing.assert_array_equal(prepared, prepared_again)
+        np.testing.assert_array_equal(provider.prepared_bt_action, prepared)
+
+        result = provider.compute_action(ctx)
+        self.assertEqual(bt.calls, 1)
+        self.assertIsNone(provider.prepared_bt_action)
+        np.testing.assert_array_equal(result.info["bt_action"], prepared)
+        np.testing.assert_array_equal(result.action, prepared)
+
+        provider.compute_action(ctx)
+        self.assertEqual(bt.calls, 2)
+
+    def test_btaware_reset_discards_unconsumed_cache(self) -> None:
+        bt = CountingProvider([0.1, 0.2, 0.3, 0.9], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+        ctx = context(self.own, self.target, sim_time_s=0.0)
+
+        provider.prepare_bt_action(ctx)
+        self.assertIsNotNone(provider.prepared_bt_action)
+        provider.reset(ctx)
+        self.assertIsNone(provider.prepared_bt_action)
+
+    def test_btaware_inference_consumes_prepared_bt_once(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")
+        provider = ResidualInferenceActionProvider(
+            bt,
+            rl,
+            residual_scale=0.125,
+            gate_kind="aim",
+        )
+        ctx = context(self.own, self.target, sim_time_s=0.0)
+
+        prepared = provider.prepare_bt_action(ctx)
+        result = provider.compute_action(ctx)
+
+        self.assertEqual(bt.calls, 1)
+        self.assertIsNone(provider.prepared_bt_action)
+        np.testing.assert_array_equal(result.info["bt_action"], prepared)
+        self.assertEqual(rl.calls, 1)
 
 
 if __name__ == "__main__":

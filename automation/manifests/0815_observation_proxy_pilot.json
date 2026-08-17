@@ -1,0 +1,52 @@
+{
+  "research_issue": 7,
+  "branch": "codex/0817-hybrid-aim-proxy-longrun",
+  "git_parent_sha": "29cede86447c58efce5495e44e0caba1e03ed3c6",
+  "fixed_contract": {
+    "training_iterations": 30,
+    "sampled_steps": 7424,
+    "training_seeds": [1701, 1702],
+    "gate": "aim",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "rl_action_repeat": 6,
+    "throttle_residual": false
+  },
+  "bundles": {
+    "h7_s1701": {"observation": "aim_residual10_v2", "weights_sha256": "31229A7DB673A4344B417384EDA881ECAD61E599614D3730C5AC1BD40DF1559D"},
+    "h7_s1702": {"observation": "aim_residual10_v2", "weights_sha256": "DCC1C67ADEE085FB096CC0F4116E7BFF3A4E79F21D1A57B363845EE1569BF846"},
+    "h8_s1701": {"observation": "aim_residual13_btaware", "weights_sha256": "439ACCB22629618D5A818537568B41104073E311CA85FC592AAEAA88CFBF2EE1"},
+    "h8_s1702": {"observation": "aim_residual13_btaware", "weights_sha256": "AB91E522913AE650065A4B6128674AE442F91F3AA4309B7C4AB0159BA3B287E1"}
+  },
+  "mixed_validation": {
+    "seeds": [2501, 2502, 2503, 2504, 2505, 2506],
+    "pure_telemetry_byte_identical_across_all_policies": true,
+    "h7_s1701_evaluation_sha256": "505CBF59AB8260A38DC4A2885B3108C513131FDA1544DB7DB29C2FDC11C8132A",
+    "h7_s1702_evaluation_sha256": "80AE7BE27813D89C73C0DCFE2BAB2BA59C6FB9CD44781F4102860FEAC875F9A1",
+    "h8_s1701_evaluation_sha256": "D7723BBC302285F1A93E2F4E45E1233859A53914026E9AEFF607DF1561094951",
+    "h8_s1702_evaluation_sha256": "E4B8CF13A6B3371233932757FB11D62AB3DA64748C95757AD1F1483D8A1AC68B"
+  },
+  "exact_mirror": {
+    "scenario_count_per_policy": 6,
+    "seed_label": 1801,
+    "pure_telemetry_byte_identical_across_h7_h8": true,
+    "h8_s1701_counterexample": {"scenario": "crossing_left", "mean_los_delta_deg": 3.885969857786322, "los_rate_delta_deg_s": 0.21143264582057464, "min_altitude_delta_m": -974.6153735999999},
+    "h8_s1702_counterexample": {"scenario": "vertical_high", "first_damage_delta_s": 0.8499999999999996, "mean_los_delta_deg": 1.1840697508472928, "cone_delta_s": -3.5}
+  },
+  "proxy_pilot": {
+    "candidate": "h7_s1702",
+    "autopilot_evaluation_sha256": "80AE7BE27813D89C73C0DCFE2BAB2BA59C6FB9CD44781F4102860FEAC875F9A1",
+    "bt_0815_evaluation_sha256": "3DFEFFF00CF4254714ABD08BEE7369F0CA39037ED65634A6D1CD13175CAE3EC3",
+    "aip2_evaluation_sha256": "9448FC95E16004A1C0B6D99FAC7E3DF1EC1021EC79176E44364E678992224262",
+    "aip3": "reserved_held_out_same_behavior_cluster_as_0815",
+    "bt_proxy_damage_opportunity": false
+  },
+  "decision": {
+    "longrun_family": "aim_residual10_v2",
+    "status": "PROMOTE_CANDIDATE",
+    "policy_status": "NEED_MORE_EVIDENCE",
+    "confidence": "중간",
+    "h8_status": "NEED_MORE_EVIDENCE",
+    "reason": "13D saturation 감소는 재현됐지만 vertical/crossing 일반화와 조준 지표 개선이 독립 seed에서 재현되지 않음"
+  }
+}
