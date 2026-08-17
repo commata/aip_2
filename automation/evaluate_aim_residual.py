@@ -128,9 +128,12 @@ def preflight(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
-def controller_specs(scales: list[float]) -> list[tuple[str, float | None]]:
+def controller_specs(
+    scales: list[float], axis_mask: str = "roll_pitch_yaw"
+) -> list[tuple[str, float | None]]:
+    suffix = "" if axis_mask == "roll_pitch_yaw" else f"_{axis_mask}"
     return [("pure_0815", None)] + [
-        (f"hybrid_{scale:g}", scale) for scale in scales
+        (f"hybrid_{scale:g}{suffix}", scale) for scale in scales
     ]
 
 
@@ -193,6 +196,7 @@ def run_match(
             "--residual-gate", args.gate_kind,
             "--residual-composition", args.composition_mode,
             "--residual-scale", str(scale),
+            "--residual-axis-mask", args.residual_axis_mask,
             "--rl-action-repeat", str(args.rl_action_repeat),
             "--aim-min-range-m", str(args.aim_min_range_m),
             "--aim-enter-angle-margin-deg", str(args.aim_enter_angle_margin_deg),
@@ -278,6 +282,7 @@ def build_record(
         "controller": controller,
         "scale": scale,
         "gate_kind": gate_kind,
+        "residual_axis_mask": provider.get("residual_axis_mask"),
         "outcome": "process_error" if returncode else result.get("outcome", "unknown"),
         "end_condition": result.get("end_condition", ""),
         "ownship_crash": bool(result.get("ownship_crash", False)),
@@ -643,6 +648,11 @@ def parse_args() -> argparse.Namespace:
         choices=["additive", "saturation_aware"],
         default="additive",
     )
+    parser.add_argument(
+        "--residual-axis-mask",
+        choices=["roll", "pitch", "yaw", "pitch_yaw", "roll_pitch_yaw"],
+        default="roll_pitch_yaw",
+    )
     parser.add_argument("--ownship-bt-dll", required=True)
     parser.add_argument("--target-backend", choices=["autopilot", "bt"], default="autopilot")
     parser.add_argument("--target-bt-dll", default=str(ROOT / "AIP_BASE_target.dll"))
@@ -681,7 +691,7 @@ def main() -> None:
     records = load_resume_records(output, args, preflight_result)
     completed = {_record_identity(record) for record in records}
     for seed in args.seeds:
-        for controller, scale in controller_specs(args.scales):
+        for controller, scale in controller_specs(args.scales, args.residual_axis_mask):
             if (int(seed), controller) in completed:
                 print(
                     f"[paired-eval] skip existing seed={seed} "

@@ -22,6 +22,7 @@ from dogfight.ai.hybrid_action_provider import (
     HybridActionProvider,
     OffensiveGateConfig,
     Rear120GateConfig,
+    RESIDUAL_AXIS_MASKS,
     ResidualInferenceActionProvider,
     SafetyVetoConfig,
 )
@@ -80,6 +81,12 @@ def parse_args():
         choices=["additive", "saturation_aware"],
         default="additive",
     )
+    parser.add_argument(
+        "--residual-axis-mask",
+        choices=sorted(RESIDUAL_AXIS_MASKS),
+        default="roll_pitch_yaw",
+        help="Diagnostic inference-time surface mask; submission default keeps all surfaces.",
+    )
     parser.add_argument("--rl-action-repeat", type=int, default=6, help="RL inference cadence while the offensive gate is active; BT still runs every simulator frame.")
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
@@ -117,7 +124,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw"):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -173,6 +180,7 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             safety_veto=safety_veto,
             rl_action_repeat=rl_action_repeat,
             composition_mode=residual_composition,
+            residual_axis_mask=residual_axis_mask,
         )
     raise ValueError(f"Unsupported backend: {backend}")
 
@@ -239,6 +247,7 @@ def main():
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
         bt_turn_throttle_mode=args.bt_turn_throttle_mode,
+        residual_axis_mask=args.residual_axis_mask,
     )
     target_provider = build_provider(
         side="target",
@@ -258,6 +267,7 @@ def main():
         rl_action_repeat=args.rl_action_repeat,
         min_throttle_blend_speed=args.min_throttle_blend_speed,
         bt_turn_throttle_mode=args.bt_turn_throttle_mode,
+        residual_axis_mask=args.residual_axis_mask,
     )
 
     with activate_rule_xml(
