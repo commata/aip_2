@@ -28,6 +28,7 @@ from dogfight.envs.observation import (
     build_observation,
     normalize,
     observation_size as builtin_observation_size,
+    official_phase_wez_config,
 )
 from dogfight.envs.reward import compute_aim_residual_reward, compute_reward
 from dogfight.envs.termination import evaluate_termination
@@ -379,17 +380,14 @@ class DogFightEnv(gym.Env):
     def step(self, action) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         action = np.asarray(action, dtype=np.float32)
         
-        # Phase-based WEZ scaling (baserule.png)
+        # Phase-based WEZ scaling (official full-angle semantics)
         running_time = self._ep_step_count * self._delta_t
-        if running_time > 150.0:
-            self._wez["max_range_m"] = 4000.0 * 0.3048 # Phase 3: 4000 ft, 6 deg
-            self._wez["angle_deg"] = 6.0
-        elif running_time > 100.0:
-            self._wez["max_range_m"] = 3500.0 * 0.3048 # Phase 2: 3500 ft, 4 deg
-            self._wez["angle_deg"] = 4.0
-        else:
-            self._wez["max_range_m"] = 3000.0 * 0.3048 # Phase 1: 3000 ft, 2 deg
-            self._wez["angle_deg"] = 2.0
+        self._wez.update(
+            official_phase_wez_config(
+                running_time,
+                min_range_m=float(self._wez["min_range_m"]),
+            )
+        )
 
         failure = self._advance_simulation_step_ratio(action)
         if failure is not None:

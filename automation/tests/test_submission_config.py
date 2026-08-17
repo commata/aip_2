@@ -32,6 +32,11 @@ class SubmissionConfigTests(unittest.TestCase):
                                 "health_source": "unavailable_constant_one",
                             },
                             "wez": wez,
+                            "phase_config": [
+                                {"phase": 1, "end_s": 100.0, "half_angle_deg": 1.0, "max_range_m": 914.4},
+                                {"phase": 2, "end_s": 150.0, "half_angle_deg": 2.0, "max_range_m": 1066.8},
+                                {"phase": 3, "end_s": 200.0, "half_angle_deg": 3.0, "max_range_m": 1219.2}
+                            ],
                         }
                     },
                     "metadata": {
@@ -41,6 +46,11 @@ class SubmissionConfigTests(unittest.TestCase):
                         "normalization_version": "tactical16.norm.v1",
                         "health_source": "unavailable_constant_one",
                         "wez_contract": wez,
+                        "phase_config": [
+                            {"phase": 1, "end_s": 100.0, "half_angle_deg": 1.0, "max_range_m": 914.4},
+                            {"phase": 2, "end_s": 150.0, "half_angle_deg": 2.0, "max_range_m": 1066.8},
+                            {"phase": 3, "end_s": 200.0, "half_angle_deg": 3.0, "max_range_m": 1219.2}
+                        ],
                     },
                 }
             ),
@@ -72,6 +82,11 @@ class SubmissionConfigTests(unittest.TestCase):
             "hard_eligibility_gate": {"kind": "rear120"},
             "activation_gate": {"kind": "rear120_and_offensive_or_pre_aim"},
             "wez": wez,
+            "phase_config": [
+                {"phase": 1, "end_s": 100.0, "half_angle_deg": 1.0, "max_range_m": 914.4},
+                {"phase": 2, "end_s": 150.0, "half_angle_deg": 2.0, "max_range_m": 1066.8},
+                {"phase": 3, "end_s": 200.0, "half_angle_deg": 3.0, "max_range_m": 1219.2}
+            ],
             "throttle_policy": "bt_only",
             "expected_sim_hz": 60,
             "latency_threshold_s": 0.1667,

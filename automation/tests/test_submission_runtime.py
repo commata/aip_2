@@ -57,6 +57,11 @@ def _submission() -> SubmissionConfig:
         expected_sim_hz=60,
         latency_threshold_s=0.1667,
         wez_config={"min_range_m": 152.4, "max_range_m": 914.4, "angle_deg": 2.0},
+        phase_config=[
+            {"phase": 1, "end_s": 100.0, "half_angle_deg": 1.0, "max_range_m": 914.4},
+            {"phase": 2, "end_s": 150.0, "half_angle_deg": 2.0, "max_range_m": 1066.8},
+            {"phase": 3, "end_s": 200.0, "half_angle_deg": 3.0, "max_range_m": 1219.2},
+        ],
     )
 
 

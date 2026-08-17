@@ -107,6 +107,36 @@ class SubmissionObservationParityTests(unittest.TestCase):
         self.assertEqual(self.policy._sim_time_s(18000), 150.0)
         self.assertEqual(self.policy._sim_time_s(21000), 200.0)
 
+    def test_tactical16_wez_switches_on_official_phase_boundaries(self) -> None:
+        own = plane_info_to_state(
+            _plane(
+                index=0,
+                plane_id=1,
+                position=(0.0, 0.0, 5000.0),
+                rotation=(0.0, 0.0, 0.0),
+                velocity=(230.0, 0.0, 0.0),
+            )
+        )
+        target = plane_info_to_state(
+            _plane(
+                index=0,
+                plane_id=2,
+                position=(1000.0, 0.0, 5000.0),
+                rotation=(0.0, 0.0, 0.0),
+                velocity=(225.0, 0.0, 0.0),
+            )
+        )
+
+        phase1 = self.policy._build_observation(own, target, sim_time_s=100.0)
+        phase2 = self.policy._build_observation(
+            own,
+            target,
+            sim_time_s=100.0 + 1.0 / 60.0,
+        )
+
+        self.assertEqual(float(phase1[14]), -1.0)
+        self.assertEqual(float(phase2[14]), 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1178,6 +1178,7 @@ def _build_observation_bundle_metadata(
         "normalization_version": contract.get("normalization_version", "legacy"),
         "health_source": contract.get("health_source", "simulator"),
         "wez_contract": dict(env_config.get("wez", {})),
+        "phase_config": list(env_config.get("phase_config", [])),
     }
 
 

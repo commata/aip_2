@@ -27,6 +27,31 @@ TACTICAL16_FEATURES = (
     "in_wez",
     "pursuit_score_norm",
 )
+OFFICIAL_DAMAGE_PHASES = (
+    {"phase": 1, "end_s": 100.0, "half_angle_deg": 1.0, "max_range_m": 3000.0 * 0.3048},
+    {"phase": 2, "end_s": 150.0, "half_angle_deg": 2.0, "max_range_m": 3500.0 * 0.3048},
+    {"phase": 3, "end_s": 200.0, "half_angle_deg": 3.0, "max_range_m": 4000.0 * 0.3048},
+)
+
+
+def official_phase_wez_config(
+    sim_time_s: float,
+    *,
+    min_range_m: float = 500.0 * 0.3048,
+) -> dict[str, float | int]:
+    """Return official full-angle WEZ semantics for one match elapsed time."""
+    elapsed = max(0.0, float(sim_time_s))
+    selected = OFFICIAL_DAMAGE_PHASES[-1]
+    for phase in OFFICIAL_DAMAGE_PHASES:
+        if elapsed <= float(phase["end_s"]):
+            selected = phase
+            break
+    return {
+        "phase": int(selected["phase"]),
+        "min_range_m": float(min_range_m),
+        "max_range_m": float(selected["max_range_m"]),
+        "angle_deg": 2.0 * float(selected["half_angle_deg"]),
+    }
 
 
 def normalize(value: float, minimum: float, maximum: float) -> float:

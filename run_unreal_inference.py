@@ -247,6 +247,7 @@ def main():
             wez_config=submission.wez_config if submission else None,
             health_source=(submission.health_source if submission else "simulator"),
             expected_sim_hz=(submission.expected_sim_hz if submission else 60),
+            phase_config=(submission.phase_config if submission else None),
         )
         client = UnrealAIPilotUDPClient(
             command_policy=command_policy,

@@ -3,11 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
 from dogfight.ai.hybrid_action_provider import ALLOWED_AIM_RESIDUAL_SCALES
 from dogfight.envs.observation import observation_size
+from dogfight.envs.observation import OFFICIAL_DAMAGE_PHASES
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,7 @@ class SubmissionConfig:
     expected_sim_hz: int
     latency_threshold_s: float
     wez_config: dict[str, Any]
+    phase_config: list[dict[str, Any]]
 
 
 def load_submission_config(
@@ -128,6 +131,13 @@ def load_submission_config(
     bundle_wez = bundle_contract.get("wez")
     if bundle_wez and _canonical_json(bundle_wez) != _canonical_json(wez_config):
         raise ValueError("WEZ contract mismatch between config and bundle")
+    phase_config = payload.get("phase_config")
+    if not isinstance(phase_config, list):
+        raise ValueError("submission config requires phase_config")
+    _validate_phase_config(phase_config)
+    bundle_phase = bundle_contract.get("phase_config")
+    if bundle_phase and _canonical_json(bundle_phase) != _canonical_json(phase_config):
+        raise ValueError("phase_config mismatch between config and bundle")
 
     for required_gate in ("hard_eligibility_gate", "activation_gate"):
         if not isinstance(payload.get(required_gate), dict):
@@ -151,6 +161,7 @@ def load_submission_config(
         expected_sim_hz=expected_sim_hz,
         latency_threshold_s=latency_threshold_s,
         wez_config=dict(wez_config),
+        phase_config=[dict(item) for item in phase_config],
     )
 
 
@@ -198,6 +209,7 @@ def _bundle_observation_contract(bundle: dict[str, Any]) -> dict[str, Any]:
             "health_source", contract.get("health_source", "simulator")
         ),
         "wez": metadata.get("wez_contract") or env_config.get("wez"),
+        "phase_config": metadata.get("phase_config") or env_config.get("phase_config"),
     }
 
 
@@ -254,6 +266,27 @@ def _validate_wez(wez: dict[str, Any]) -> None:
     angle = float(wez.get("angle_deg", -1.0))
     if not 0.0 <= minimum < maximum or angle <= 0.0:
         raise ValueError("invalid WEZ range or angle")
+
+
+def _validate_phase_config(phases: list[dict[str, Any]]) -> None:
+    expected = [dict(item) for item in OFFICIAL_DAMAGE_PHASES]
+    if len(phases) != len(expected):
+        raise ValueError("phase_config must match the official 100/150/200 second contract")
+    for actual, reference in zip(phases, expected):
+        if not isinstance(actual, dict):
+            raise ValueError("phase_config entries must be objects")
+        if int(actual.get("phase", -1)) != int(reference["phase"]):
+            raise ValueError("phase_config phase identifiers do not match official rules")
+        for key in ("end_s", "half_angle_deg", "max_range_m"):
+            if not math.isclose(
+                float(actual.get(key, float("nan"))),
+                float(reference[key]),
+                rel_tol=0.0,
+                abs_tol=1e-9,
+            ):
+                raise ValueError(
+                    "phase_config must match the official 100/150/200 second contract"
+                )
 
 
 def _canonical_json(value: Any) -> str:

@@ -71,6 +71,11 @@ DEFAULT_ENV_CONFIG = {
         "min_range_m": 500 * FEET_TO_METER,
         "max_range_m": 3000 * FEET_TO_METER,
     },
+    "phase_config": [
+        {"phase": 1, "end_s": 100.0, "half_angle_deg": 1.0, "max_range_m": 3000 * FEET_TO_METER},
+        {"phase": 2, "end_s": 150.0, "half_angle_deg": 2.0, "max_range_m": 3500 * FEET_TO_METER},
+        {"phase": 3, "end_s": 200.0, "half_angle_deg": 3.0, "max_range_m": 4000 * FEET_TO_METER},
+    ],
     # Head-on (Original)
     #"ownship": [1000.0, 0.0, -7000.0, 0.0, 0.0, 0.0, 300.0],
     #"target": [6000.0, 0.0, -7000.0, 0.0, 0.0, 180.0, 300.0],

@@ -11,7 +11,10 @@ from GeoMathUtil import GeometryInfo
 from dogfight.ai.action_provider import ActionContext
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.envs.observation import body_to_ned_rotation, build_observation
-from dogfight.envs.observation import TACTICAL16_HEALTH_SIMULATOR
+from dogfight.envs.observation import (
+    TACTICAL16_HEALTH_SIMULATOR,
+    official_phase_wez_config,
+)
 from dogfight.unreal.client import RemoteClientContext
 from dogfight.unreal.protocol import CMD
 
@@ -120,6 +123,7 @@ class ProviderCommandPolicy:
         wez_config: dict | None = None,
         health_source: str = TACTICAL16_HEALTH_SIMULATOR,
         expected_sim_hz: int = 60,
+        phase_config: list[dict] | None = None,
     ):
         self.action_provider = action_provider
         self.observation_mode = observation_mode
@@ -131,6 +135,7 @@ class ProviderCommandPolicy:
         self.wez_config = dict(wez_config) if wez_config is not None else None
         self.health_source = str(health_source)
         self.expected_sim_hz = int(expected_sim_hz)
+        self.phase_config = list(phase_config or [])
         if self.expected_sim_hz <= 0:
             raise ValueError("expected_sim_hz must be positive")
         self.geometry = GeometryInfo()
@@ -198,7 +203,12 @@ class ProviderCommandPolicy:
     def _compute_provider_action(self, context, own_plane, enemy_plane) -> np.ndarray:
         ownship_state = plane_info_to_state(own_plane)
         target_state = plane_info_to_state(enemy_plane)
-        observation = self._build_observation(ownship_state, target_state)
+        sim_time_s = self._sim_time_s(context.frame_index)
+        observation = self._build_observation(
+            ownship_state,
+            target_state,
+            sim_time_s=sim_time_s,
+        )
 
         own_speed = float(
             np.linalg.norm([own_plane.velocity.x, own_plane.velocity.y, own_plane.velocity.z])
@@ -246,7 +256,7 @@ class ProviderCommandPolicy:
                 observation=observation,
                 info={
                     "frame_index": context.frame_index,
-                    "sim_time_s": self._sim_time_s(context.frame_index),
+                    "sim_time_s": sim_time_s,
                     "my_plane_id": context.plane_id,
                     "target_plane_id": enemy_plane.plane_id,
                     "my_force_side": self.ownship_force_side,
@@ -284,7 +294,13 @@ class ProviderCommandPolicy:
             f"action={np.asarray(action, dtype=np.float32).tolist()}"
         )
 
-    def _build_observation(self, ownship_state, target_state) -> np.ndarray:
+    def _build_observation(
+        self,
+        ownship_state,
+        target_state,
+        *,
+        sim_time_s: float = 0.0,
+    ) -> np.ndarray:
         if self.observation_fn is not None:
             return np.asarray(
                 self.observation_fn(
@@ -295,12 +311,18 @@ class ProviderCommandPolicy:
                 ),
                 dtype=np.float32,
             )
+        wez_config = self.wez_config
+        if self.observation_mode == "tactical16" and wez_config is not None:
+            wez_config = official_phase_wez_config(
+                sim_time_s,
+                min_range_m=float(wez_config["min_range_m"]),
+            )
         return build_observation(
             self.observation_mode,
             ownship_state,
             target_state,
             self.geometry,
-            self.wez_config,
+            wez_config,
             health_source=self.health_source,
         )
 
