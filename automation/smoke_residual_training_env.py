@@ -19,6 +19,11 @@ from dogfight.envs.single_agent_env import DogFightEnv
 from automation.target_profiles import load_target_profile
 
 
+def _restore_bytes(path: Path, original: bytes) -> None:
+    if not path.is_file() or path.read_bytes() != original:
+        path.write_bytes(original)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="0815 BT-in-the-loop 잔차 학습 환경의 1초 통합 스모크"
@@ -46,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scale", type=float, default=0.125)
     parser.add_argument(
         "--gate-kind",
-        choices=("aim", "offensive", "combined"),
+        choices=("aim", "offensive", "combined", "rear120"),
         default="aim",
     )
     parser.add_argument(
@@ -55,10 +60,16 @@ def parse_args() -> argparse.Namespace:
             "aim_residual10",
             "aim_residual10_v2",
             "aim_residual13_btaware",
+            "tactical16",
         ),
         default="aim_residual10",
     )
     parser.add_argument("--seed", type=int, default=1103)
+    parser.add_argument(
+        "--rear120-batch-contract",
+        action="store_true",
+        help="rear120 hard envelope action-state only segment contract 활성화",
+    )
     parser.add_argument("--result-json")
     return parser.parse_args()
 
@@ -93,12 +104,31 @@ def main() -> None:
         "episode_step_limit": 60,
         "min_altitude": 300.0,
         "observation_mode": args.observation_mode,
+        "observation_contract": {
+            "version": "tactical16.v1" if args.observation_mode == "tactical16" else "legacy",
+            "normalization_version": (
+                "tactical16.norm.v1" if args.observation_mode == "tactical16" else "legacy"
+            ),
+            "health_source": (
+                "unavailable_constant_one"
+                if args.observation_mode == "tactical16"
+                else "simulator"
+            ),
+        },
         "ownship_control_mode": "bt_residual",
         "ownship_behavior_dll": args.bt_dll,
         "target_mode": target_mode,
         "target_behavior_dll": target_dll,
         "ownship": [0.0, 0.0, -5000.0, 0.0, 0.0, 0.0, 240.0],
-        "target": [800.0, 0.0, -5000.0, 0.0, 0.0, 180.0, 220.0],
+        "target": [
+            800.0,
+            0.0,
+            -5000.0,
+            0.0,
+            0.0,
+            0.0 if args.gate_kind == "rear120" else 180.0,
+            220.0,
+        ],
         "initial_scenario": {
             "mode": "default",
             "legacy_use_random_scenario": False,
@@ -106,10 +136,22 @@ def main() -> None:
         "residual_training": {
             "scale": args.scale,
             "gate_kind": args.gate_kind,
+            "batch_contract": {
+                "mode": (
+                    "rear120_segment"
+                    if args.rear120_batch_contract
+                    else "disabled"
+                ),
+                "minimum_target_ata_deg": 120.0,
+                "truncate_on_exit": True,
+                "mask_exit_reward": True,
+            },
         },
         "reward": {"mode": "aim_residual"},
     }
     with ExitStack() as stack:
+        simulator_init = ROOT / "aircraft" / "f16" / "f16_init.xml"
+        stack.callback(_restore_bytes, simulator_init, simulator_init.read_bytes())
         stack.enter_context(
             activate_rule_xml(
                 args.bt_xml,
@@ -140,6 +182,11 @@ def main() -> None:
                 steps += 1
             telemetry = info["ownship_provider_telemetry"]
             last = telemetry["last_frame"]
+            gate_prefix = (
+                "rear120_activation"
+                if args.gate_kind == "rear120"
+                else f"{args.gate_kind}_gate"
+            )
             result = {
                 "seed": args.seed,
                 "target_profile": (
@@ -159,8 +206,8 @@ def main() -> None:
                 ),
                 "gate_kind": args.gate_kind,
                 "residual_scale": args.scale,
-                "gate_active_ratio": telemetry[f"{args.gate_kind}_gate_active_ratio"],
-                "gate_entries": telemetry[f"{args.gate_kind}_gate_entries"],
+                "gate_active_ratio": telemetry[f"{gate_prefix}_active_ratio"],
+                "gate_entries": telemetry[f"{gate_prefix}_entries"],
                 "rl_correction_steps": telemetry["rl_correction_steps"],
                 "bt_throttle": last["bt_action"][3],
                 "final_throttle": last["final_action"][3],
@@ -185,6 +232,7 @@ def main() -> None:
                 ],
                 "outcome": info.get("outcome"),
                 "end_condition": info.get("end_condition"),
+                "training_batch_contract": info.get("training_batch_contract", {}),
             }
         finally:
             env.close()
