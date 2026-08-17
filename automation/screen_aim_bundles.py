@@ -69,6 +69,8 @@ def summarize_bundle(
             "delta": {metric: delta.get(metric) for metric in METRICS},
             "hybrid_ownship_crashes": hybrid.get("ownship_crashes", 0),
             "pure_ownship_crashes": pure.get("ownship_crashes", 0),
+            "hybrid_target_crashes": hybrid.get("target_crashes", 0),
+            "pure_target_crashes": pure.get("target_crashes", 0),
             "hybrid_gate_active_ratio": hybrid.get("gate_active_ratio"),
             "hybrid_final_roll_saturation_ratio": hybrid.get("final_roll_saturation_ratio"),
             "hybrid_final_pitch_saturation_ratio": hybrid.get("final_pitch_saturation_ratio"),
@@ -88,6 +90,14 @@ def summarize_bundle(
         max(0, int(item["hybrid_ownship_crashes"]) - int(item["pure_ownship_crashes"]))
         for item in scenarios.values()
     )
+    target_crash_pairs = sum(
+        int(item["hybrid_target_crashes"] or item["pure_target_crashes"])
+        for item in scenarios.values()
+    )
+    target_crash_asymmetries = sum(
+        int(item["hybrid_target_crashes"] != item["pure_target_crashes"])
+        for item in scenarios.values()
+    )
     aggregate = {
         "damage_delta_mean": sum(damage) / len(damage) if damage else None,
         "damage_delta_worst": min(damage) if damage else None,
@@ -100,6 +110,8 @@ def summarize_bundle(
         ),
         "action_saturation_delta_max": max(saturation) if saturation else None,
         "ownship_crash_regressions": crash_regressions,
+        "target_crash_pairs": target_crash_pairs,
+        "target_crash_asymmetries": target_crash_asymmetries,
     }
     if len(damage) == 2:
         aggregate["left_right_damage_gap"] = abs(damage[0] - damage[1])
@@ -120,8 +132,8 @@ def render_report(payload: dict[str, Any]) -> str:
         "",
         "이 표는 후보 제거용 exact mirror screening이다. 단일 seed 결과이므로 성능 승격 근거가 아니다.",
         "",
-        "| bundle | Damage 평균 | Damage 최악 | 좌우 Damage gap | LOS 평균 Δ | LOS-rate 평균 Δ | Cone 평균 Δ | First Damage 평균 Δ | saturation Δ 최대 | crash 회귀 |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| bundle | Damage 평균 | Damage 최악 | 좌우 Damage gap | LOS 평균 Δ | LOS-rate 평균 Δ | Cone 평균 Δ | First Damage 평균 Δ | saturation Δ 최대 | own crash 회귀 | target crash pair/비대칭 |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
 
     def fmt(value: Any, digits: int = 5) -> str:
@@ -130,7 +142,7 @@ def render_report(payload: dict[str, Any]) -> str:
     for item in payload["bundles"]:
         a = item["aggregate"]
         lines.append(
-            "| {tag} | {damage} | {worst} | {gap} | {los} | {rate} | {cone} | {first} | {sat} | {crash} |".format(
+            "| {tag} | {damage} | {worst} | {gap} | {los} | {rate} | {cone} | {first} | {sat} | {crash} | {target_crash}/{target_asymmetry} |".format(
                 tag=item["tag"],
                 damage=fmt(a["damage_delta_mean"]),
                 worst=fmt(a["damage_delta_worst"]),
@@ -141,6 +153,8 @@ def render_report(payload: dict[str, Any]) -> str:
                 first=fmt(a["first_damage_delta_mean_s"]),
                 sat=fmt(a["action_saturation_delta_max"]),
                 crash=a["ownship_crash_regressions"],
+                target_crash=a["target_crash_pairs"],
+                target_asymmetry=a["target_crash_asymmetries"],
             )
         )
     return "\n".join(lines) + "\n"
