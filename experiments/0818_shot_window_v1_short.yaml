@@ -26,7 +26,7 @@ env_config:
       exit_range_margin_m: 75.0
       enter_min_target_ata_deg: 150.0
       exit_min_target_ata_deg: 140.0
-      max_active_steps: 30
+      max_active_steps: 60
       cooldown_steps: 30
       require_condition_exit_for_rearm: true
       sim_hz: 60
@@ -34,4 +34,3 @@ env_config:
 runtime:
   iterations: 20
   max_effective_learner_time_s: 1800
-

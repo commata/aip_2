@@ -3,7 +3,7 @@
   "research_issue": 13,
   "branch": "codex/shot-window-residual-model-search",
   "base_merge_sha": "e48452a06029c31fef0fa063812016d691c8e846",
-  "status": "DIAGNOSTIC_PENDING",
+  "status": "DIAGNOSTIC_COMPLETE",
   "baseline": "Pure 0815 BT",
   "primary_metric": "hybrid_damage_minus_pure_bt_damage",
   "training_seeds": [5101, 5102],
@@ -34,12 +34,20 @@
     "exit_range_margin_m": 75.0,
     "enter_min_target_ata_deg": 150.0,
     "exit_min_target_ata_deg": 140.0,
-    "max_active_steps": 30,
-    "max_active_duration_s": 0.5,
+    "max_active_steps": 60,
+    "max_active_duration_s": 1.0,
     "cooldown_steps": 30,
     "cooldown_duration_s": 0.5,
     "require_condition_exit_for_rearm": true,
     "sim_hz": 60
+  },
+  "inference_diagnostic": {
+    "checkpoint_seeds": [3101, 3102],
+    "screening_seeds": [5201, 5202, 5203, 5204, 5205, 5206],
+    "duration_candidates_s": [0.25, 0.5, 0.75, 1.0, 1.5],
+    "selected_duration_s": 1.0,
+    "selected_reason": "두 checkpoint pooled 12 clean pair에서 mean Damage delta +0.0003001645, positive 8/12; Gate v1보다 active ratio 약 91%p 감소",
+    "result": "구조 진단 통과, 모델 승격 근거 아님"
   },
   "fixed_conditions": {
     "observation": "tactical16.v1",

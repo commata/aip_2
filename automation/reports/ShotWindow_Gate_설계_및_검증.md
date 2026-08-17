@@ -31,7 +31,7 @@ Pure BT의 first Damage는 first WEZ frame과 같았다. 공식 phase range +75m
 - `ACTIVE`: 공식 phase half-angle +1.5°, phase range +25m, target ATA 150° 이상에서만 residual 허용
 - `COOLDOWN`: timeout 또는 condition/safety exit 직후 RL inference 금지
 
-ACTIVE exit hysteresis는 half-angle +2.5°, phase range +75m, target ATA 140°다. ACTIVE는 최대 30 frame(0.5초)이며 cooldown 30 frame(0.5초)과 shot condition 이탈을 모두 충족해야 재진입한다. time-only cooldown은 명시적 비교 가능한 대안으로 구현했지만 v1 기본값은 condition-exit 방식이다.
+ACTIVE exit hysteresis는 half-angle +2.5°, phase range +75m, target ATA 140°다. 구현 기본값은 최대 30 frame(0.5초)지만, 고정 checkpoint duration diagnostic 결과 이번 학습 계약은 60 frame(1.0초)을 선택했다. cooldown 30 frame(0.5초)과 shot condition 이탈을 모두 충족해야 재진입한다. time-only cooldown은 명시적 비교 가능한 대안으로 구현했지만 v1 기본값은 condition-exit 방식이다.
 
 ## 계측 계약
 
@@ -50,6 +50,23 @@ ACTIVE exit hysteresis는 half-angle +2.5°, phase range +75m, target ATA 140°�
 
 training-environment smoke는 `artifacts/smoke/shot_window_v1_s5101_r2_20260818/result.json`에 보존했다. 59 step 동안 entry/exit/timeout 각 1회, ACTIVE 30 frame(0.5초), RL correction 30회였고 Gate OFF exact BT 및 throttle BT-only가 모두 참이었다. episode가 cooldown 종료 3 frame 전에 끝나 관측 cooldown은 0.45초였지만 정적 경계 테스트에서 30 frame 계약을 별도로 검증했다.
 
+## 기존 checkpoint inference diagnostic
+
+동일 screening 6-case, scale 0.125, s3101 체크포인트에서 Gate v1과 ACTIVE 0.25/0.50/0.75/1.00/1.50초를 비교했다. 이후 0.50초와 1.00초만 s3102에서 독립 확인했다. 모든 12 pair는 target crash가 없는 clean pair였다.
+
+| checkpoint / Gate | ACTIVE | clean mean Damage Δ | positive pair | active ratio | RL inference 평균 |
+|---|---:|---:|---:|---:|---:|
+| s3101 / Gate v1 | 무제한 | -0.000703 | 3/6 | 99.21% | 152.50 |
+| s3101 / Shot | 0.25초 | -0.001134 | 2/6 | 2.30% | 4.50 |
+| s3101 / Shot | 0.50초 | -0.000669 | 3/6 | 4.43% | 7.33 |
+| s3101 / Shot | 0.75초 | -0.000624 | 3/6 | 6.48% | 11.33 |
+| s3101 / Shot | 1.00초 | +0.000392 | 3/6 | 8.52% | 14.00 |
+| s3101 / Shot | 1.50초 | -0.000119 | 3/6 | 12.61% | 20.67 |
+| s3102 / Shot | 0.50초 | -0.001644 | 3/6 | 4.34% | 7.33 |
+| s3102 / Shot | 1.00초 | +0.000208 | 5/6 | 8.52% | 14.00 |
+
+1.00초 pooled 결과는 mean Damage Δ +0.000300, positive 8/12다. 기존 checkpoint 자체를 승격하지 않지만, 기존 Gate v1보다 trajectory 개입을 약 91%p 줄이면서 Damage 방향을 유지할 수 있어 1.00초 temporal contract로 새 policy를 학습할 근거가 됐다. 0.25초는 사격 직전 보정에 너무 짧았고 1.50초는 추가 이득이 없어 탈락시켰다.
+
 ## 현재 판단
 
-`DIAGNOSTIC_COMPLETE`는 기존 checkpoint inference diagnostic까지 통과한 뒤 사용한다. 현재는 상태 머신과 static contract가 구현된 `DIAGNOSTIC_PENDING`이다.
+상태 머신, static contract, 두 checkpoint 진단을 통과해 `DIAGNOSTIC_COMPLETE`다. 다음 상태는 독립 seed 5101/5102의 `SHORT_TRAINING`이며 아직 모델 후보는 아니다.
