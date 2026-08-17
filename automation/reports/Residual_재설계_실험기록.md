@@ -129,3 +129,21 @@ PR #10 Tactical16 training record의 유효 episode reward contribution 평균�
 Damage가 가장 큰 term이라는 우선순위는 유지되지만, `aim_progress`는 두 번째로 크고 episode별 범위가 seed 3101 `[-21.05,+15.11]`, seed 3102 `[-31.27,+20.14]`다. 반면 실제 평가에서는 LOS가 감소해도 Damage가 감소했다. 따라서 `aim_progress`가 Damage chain보다 LOS 진행을 과도하게 최적화한다는 가설을 세운다.
 
 다음 pilot은 PR #10의 all-axis action을 복원하고 `aim_progress_scale`만 1.0에서 0.0으로 바꾼다. Tactical16, Gate, 다른 reward term, network, scale, target/geometry와 학습 budget은 고정한다. 이 실험은 roll-only 실패 후보 위에 reward를 추가하는 결합 실험이 아니라, 원래 PR #10 baseline에 대한 reward 단일-variable 비교다.
+
+### short pilot 및 제3 seed 판별 결과
+
+seed 4201·4202가 각각 음수/양수로 충돌했다. reward telemetry에서 `aim_progress=0`이 전 episode 확인됐고, 두 학습 모두 20 iteration 완료, crash·clipping 0이었다. crossing-left 오염을 제외했으며 두 평가의 Pure BT raw result가 동일해 코드·contamination·evaluation variance 점검에서 충돌 원인을 찾지 못했다. 따라서 같은 설정의 독립 seed 4203을 추가했다.
+
+| training seed | mean Damage Δ | median | min / max | positive pair | bootstrap 95% CI | First Damage Δ | LOS Δ | LOS-rate Δ | Cone Δ |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 4201 | -0.001276 | -0.001498 | -0.005660 / +0.004021 | 1/5 | [-0.003995, +0.001764] | -0.0067s | +0.017530° | +0.004235°/s | -0.0100s |
+| 4202 | +0.000765 | -0.000044 | -0.003038 / +0.005338 | 2/5 | [-0.002375, +0.003905] | 0.0000s | -0.004452° | +0.002587°/s | +0.0133s |
+| 4203 | -0.000524 | +0.000341 | -0.005779 / +0.002781 | 3/5 | [-0.003375, +0.001904] | 0.0000s | -0.009802° | -0.005646°/s | -0.0067s |
+
+세 training seed clean mean의 평균은 `-0.000345`이며 방향은 음수/양수/음수다. 각 평가에서 ownship crash 0, target crash 1(crossing-left), clipping 0, Gate active ratio 0.9934~0.9943, inference P95 0.539~0.596ms였다.
+
+`aim_progress` 제거는 seed variance를 해소하지 못했고 실제 Damage 개선 방향도 재현하지 못했다. seed 4202의 단일 양수 결과를 cherry-pick하지 않는다. 이 reward 가설은 `REVALIDATION_FAILED / NOT_PROMOTED`이며 scale sweep·장시간 학습·200초 평가로 확장하지 않는다.
+
+- training: `artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_all_s420{1,2,3}_reward_no_aim_progress_v1`
+- evaluation: `artifacts/evaluations/offensive_residual_causal_rework/no_aim_progress_short_s420{1,2,3}_20260817`
+- manifest: `automation/manifests/residual_no_aim_progress_short_v1.json`
