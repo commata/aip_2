@@ -46,7 +46,7 @@ ACTIVE exit hysteresis는 half-angle +2.5°, phase range +75m, target ATA 140°�
 
 `automation/tests/test_shot_window_gate.py`가 deep rear/rear120 boundary/beam/front, WEZ outside/approaching/inside, LOS good/bad, high/low LOS-rate 관측, entry/timeout/exit/cooldown/reentry, boundary oscillation, low altitude/low speed/no authority veto, Gate OFF exact BT, inference skip, fallback, throttle BT-only를 검증한다.
 
-현재 targeted 결과는 `8 passed, 12 subtests passed`이며 milestone 전체 검증은 automation `137 passed, 26 subtests passed`, core tests `9 passed`, compileall 및 `git diff --check` 통과다.
+초기 targeted 결과는 `8 passed, 12 subtests passed`였고 residual decay 경계까지 추가한 뒤 Shot-Window targeted suite는 `12 passed, 12 subtests passed`다. 최종 branch 검증은 automation `140 passed, 26 subtests passed`, core tests `9 passed`, compileall, manifest JSON 23개 parse 및 `git diff --check`를 통과했다.
 
 training-environment smoke는 `artifacts/smoke/shot_window_v1_s5101_r2_20260818/result.json`에 보존했다. 59 step 동안 entry/exit/timeout 각 1회, ACTIVE 30 frame(0.5초), RL correction 30회였고 Gate OFF exact BT 및 throttle BT-only가 모두 참이었다. episode가 cooldown 종료 3 frame 전에 끝나 관측 cooldown은 0.45초였지만 정적 경계 테스트에서 30 frame 계약을 별도로 검증했다.
 
@@ -69,4 +69,4 @@ training-environment smoke는 `artifacts/smoke/shot_window_v1_s5101_r2_20260818/
 
 ## 현재 판단
 
-상태 머신, static contract, 두 checkpoint 진단을 통과해 `DIAGNOSTIC_COMPLETE`다. 다음 상태는 독립 seed 5101/5102의 `SHORT_TRAINING`이며 아직 모델 후보는 아니다.
+상태 머신, static contract, 두 checkpoint 진단은 `DIAGNOSTIC_COMPLETE`다. 후속 SAC/PPO 학습에서 승격 후보는 나오지 않았지만 Gate 자체는 ACTIVE 최대 60 frame, cooldown/re-entry, Gate OFF exact equality, inference skip, throttle BT-only 계약을 유지했다.

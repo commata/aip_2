@@ -3,7 +3,7 @@
   "research_issue": 13,
   "branch": "codex/shot-window-residual-model-search",
   "base_merge_sha": "e48452a06029c31fef0fa063812016d691c8e846",
-  "status": "SHORT_TRAINING",
+  "status": "NOT_PROMOTED",
   "baseline": "Pure 0815 BT",
   "primary_metric": "hybrid_damage_minus_pure_bt_damage",
   "training_seeds": [5101, 5102],
@@ -15,6 +15,7 @@
   },
   "held_out_revalidation": {
     "frozen_before_results": true,
+    "opened": false,
     "seeds": [5301, 5302, 5303, 5304, 5305, 5306],
     "scenarios": [
       "automation/scenarios/0815_aim_mirror_holdout/lateral_left.json",
@@ -94,9 +95,49 @@
     "failure_cause": "SAC update가 양수 초기 policy를 첫 5 iteration부터 seed별 상반 방향으로 이동",
     "next_hypothesis": "동일 Stage-1 계약에서 PPO single-variable algorithm comparison"
   },
+  "stage1_ppo_v1": {
+    "status": "REVALIDATION_FAILED",
+    "training_seeds": [5101, 5102, 5103],
+    "iterations_per_seed": 20,
+    "env_steps_per_seed": 2560,
+    "episodes_per_seed": 213,
+    "screened_checkpoints": [5, 10, 15, 20],
+    "checkpoint_summary": {
+      "5": {"seed_mean_damage_delta": [-0.0001666775427293654, -0.0006966521988167607, 0.0003974994930986779], "pooled_positive_pairs": 7, "pooled_clean_pairs": 18, "contaminated_pairs": 0, "worst_geometry_damage_delta": -0.005690252355182057},
+      "10": {"seed_mean_damage_delta": [0.00038311015489354003, 0.0008199973001667083, 0.00046358106802237844], "pooled_positive_pairs": 7, "pooled_clean_pairs": 15, "contaminated_pairs": 3, "worst_geometry_damage_delta": -0.004520841723717028},
+      "15": {"seed_mean_damage_delta": [0.0006669409530517534, 0.0009304198725545553, 0.0020717988462008565], "pooled_positive_pairs": 8, "pooled_clean_pairs": 16, "contaminated_pairs": 2, "worst_geometry_damage_delta": -0.00396016211614203},
+      "20": {"seed_mean_damage_delta": [-0.0007689472175954392, 0.0013161277314919968, 0.0003573508025962087], "pooled_positive_pairs": 9, "pooled_clean_pairs": 17, "contaminated_pairs": 1, "worst_geometry_damage_delta": -0.003993853046847073}
+    },
+    "decision": "어느 checkpoint도 seed 방향 일치, pooled positive 과반 명확 초과, geometry 대규모 회귀 없음 기준을 동시에 충족하지 못함"
+  },
+  "training_total": {
+    "successful_iterations": 180,
+    "env_steps": 23040,
+    "episodes": 1533,
+    "excluded_zero_sample_failures": ["rear120_t16_all_s5103_shot_window_stage1_ppo_conflict_v1"]
+  },
+  "promotion": {
+    "short_promote_candidate": false,
+    "promote_candidate": false,
+    "promoted_local": false,
+    "heldout_executed": false,
+    "scale_sweep_executed": false,
+    "long_training_executed": false,
+    "full_fight_200s_executed": false,
+    "bundle_created": false
+  },
+  "final_validation": {
+    "automation_tests_passed": 140,
+    "automation_subtests_passed": 26,
+    "core_tests_passed": 9,
+    "compileall": "passed",
+    "manifest_json_parsed": 23,
+    "git_diff_check": "passed"
+  },
   "fixed_conditions": {
     "observation": "tactical16.v1",
-    "algorithm": "SAC",
+    "base_algorithm": "SAC",
+    "algorithm_comparison": "PPO",
     "residual_scale": 0.125,
     "composition_mode": "saturation_aware",
     "residual_axis_mask": "roll_pitch_yaw",

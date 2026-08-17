@@ -8,10 +8,10 @@ output:
 
 pilot_matrix:
   allow_single_conflict_seed: true
-  run_suffix: shot_window_stage1_ppo_conflict_v1
+  run_suffix: shot_window_stage1_ppo_conflict_v1_r2
   seeds: [5103]
   observations:
     - label: t16_all
       mode: tactical16
       contract: {version: tactical16.v1, normalization_version: tactical16.norm.v1, health_source: unavailable_constant_one}
-  notes: "PPO seed 5101/5102 screening 방향 충돌을 판별하는 사전 고정 conflict seed 5103. 다른 계약은 모두 고정."
+  notes: "PPO seed 5101/5102 screening 방향 충돌을 판별하는 사전 고정 conflict seed 5103. r1은 Ray logger sandbox 권한으로 iteration 0 전에 중단되어 r2로 재실행하며 다른 계약은 모두 고정."
