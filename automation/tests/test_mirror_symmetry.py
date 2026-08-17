@@ -112,6 +112,13 @@ class MirrorSymmetryTests(unittest.TestCase):
         )
 
     def assert_checked_in_scenario_directory_is_mirrored(self, root: Path) -> None:
+        def assert_autopilot_matches_target(payload: dict) -> None:
+            target = payload["env_config"]["target"]
+            autopilot = payload["env_config"]["target_autopilot"]
+            self.assertEqual(float(autopilot["heading_cmd"]), float(target[5]))
+            self.assertEqual(float(autopilot["altitude_cmd"]), -float(target[2]))
+            self.assertEqual(float(autopilot["speed_cmd"]), float(target[6]))
+
         for left_name, right_name in (
             ("lateral_left", "lateral_right"),
             ("crossing_left", "crossing_right"),
@@ -128,6 +135,8 @@ class MirrorSymmetryTests(unittest.TestCase):
                 mirror_pose_lateral(left["env_config"]["target"]),
                 right["env_config"]["target"],
             )
+            assert_autopilot_matches_target(left)
+            assert_autopilot_matches_target(right)
 
         high = json.loads((root / "vertical_high.json").read_text(encoding="utf-8"))
         low = json.loads((root / "vertical_low.json").read_text(encoding="utf-8"))
@@ -141,6 +150,8 @@ class MirrorSymmetryTests(unittest.TestCase):
             mirror_pose_vertical(high["env_config"]["target"], down_origin_m=origin),
             low["env_config"]["target"],
         )
+        assert_autopilot_matches_target(high)
+        assert_autopilot_matches_target(low)
 
     def test_checked_in_training_scenarios_match_declared_mirrors(self) -> None:
         root = Path(__file__).resolve().parents[1] / "scenarios" / "0815_aim_mirror"
@@ -148,6 +159,14 @@ class MirrorSymmetryTests(unittest.TestCase):
 
     def test_checked_in_holdout_scenarios_match_declared_mirrors(self) -> None:
         root = Path(__file__).resolve().parents[1] / "scenarios" / "0815_aim_mirror_holdout"
+        self.assert_checked_in_scenario_directory_is_mirrored(root)
+
+    def test_proxy_longrun_holdout_scenarios_match_declared_mirrors(self) -> None:
+        root = (
+            Path(__file__).resolve().parents[1]
+            / "scenarios"
+            / "0815_aim_proxy_longrun_holdout"
+        )
         self.assert_checked_in_scenario_directory_is_mirrored(root)
 
 
