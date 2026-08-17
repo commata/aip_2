@@ -1,0 +1,21 @@
+{
+  "source_git_sha": "4f4cb166d5c944a1308de992ba093208e58f965c",
+  "issue": 9,
+  "status": "SUBMISSION_PARITY_CONFIRMED",
+  "scope": "synthetic observation, packet replay, localhost UDP",
+  "observation_mode": "tactical16",
+  "observation_size": 16,
+  "observation_contract_version": "tactical16.v1",
+  "normalization_version": "tactical16.norm.v1",
+  "health_source": "unavailable_constant_one",
+  "wez_contract": "official_phase_damage_cone.v1",
+  "feature_order": [
+    "ownship_roll", "ownship_pitch", "ownship_yaw", "ownship_speed",
+    "ownship_altitude", "ownship_health", "relative_north", "relative_east",
+    "relative_down", "ata", "aspect_angle", "los_azimuth",
+    "los_elevation", "target_health", "in_wez", "pursuit_score"
+  ],
+  "target_bt_status": "TARGET_BT_PENDING",
+  "server_status": "SERVER_BLOCKED",
+  "confidence": "중간"
+}

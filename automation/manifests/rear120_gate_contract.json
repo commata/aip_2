@@ -1,0 +1,28 @@
+{
+  "source_git_sha": "4f4cb166d5c944a1308de992ba093208e58f965c",
+  "issue": 9,
+  "definition": "unsigned 3D target ATA from target nose to target-to-ownship vector",
+  "entry_target_ata_deg": 120.0,
+  "exit_target_ata_deg": 110.0,
+  "activation": "rear120 AND (offensive OR phase_pre_aim) AND NOT safety_veto",
+  "residual_scale": 0.125,
+  "allowed_residual_scales": [0.10, 0.125, 0.15],
+  "composition_mode": "saturation_aware",
+  "throttle_policy": "bt_only",
+  "rl_action_repeat": 6,
+  "negative_gate_frames_tested": 12000,
+  "negative_gate_rl_calls": 0,
+  "udp_loopback": {
+    "frames": 600,
+    "commands": 600,
+    "missing": 0,
+    "duplicates": 0,
+    "p50_ms": 1.391,
+    "p95_ms": 2.787,
+    "p99_ms": 3.550,
+    "max_ms": 6.349,
+    "over_166_7ms_ratio": 0.0
+  },
+  "confidence": "중간",
+  "remaining_uncertainty": "actual 0815 DLL, selected bundle, external server"
+}
