@@ -266,6 +266,10 @@ def build_record(
     provider = result.get("ownship_provider_telemetry", {}) or {}
     own_health = finite(result.get("ownship_health"))
     target_health = finite(result.get("target_health"))
+    gate_kind = provider.get("residual_inference_gate_kind")
+    gate_metric_prefix = (
+        "rear120_activation" if gate_kind == "rear120" else f"{gate_kind}_gate"
+    )
     record = {
         "run_id": run_id,
         "seed": seed,
@@ -273,7 +277,7 @@ def build_record(
         "variant_name": result.get("aim_curriculum_variant_name"),
         "controller": controller,
         "scale": scale,
-        "gate_kind": provider.get("residual_inference_gate_kind"),
+        "gate_kind": gate_kind,
         "outcome": "process_error" if returncode else result.get("outcome", "unknown"),
         "end_condition": result.get("end_condition", ""),
         "ownship_crash": bool(result.get("ownship_crash", False)),
@@ -291,10 +295,10 @@ def build_record(
             if own_health is not None and target_health is not None
             else None
         ),
-        "gate_active_ratio": finite(provider.get(f"{provider.get('residual_inference_gate_kind')}_gate_active_ratio")) or 0.0,
-        "gate_entries": finite(provider.get(f"{provider.get('residual_inference_gate_kind')}_gate_entries")) or 0.0,
-        "gate_exits": finite(provider.get(f"{provider.get('residual_inference_gate_kind')}_gate_exits")) or 0.0,
-        "gate_mean_active_steps": finite(provider.get(f"{provider.get('residual_inference_gate_kind')}_gate_mean_active_steps")) or 0.0,
+        "gate_active_ratio": finite(provider.get(f"{gate_metric_prefix}_active_ratio")) or 0.0,
+        "gate_entries": finite(provider.get(f"{gate_metric_prefix}_entries")) or 0.0,
+        "gate_exits": finite(provider.get(f"{gate_metric_prefix}_exits")) or 0.0,
+        "gate_mean_active_steps": finite(provider.get(f"{gate_metric_prefix}_mean_active_steps")) or 0.0,
         "rl_inference_calls": finite(provider.get("rl_inference_calls")) or 0.0,
         "rl_correction_steps": finite(provider.get("rl_correction_steps")) or 0.0,
         "correction_roll_mean": _axis(provider, "rl_correction_abs_mean", 0),
