@@ -1,0 +1,24 @@
+base_experiment: 0815_submission_rear120_observation_pilot.yaml
+
+name: 0817_offensive_residual_roll_only_short
+
+output:
+  name: 0817_offensive_residual_causal_rework
+  tag: roll_only_short_template
+
+pilot_matrix:
+  run_suffix: roll_v1
+  seeds: [4101, 4102]
+  observations:
+    - label: t16_roll
+      mode: tactical16
+      contract: {version: tactical16.v1, normalization_version: tactical16.norm.v1, health_source: unavailable_constant_one}
+  notes: "Phase A axis ablation 기반 roll-only effective action short pilot. Gate/reward/observation/network/scale/target/geometry는 PR10 Tactical16 pilot과 동일."
+
+env_config:
+  residual_training:
+    residual_axis_mask: roll
+
+runtime:
+  iterations: 20
+  max_effective_learner_time_s: 1800

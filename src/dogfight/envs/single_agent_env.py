@@ -277,6 +277,9 @@ class DogFightEnv(gym.Env):
             rear120_gate=residual.get("rear120_gate") or None,
             safety_veto=residual.get("safety_veto") or None,
             composition_mode=str(residual.get("composition_mode", "additive")),
+            residual_axis_mask=str(
+                residual.get("residual_axis_mask", "roll_pitch_yaw")
+            ),
         )
 
     def _build_ownship_ai(self):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from automation.run_observation_pilot_matrix import expand_matrix
+from automation.run_observation_pilot_matrix import _deep_merge, expand_matrix
 
 
 def _payload():
@@ -41,3 +41,20 @@ def test_requires_two_seeds() -> None:
     payload["pilot_matrix"]["seeds"] = [3101]
     with pytest.raises(ValueError, match="at least two"):
         expand_matrix(payload)
+
+
+def test_overlay_deep_merges_nested_experiment_config() -> None:
+    payload = _deep_merge(
+        {
+            "env_config": {
+                "residual_training": {"scale": 0.125, "gate_kind": "rear120"}
+            }
+        },
+        {"env_config": {"residual_training": {"residual_axis_mask": "roll"}}},
+    )
+
+    assert payload["env_config"]["residual_training"] == {
+        "scale": 0.125,
+        "gate_kind": "rear120",
+        "residual_axis_mask": "roll",
+    }

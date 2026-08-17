@@ -247,6 +247,31 @@ class OffensiveHybridTests(unittest.TestCase):
         self.assertAlmostEqual(float(on.action[3]), 0.77, places=6)
         self.assertTrue(on.info["throttle_residual_forced_zero"])
 
+    def test_training_axis_mask_applies_only_roll(self) -> None:
+        bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
+        provider = ResidualTrainingActionProvider(
+            bt,
+            residual_scale=0.125,
+            gate_kind="aim",
+            residual_axis_mask="roll",
+        )
+
+        result = provider.compute_action(
+            context(
+                self.own,
+                self.target,
+                residual=[0.8, -0.4, 0.2, -1.0],
+                sim_time_s=0.0,
+            )
+        )
+
+        np.testing.assert_allclose(result.action, [0.3, -0.3, 0.1, 0.77])
+        np.testing.assert_allclose(
+            result.info["masked_residual_action"], [0.8, 0.0, 0.0, 0.0]
+        )
+        self.assertEqual(result.info["residual_axis_mask"], "roll")
+        self.assertEqual(provider.telemetry()["residual_axis_mask"], "roll")
+
     def test_inference_residual_gate_off_is_exact_bt_and_skips_policy(self) -> None:
         bt = CountingProvider([0.2, -0.3, 0.1, 0.77], "bt")
         rl = CountingProvider([0.8, -0.4, 0.2, 0.0], "rl")

@@ -12,11 +12,40 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _deep_merge(base: dict, override: dict) -> dict:
+    result = deepcopy(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = deepcopy(value)
+    return result
+
+
+def load_experiment_payload(source: Path, seen: set[Path] | None = None) -> dict:
+    source = source.resolve()
+    seen = set() if seen is None else set(seen)
+    if source in seen:
+        raise ValueError(f"cyclic base_experiment reference: {source}")
+    seen.add(source)
+    payload = yaml.safe_load(source.read_text(encoding="utf-8")) or {}
+    base_reference = payload.pop("base_experiment", None)
+    if not base_reference:
+        return payload
+    base_path = Path(base_reference)
+    if not base_path.is_absolute():
+        sibling = source.parent / base_path
+        base_path = sibling if sibling.is_file() else ROOT / base_path
+    base = load_experiment_payload(base_path, seen)
+    return _deep_merge(base, payload)
+
+
 def expand_matrix(payload: dict) -> list[tuple[str, dict]]:
     matrix = payload.get("pilot_matrix") or {}
     seeds = list(matrix.get("seeds") or [])
     observations = list(matrix.get("observations") or [])
     run_suffix = str(matrix.get("run_suffix") or "").strip()
+    matrix_notes = str(matrix.get("notes") or "").strip()
     if len(seeds) < 2:
         raise ValueError("pilot_matrix.seeds must contain at least two independent seeds")
     if not observations:
@@ -39,7 +68,7 @@ def expand_matrix(payload: dict) -> list[tuple[str, dict]]:
             item.setdefault("env_config", {})["observation_mode"] = mode
             item["env_config"]["observation_contract"] = contract
             item.setdefault("runtime", {})["seed"] = int(seed)
-            item["notes"] = (
+            item["notes"] = matrix_notes or (
                 "Rear120 R10/T16 same-budget pilot. "
                 f"Only observation contract and independent seed vary: {mode}, {seed}."
             )
@@ -58,7 +87,7 @@ def parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = parser().parse_args()
     source = args.experiment_yaml.resolve()
-    payload = yaml.safe_load(source.read_text(encoding="utf-8")) or {}
+    payload = load_experiment_payload(source)
     generated_root = ROOT / "artifacts" / "experiment_matrix" / source.stem
     generated_root.mkdir(parents=True, exist_ok=True)
     selected = set(args.only)

@@ -50,6 +50,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--scale", type=float, default=0.125)
     parser.add_argument(
+        "--residual-axis-mask",
+        choices=("roll", "pitch", "yaw", "pitch_yaw", "roll_pitch_yaw"),
+        default="roll_pitch_yaw",
+    )
+    parser.add_argument(
         "--gate-kind",
         choices=("aim", "offensive", "combined", "rear120"),
         default="aim",
@@ -135,6 +140,7 @@ def main() -> None:
         },
         "residual_training": {
             "scale": args.scale,
+            "residual_axis_mask": args.residual_axis_mask,
             "gate_kind": args.gate_kind,
             "batch_contract": {
                 "mode": (
