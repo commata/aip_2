@@ -6,6 +6,9 @@ import pytest
 from automation.evaluate_aim_suite import combine_results, load_suite
 
 
+ROOT = Path(__file__).resolve().parents[2]
+
+
 def evaluation(seed, damage):
     records = []
     for controller, value in (("pure_0815", 0.1), ("hybrid_0.125", damage)):
@@ -47,3 +50,22 @@ def test_suite_rejects_duplicate_seed_labels():
     path.write_text(json.dumps({"cases": [{"name": "a", "seed": 1}, {"name": "b", "seed": 1}]}))
     with pytest.raises(ValueError, match="seed label"):
         load_suite(path)
+
+
+def test_checked_in_holdout_suite_covers_each_frozen_mirror_geometry_once():
+    suite = load_suite(
+        ROOT / "automation/scenarios/0815_aim_proxy_longrun_holdout_suite.json"
+    )
+    assert [case["name"] for case in suite["cases"]] == [
+        "lateral_left",
+        "lateral_right",
+        "crossing_left",
+        "crossing_right",
+        "vertical_high",
+        "vertical_low",
+    ]
+    for case in suite["cases"]:
+        scenario = ROOT / case["scenario"]
+        assert scenario.is_file()
+        payload = json.loads(scenario.read_text(encoding="utf-8"))
+        assert payload["name"].endswith(case["name"])
