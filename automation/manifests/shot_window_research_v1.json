@@ -3,7 +3,7 @@
   "research_issue": 13,
   "branch": "codex/shot-window-residual-model-search",
   "base_merge_sha": "e48452a06029c31fef0fa063812016d691c8e846",
-  "status": "DIAGNOSTIC_COMPLETE",
+  "status": "SHORT_TRAINING",
   "baseline": "Pure 0815 BT",
   "primary_metric": "hybrid_damage_minus_pure_bt_damage",
   "training_seeds": [5101, 5102],
@@ -48,6 +48,20 @@
     "selected_duration_s": 1.0,
     "selected_reason": "두 checkpoint pooled 12 clean pair에서 mean Damage delta +0.0003001645, positive 8/12; Gate v1보다 active ratio 약 91%p 감소",
     "result": "구조 진단 통과, 모델 승격 근거 아님"
+  },
+  "short_training_v1": {
+    "status": "REVALIDATION_FAILED",
+    "training_seeds": [5101, 5102],
+    "iterations_per_seed": 20,
+    "env_steps_per_seed": 2560,
+    "screened_checkpoints": [5, 10, 15, 20],
+    "all_checkpoint_clean_mean_damage_delta_negative": true,
+    "iteration_20": {
+      "5101": {"clean_mean_damage_delta": -0.0008898712353287616, "positive_pairs": 2, "pairs": 6},
+      "5102": {"clean_mean_damage_delta": -0.0014985227823273533, "positive_pairs": 1, "pairs": 6}
+    },
+    "failure_cause": "Gate contract는 안정적이나 broad curriculum에서 policy가 실제 ACTIVE transition을 너무 적게 관측",
+    "next_hypothesis": "damage 직전과 cone 직전 상태에서 시작하는 Stage-1 shot-window curriculum"
   },
   "fixed_conditions": {
     "observation": "tactical16.v1",
