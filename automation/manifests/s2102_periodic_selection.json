@@ -1,0 +1,37 @@
+{
+  "issue": 9,
+  "status": "REVALIDATION_FAILED",
+  "promotion": "NOT_PROMOTED",
+  "screening": {
+    "bundle_count": 40,
+    "periodic_count": 39,
+    "includes_final": true,
+    "geometry_count": 6,
+    "controller_episodes": 480,
+    "seed_label": 2707,
+    "scale": 0.125,
+    "gate": "aim",
+    "composition": "saturation_aware",
+    "summary_sha256": "427B76A51C45F2047C2A09C45DEC80D8587DACF8F94FA78BEA43BEC4E5F70ECD"
+  },
+  "provisional_first_pass": {
+    "tag": "011400",
+    "reason": "damage worst 0 and lowest saturation among high-damage candidates",
+    "confounder": "lateral-right pure target altitude termination versus hybrid target destruction",
+    "revalidation": "failed"
+  },
+  "selected_screening_reference": {
+    "tag": "005100",
+    "bundle_weights_sha256": "ADB63E5715F63527CD5FC0AA889AB2ADCD517A0F8A50CD13789758456797E3AF",
+    "revalidation_evaluation_sha256": "7798C8E1B8A73360D56C7B8F1D9548DB789A40836390E926EF0E4694CFF828F7",
+    "damage_delta": 0.0004050694565221706,
+    "los_delta_deg": -0.04862213384339246,
+    "los_rate_delta_deg_s": 0.020396015017211038,
+    "cone_delta_s": 0.05833333333333327,
+    "first_damage_delta_s": -0.24166666666666656,
+    "action_saturation_delta": 0.03331697398501107,
+    "interpretation": "LOS는 감소했으나 LOS-rate와 여러 non-crash Damage case가 악화"
+  },
+  "target_bt_status": "TARGET_BT_PENDING",
+  "confidence": "중간"
+}

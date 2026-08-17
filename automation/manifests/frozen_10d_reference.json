@@ -1,0 +1,25 @@
+{
+  "issue": 9,
+  "status": "FROZEN_10D_REFERENCE",
+  "promotion": "NOT_PROMOTED",
+  "family": "S2101",
+  "tag": "000300",
+  "observation_mode": "aim_residual10_v2",
+  "bundle_weights_sha256": "CCBF1C5A4398105EF218BDBEEDAC92D7CE027D37FCEABCC40B1FD6F143325EB8",
+  "revalidation_evaluation_sha256": "7412C45CBB1819E0121B4F27DD2B207ABC9244F31192EA381C658CA1488A43DE",
+  "scale": 0.125,
+  "gate": "aim",
+  "composition": "saturation_aware",
+  "revalidation": {
+    "damage_delta": 0.000652279665274443,
+    "los_delta_deg": -0.022222224879144103,
+    "los_rate_delta_deg_s": -0.014373565690735779,
+    "cone_delta_s": -0.022222222222222292,
+    "first_damage_delta_s": 0.030555555555555596,
+    "action_saturation_delta": 0.0809307755532854,
+    "ownship_crash_regression": 0
+  },
+  "reason": "S2102 candidates did not reproduce LOS-rate stability; reference is a comparison anchor only",
+  "next_use": "same-budget rear120 10D versus Tactical16 pilot",
+  "confidence": "중간"
+}
