@@ -41,7 +41,7 @@ def test_discover_bundles_orders_periodic_and_appends_final():
     tmp_path.mkdir(parents=True, exist_ok=True)
     for name in ("bundle_000600", "bundle_000300"):
         bundle = tmp_path / name
-        bundle.mkdir()
+        bundle.mkdir(exist_ok=True)
         (bundle / "metadata.json").write_text("{}", encoding="utf-8")
     (tmp_path / "metadata.json").write_text("{}", encoding="utf-8")
     assert [tag for tag, _ in discover_bundles(tmp_path, True)] == ["000300", "000600", "final"]
