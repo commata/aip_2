@@ -147,3 +147,25 @@ seed 4201·4202가 각각 음수/양수로 충돌했다. reward telemetry에서 
 - training: `artifacts/models/0817_offensive_residual_causal_rework/rear120_t16_all_s420{1,2,3}_reward_no_aim_progress_v1`
 - evaluation: `artifacts/evaluations/offensive_residual_causal_rework/no_aim_progress_short_s420{1,2,3}_20260817`
 - manifest: `automation/manifests/residual_no_aim_progress_short_v1.json`
+
+## Phase C3 — offensive ATA Gate 단일-condition diagnostic
+
+### 가설
+
+Gate v1의 `offensive` 분기가 ownship ATA 30°/45° hysteresis로 지나치게 넓어 pre-damage trajectory 대부분에서 RL을 허용한다고 보았다. 다른 조건은 고정하고 offensive ATA entry/exit만 `30°/45° → 10°/15°`로 좁혀 기존 PR #10 Tactical16 checkpoint 두 개를 inference-time paired 진단했다.
+
+### 결과
+
+| reused checkpoint seed | clean Damage Δ | median | positive pair | bootstrap 95% CI | Gate active ratio | mean/max active frame | First Damage Δ | Cone Δ |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 3101 | -0.001704 | -0.000206 | 2/5 | [-0.004294, +0.000330] | 0.9354 | 682.5 / 912.5 | +0.0067s | -0.0033s |
+| 3102 | -0.000186 | -0.000343 | 2/5 | [-0.001377, +0.001045] | 0.9317 | 682.0 / 906.8 | +0.0067s | -0.0067s |
+
+Gate v1의 약 99.4%보다 낮아졌지만 여전히 episode의 약 93%다. seed 3101 trajectory에서 Gate v1의 aim/offensive branch active ratio는 geometry별 각각 59.6~88.9% / 99.4~100%였고, ATA 10°/15°에서는 각각 61.2~88.9% / 85.9~97.6%였다. offensive 조건을 좁혀도 OR의 pre-aim branch가 장시간 intervention을 유지한다.
+
+두 checkpoint 모두 contamination-free Damage가 감소했고 First Damage와 Cone도 개선되지 않았다. 따라서 이 Gate threshold는 static/inference diagnostic 단계에서 폐기하며 새 정책을 학습하지 않는다. ATA와 pre-aim을 동시에 바꾸거나 OR를 AND로 바꾸는 결합 실험은 이번 branch의 단일-variable 원칙상 수행하지 않는다.
+
+상태는 `DIAGNOSTIC_COMPLETE / REVALIDATION_FAILED / NOT_PROMOTED`다. Action, reward, Gate의 세 최소 가설이 모두 promotion 조건을 통과하지 못했으므로 scale sweep, 장시간 학습, candidate freeze, 200초 전체전을 실행하지 않는다.
+
+- evaluation: `artifacts/evaluations/offensive_residual_causal_rework/gate_ata10_diagnostic_t16_s3101_20260817`, `gate_ata10_diagnostic_t16_s3102_20260817`
+- manifest: `automation/manifests/residual_gate_ata10_diagnostic_v1.json`

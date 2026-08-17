@@ -1,0 +1,66 @@
+{
+  "git_sha": "173540e9dc3106796c1e17bdbd7142dbfc6bbaf0",
+  "experiment_id": "residual_gate_ata10_diagnostic_v1_20260817",
+  "hypothesis": "narrowing only the offensive ownship ATA condition will shorten intervention and preserve Pure BT Damage",
+  "changed_variable": "offensive Gate ownship ATA hysteresis: 30/45 deg to 10/15 deg",
+  "fixed_variables": {
+    "observation": "tactical16.v1",
+    "reward": "pr10_aim_residual",
+    "rear120_entry_exit_deg": [120.0, 110.0],
+    "offensive_range_entry_exit_m": [1500.0, 2000.0],
+    "offensive_target_ata_entry_exit_deg": [120.0, 110.0],
+    "pre_aim_gate": "pr10_phase_aware",
+    "safety_veto": "pr10",
+    "action_structure": "roll+pitch+yaw",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "rl_action_repeat": 6,
+    "throttle": "BT-only"
+  },
+  "training_seed": 0,
+  "reused_checkpoint_training_seeds": [3101, 3102],
+  "evaluation_seeds": [2801, 2802, 2803, 2804, 2805, 2806],
+  "observation": "tactical16.v1",
+  "reward_version": "pr10_aim_residual",
+  "gate_version": "rear120_activation_offensive_ata10_v1_diagnostic",
+  "action_structure": "roll+pitch+yaw",
+  "residual_scale": 0.125,
+  "results": [
+    {
+      "reused_checkpoint_training_seed": 3101,
+      "checkpoint_hash": "2790F3303CAF98DD78F5889038601EADCE44D0B012FC0004BB6946F96C23C57F",
+      "clean_damage_delta_mean": -0.0017041537089116598,
+      "clean_positive_pairs": 2,
+      "clean_pairs": 5,
+      "bootstrap_95_ci": [-0.004294006818427798, 0.00032958878414639513],
+      "gate_active_ratio": 0.9353688149555112,
+      "mean_active_steps": 682.4666666666667,
+      "max_active_steps_mean": 912.5,
+      "evaluation_artifact": "artifacts/evaluations/offensive_residual_causal_rework/gate_ata10_diagnostic_t16_s3101_20260817/evaluation.json",
+      "evaluation_sha256": "172A0C19D5D1CE3D5C6E921C597EEF7B3C502F6377C6E3B31D984AADCC01B685"
+    },
+    {
+      "reused_checkpoint_training_seed": 3102,
+      "checkpoint_hash": "A836531283CC1B20BC8A700161343B83267BD15CB4B701E3FBF8DB88715F0E2D",
+      "clean_damage_delta_mean": -0.00018633453405314526,
+      "clean_positive_pairs": 2,
+      "clean_pairs": 5,
+      "bootstrap_95_ci": [-0.0013768922009416151, 0.001045471236680573],
+      "gate_active_ratio": 0.9316947660962903,
+      "mean_active_steps": 682.0,
+      "max_active_steps_mean": 906.8333333333334,
+      "evaluation_artifact": "artifacts/evaluations/offensive_residual_causal_rework/gate_ata10_diagnostic_t16_s3102_20260817/evaluation.json",
+      "evaluation_sha256": "2A07AA2AF3ED714ECB3557B0FC066AB70FE22DA472F59868B53A5092FBF82920"
+    }
+  ],
+  "contamination": {
+    "status": "TARGET_CRASH_CONTAMINATED",
+    "geometry": "crossing_left",
+    "used_for_promotion": false
+  },
+  "result": "active ratio fell by about six percentage points but remained above 93 percent and clean Damage decreased for both reused checkpoints",
+  "promotion_status": "DIAGNOSTIC_COMPLETE / NOT_PROMOTED",
+  "training_status": "NOT_STARTED_AFTER_DIAGNOSTIC_FAILURE",
+  "server_status": "SERVER_BLOCKED",
+  "target_bt_status": "TARGET_BT_PENDING"
+}
