@@ -109,6 +109,64 @@ def summarize_matched_active(
     }
 
 
+def summarize_surface_authority(hybrid_frames: list[dict[str, Any]]) -> dict[str, Any]:
+    axes = ("roll", "pitch", "yaw")
+    active = [frame for frame in hybrid_frames if gate_info(frame).get("active", False)]
+    result: dict[str, Any] = {"active_frames": len(active), "axes": {}}
+    for index, axis in enumerate(axes):
+        rows = []
+        for frame in active:
+            hybrid = frame.get("hybrid", {}) or {}
+            authority = hybrid.get("surface_authority", {}) or {}
+            requested = authority.get("requested_surface_correction", [0.0] * 3)
+            applied = authority.get("applied_surface_correction", [0.0] * 3)
+            directional = authority.get("directional_headroom", [0.0] * 3)
+            positive = authority.get("positive_headroom", [0.0] * 3)
+            negative = authority.get("negative_headroom", [0.0] * 3)
+            request_nonzero = authority.get("request_nonzero", [False] * 3)
+            bt_saturated = authority.get("bt_surface_saturated", [False] * 3)
+            final_saturated = authority.get("final_surface_saturated", [False] * 3)
+            req = float(requested[index])
+            app = float(applied[index])
+            nonzero = bool(request_nonzero[index]) and abs(req) > 1e-12
+            rows.append(
+                {
+                    "requested_abs": abs(req),
+                    "applied_abs": abs(app),
+                    "directional_headroom": float(directional[index]),
+                    "positive_headroom": float(positive[index]),
+                    "negative_headroom": float(negative[index]),
+                    "request_nonzero": nonzero,
+                    "applied_ratio": abs(app / req) if nonzero else None,
+                    "authority_blocked": nonzero and abs(app) <= abs(req) * 0.01,
+                    "bt_saturated": bool(bt_saturated[index]),
+                    "final_saturated": bool(final_saturated[index]),
+                }
+            )
+        requested_rows = [row for row in rows if row["request_nonzero"]]
+        result["axes"][axis] = {
+            "requested_abs_mean": fmean(row["requested_abs"] for row in rows) if rows else None,
+            "applied_abs_mean": fmean(row["applied_abs"] for row in rows) if rows else None,
+            "applied_to_requested_mean": (
+                fmean(row["applied_ratio"] for row in requested_rows)
+                if requested_rows
+                else None
+            ),
+            "positive_headroom_mean": fmean(row["positive_headroom"] for row in rows) if rows else None,
+            "negative_headroom_mean": fmean(row["negative_headroom"] for row in rows) if rows else None,
+            "directional_headroom_mean": fmean(row["directional_headroom"] for row in rows) if rows else None,
+            "request_nonzero_frames": len(requested_rows),
+            "authority_blocked_ratio": (
+                sum(row["authority_blocked"] for row in requested_rows) / len(requested_rows)
+                if requested_rows
+                else None
+            ),
+            "bt_saturation_ratio": sum(row["bt_saturated"] for row in rows) / len(rows) if rows else None,
+            "final_saturation_ratio": sum(row["final_saturated"] for row in rows) / len(rows) if rows else None,
+        }
+    return result
+
+
 def analyze(
     pure_frames: list[dict[str, Any]],
     hybrid_frames: list[dict[str, Any]],
@@ -159,6 +217,7 @@ def analyze(
         "matched_gate_active_summary": summarize_matched_active(
             pure_frames, hybrid_frames
         ),
+        "surface_authority_summary": summarize_surface_authority(hybrid_frames),
         "entry_windows": windows,
     }
 
@@ -177,6 +236,23 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- 활성 구간 평균 속도 차이: `{_fmt(delta['speed_m_s'])}m/s`",
         f"- 활성 구간 평균 고도 차이: `{_fmt(delta['altitude_m'])}m`",
         f"- 활성 구간 누적 Damage 차이: `{_fmt(delta['damage_dealt_cumulative'])}`",
+        "",
+        "## 활성 구간 조종 권한",
+        "",
+        "| 축 | 요청 평균 | 적용 평균 | 적용/요청 | 방향 headroom | BT 포화율 | 최종 포화율 | authority 차단율 |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for axis, values in payload["surface_authority_summary"]["axes"].items():
+        lines.append(
+            f"| {axis} | {_fmt(values['requested_abs_mean'])} | "
+            f"{_fmt(values['applied_abs_mean'])} | "
+            f"{_fmt(values['applied_to_requested_mean'])} | "
+            f"{_fmt(values['directional_headroom_mean'])} | "
+            f"{_fmt(values['bt_saturation_ratio'])} | "
+            f"{_fmt(values['final_saturation_ratio'])} | "
+            f"{_fmt(values['authority_blocked_ratio'])} |"
+        )
+    lines += [
         "",
         "## 진입 window",
         "",
