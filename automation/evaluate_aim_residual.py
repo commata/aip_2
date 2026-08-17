@@ -62,6 +62,36 @@ def finite(value: Any) -> float | None:
     return number if math.isfinite(number) else None
 
 
+def validate_observation_metadata(payload: dict[str, Any]) -> str:
+    metadata = payload.get("metadata", {})
+    obs_mode = (
+        metadata.get("obs_mode")
+        or payload.get("algorithm_config", {}).get("env_config", {}).get("observation_mode")
+    )
+    if obs_mode not in (
+        "aim_residual10",
+        "aim_residual10_v2",
+        "aim_residual13_btaware",
+        "tactical16",
+    ):
+        raise ValueError(f"bundle observation 불일치: {obs_mode!r}")
+    if obs_mode == "tactical16":
+        expected = {
+            "observation_size": 16,
+            "observation_contract_version": "tactical16.v1",
+            "normalization_version": "tactical16.norm.v1",
+            "health_source": "unavailable_constant_one",
+        }
+        mismatches = {
+            key: {"expected": value, "actual": metadata.get(key)}
+            for key, value in expected.items()
+            if metadata.get(key) != value
+        }
+        if mismatches:
+            raise ValueError(f"Tactical16 bundle contract 불일치: {mismatches}")
+    return str(obs_mode)
+
+
 def preflight(args: argparse.Namespace) -> dict[str, Any]:
     bundle = Path(args.bundle).resolve()
     metadata = bundle / "metadata.json"
@@ -73,16 +103,7 @@ def preflight(args: argparse.Namespace) -> dict[str, Any]:
     if missing:
         raise FileNotFoundError(f"필수 파일 누락: {missing}")
     payload = json.loads(metadata.read_text(encoding="utf-8"))
-    obs_mode = (
-        payload.get("metadata", {}).get("obs_mode")
-        or payload.get("algorithm_config", {}).get("env_config", {}).get("observation_mode")
-    )
-    if obs_mode not in (
-        "aim_residual10",
-        "aim_residual10_v2",
-        "aim_residual13_btaware",
-    ):
-        raise ValueError(f"bundle observation 불일치: {obs_mode!r}")
+    obs_mode = validate_observation_metadata(payload)
     args.observation_mode = obs_mode
     invalid = [scale for scale in args.scales if scale not in ALLOWED_SCALES]
     if invalid:

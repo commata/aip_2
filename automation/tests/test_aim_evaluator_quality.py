@@ -6,6 +6,7 @@ from automation.evaluate_aim_residual import (
     aggregate,
     controller_observation_mode,
     merge_unique_records,
+    validate_observation_metadata,
 )
 
 
@@ -29,6 +30,21 @@ def record(controller: str, seed: int, variant: str, los: float = 2.0):
 
 
 class AimEvaluatorQualityTests(unittest.TestCase):
+    def test_tactical16_bundle_contract_is_explicitly_validated(self) -> None:
+        payload = {
+            "metadata": {
+                "obs_mode": "tactical16",
+                "observation_size": 16,
+                "observation_contract_version": "tactical16.v1",
+                "normalization_version": "tactical16.norm.v1",
+                "health_source": "unavailable_constant_one",
+            }
+        }
+        self.assertEqual(validate_observation_metadata(payload), "tactical16")
+        payload["metadata"]["health_source"] = "simulator"
+        with self.assertRaisesRegex(ValueError, "Tactical16 bundle contract"):
+            validate_observation_metadata(payload)
+
     def test_btaware_bundle_does_not_pre_tick_pure_bt_baseline(self) -> None:
         self.assertEqual(
             controller_observation_mode(
