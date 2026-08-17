@@ -96,12 +96,21 @@
       "interpretation": "Damage와 Cone은 개선됐지만 episode 평균 LOS는 소폭 악화했다. crossing-left 단일 성공 사례로 일반화하지 않는다."
     }
   },
+  "reward_chain_correlations": {
+    "scope": "18 development paired deltas; descriptive only",
+    "los_delta_vs_cone_delta_r": -0.6188161984469844,
+    "los_rate_delta_vs_cone_delta_r": -0.5133607284010834,
+    "cone_delta_vs_damage_delta_r": 0.7586257991876296,
+    "first_damage_delta_vs_damage_delta_r": 0.0979581032376938,
+    "saturation_delta_vs_damage_delta_r": -0.487913624596134,
+    "interpretation": "LOS/LOS-rate 감소와 Cone 증가, Cone과 Damage 증가 사이의 기대 방향은 보이지만 first Damage만으로 Damage를 설명하지 못한다. crossing-left 과대표집 때문에 인과 또는 일반화 근거로 쓰지 않는다."
+  },
   "artifact_hashes": {
     "screening_summary_sha256": "465F689983E83A4EB6660610C998A80E29F07AB6DCB8BE74D8D4057FE969853A",
     "dev_000300_evaluation_sha256": "A628B78DD6664FFC241E639034C82B76C4DE27308B935BEBAB62EEBE3E83CDBA",
     "dev_003300_evaluation_sha256": "3B4CFF05EE88DCA54A2F2524DC7FBBFCB10F1036A2E66D62DA32802F1C0C0342",
     "dev_003600_evaluation_sha256": "DCD1F2074290D2920FFA590DE967C48ACD77778E233FAEC5C434A95B0E09A914",
-    "candidate_analysis_sha256": "87C33F72944E8550A755425E44BC9081158E116A6A988E61DCE5FED1EA054093",
+    "candidate_analysis_sha256": "4000738CF1FCE4874784F8B0064239114732A75B2A6A9C5D468D492EC9894AB9",
     "gate_authority_seed2518_sha256": "6289C53E7446FD1962E27C1AEAC9CD559623E9832321EEE6CEB38002BAE69A1C",
     "gate_authority_seed2505_sha256": "8631745B5FB45E4445CED1E60A6D98FF506E4E71DDFCE9860C3D2CF59F9BA3DA",
     "gate_authority_seed2501_sha256": "1BF18C5FBA34B55456094BF8F857D3648C4A86323CB7778EF40D38BC393D097A",
