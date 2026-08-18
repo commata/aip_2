@@ -19,6 +19,7 @@ from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.bt_rule_manager import activate_rule_xml
 from dogfight.ai.hybrid_action_provider import (
     AimGateConfig,
+    CounterfactualPulseActionProvider,
     HybridActionProvider,
     OffensiveGateConfig,
     Rear120GateConfig,
@@ -34,7 +35,7 @@ from dogfight.ai.student_hooks import load_observation_hook
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run local dogfight simulation between two inference backends.")
-    backend_choices = ["rl", "bt", "hybrid", "residual_hybrid", "fixed", "autopilot"]
+    backend_choices = ["rl", "bt", "hybrid", "residual_hybrid", "counterfactual_pulse", "fixed", "autopilot"]
     parser.add_argument("--ownship-backend", choices=backend_choices, required=True)
     parser.add_argument("--target-backend", choices=backend_choices, required=True)
     parser.add_argument("--ownship-bundle-dir")
@@ -89,6 +90,14 @@ def parse_args():
         help="Diagnostic inference-time surface mask; submission default keeps all surfaces.",
     )
     parser.add_argument("--rl-action-repeat", type=int, default=6, help="RL inference cadence while the offensive gate is active; BT still runs every simulator frame.")
+    parser.add_argument(
+        "--counterfactual-pulse",
+        choices=("zero", "roll_pos", "roll_neg", "pitch_pos", "pitch_neg", "yaw_pos", "yaw_neg"),
+        default="zero",
+        help="Fixed first-window pulse used only by counterfactual_pulse backend.",
+    )
+    parser.add_argument("--counterfactual-pulse-magnitude", type=float, default=0.5)
+    parser.add_argument("--counterfactual-pulse-frames", type=int, default=6)
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
         "--bt-turn-throttle-mode",
@@ -142,7 +151,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw"):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -200,6 +209,33 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             rl_action_repeat=rl_action_repeat,
             composition_mode=residual_composition,
             residual_axis_mask=residual_axis_mask,
+        )
+    if backend == "counterfactual_pulse":
+        pulse_axes = {
+            "zero": (0.0, 0.0, 0.0, 0.0),
+            "roll_pos": (1.0, 0.0, 0.0, 0.0),
+            "roll_neg": (-1.0, 0.0, 0.0, 0.0),
+            "pitch_pos": (0.0, 1.0, 0.0, 0.0),
+            "pitch_neg": (0.0, -1.0, 0.0, 0.0),
+            "yaw_pos": (0.0, 0.0, 1.0, 0.0),
+            "yaw_neg": (0.0, 0.0, -1.0, 0.0),
+        }
+        pulse = np.asarray(pulse_axes[counterfactual_pulse], dtype=np.float32)
+        pulse[:3] *= float(counterfactual_pulse_magnitude)
+        return CounterfactualPulseActionProvider(
+            BTActionProvider(
+                dll_name=bt_dll,
+                enable_turn_throttle_optimization=bt_turn_throttle_mode == "optimized",
+            ),
+            pulse,
+            residual_scale=residual_scale,
+            pulse_frames=counterfactual_pulse_frames,
+            aim_gate=aim_gate,
+            offensive_gate=offensive_gate,
+            rear120_gate=rear120_gate,
+            shot_window_gate=shot_window_gate,
+            safety_veto=safety_veto,
+            composition_mode=residual_composition,
         )
     raise ValueError(f"Unsupported backend: {backend}")
 
@@ -283,6 +319,9 @@ def main():
         min_throttle_blend_speed=args.min_throttle_blend_speed,
         bt_turn_throttle_mode=args.bt_turn_throttle_mode,
         residual_axis_mask=args.residual_axis_mask,
+        counterfactual_pulse=args.counterfactual_pulse,
+        counterfactual_pulse_magnitude=args.counterfactual_pulse_magnitude,
+        counterfactual_pulse_frames=args.counterfactual_pulse_frames,
     )
     target_provider = build_provider(
         side="target",
@@ -304,6 +343,9 @@ def main():
         min_throttle_blend_speed=args.min_throttle_blend_speed,
         bt_turn_throttle_mode=args.bt_turn_throttle_mode,
         residual_axis_mask=args.residual_axis_mask,
+        counterfactual_pulse=args.counterfactual_pulse,
+        counterfactual_pulse_magnitude=args.counterfactual_pulse_magnitude,
+        counterfactual_pulse_frames=args.counterfactual_pulse_frames,
     )
 
     with activate_rule_xml(

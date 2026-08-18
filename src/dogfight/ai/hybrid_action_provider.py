@@ -1797,6 +1797,178 @@ class ResidualInferenceActionProvider(ActionProvider):
         self.residual_provider.close()
 
 
+class CounterfactualPulseActionProvider(ActionProvider):
+    """Apply one fixed residual pulse during the first Shot-Window only.
+
+    This provider is deliberately inference-free.  It is a causal diagnostic
+    controller used to compare symmetric surface perturbations from the same
+    reset.  BT still runs at simulator rate, throttle remains BT-only, and all
+    later ACTIVE frames/windows receive an exact zero residual.
+    """
+
+    def __init__(
+        self,
+        bt_provider: ActionProvider,
+        pulse_action,
+        *,
+        residual_scale: float = 0.125,
+        pulse_frames: int = 6,
+        aim_gate: AimGateConfig | dict | None = None,
+        offensive_gate: OffensiveGateConfig | dict | None = None,
+        rear120_gate: Rear120GateConfig | dict | None = None,
+        shot_window_gate: ShotWindowGateConfig | dict | None = None,
+        safety_veto: SafetyVetoConfig | dict | None = None,
+        composition_mode: str = "saturation_aware",
+        confidence: float = 1.0,
+    ):
+        if residual_scale not in ALLOWED_AIM_RESIDUAL_SCALES:
+            raise ValueError(
+                "counterfactual residual scale must be one of "
+                f"{ALLOWED_AIM_RESIDUAL_SCALES}, got {residual_scale}"
+            )
+        if composition_mode not in RESIDUAL_COMPOSITION_MODES:
+            raise ValueError(f"unsupported residual composition: {composition_mode!r}")
+        pulse = np.asarray(pulse_action, dtype=np.float32)
+        if pulse.shape != (4,) or not np.all(np.isfinite(pulse)):
+            raise ValueError("pulse_action must be a finite action vector with shape (4,)")
+        if int(pulse_frames) <= 0:
+            raise ValueError("pulse_frames must be positive")
+        self.bt_provider = bt_provider
+        self.pulse_action = np.clip(pulse, -1.0, 1.0)
+        self.pulse_action[3] = 0.0
+        self.residual_scale = float(residual_scale)
+        self.pulse_frames = int(pulse_frames)
+        self.composition_mode = composition_mode
+        self.confidence = float(confidence)
+        self.gate = ShotWindowActivationGate(
+            shot_window_gate,
+            rear120_gate,
+            aim_gate,
+            offensive_gate,
+            safety_veto,
+        )
+        self.reset(None)
+
+    def reset(self, context: ActionContext | None = None) -> None:
+        self.bt_provider.reset(context)
+        self.gate.reset()
+        self._pulse_started = False
+        self._pulse_complete = False
+        self._pulse_steps = 0
+        self._correction_abs_sum = np.zeros(4, dtype=np.float64)
+        self._correction_abs_max = np.zeros(4, dtype=np.float64)
+        self._clipped_steps = 0
+        self._saturated_steps = 0
+        _reset_authority_counters(self)
+        self._last_frame: dict = {}
+
+    def compute_action(self, context: ActionContext) -> ActionResult:
+        bt_result = self.bt_provider.compute_action(context)
+        bt_action = clip_action(bt_result.action)
+        gate_info = self.gate.update(
+            context.ownship_state,
+            context.target_state,
+            sim_time_s=context.info.get("sim_time_s"),
+            bt_action=bt_action,
+        )
+        if gate_info["entry"] and not self._pulse_started:
+            self._pulse_started = True
+        if gate_info["exit"] and self._pulse_started:
+            self._pulse_complete = True
+
+        apply_pulse = bool(
+            gate_info["active"]
+            and self._pulse_started
+            and not self._pulse_complete
+            and self._pulse_steps < self.pulse_frames
+        )
+        residual = self.pulse_action if apply_pulse else np.zeros(4, dtype=np.float32)
+        effective_scale = self.residual_scale if apply_pulse else 0.0
+        unclipped = _compose_aim_surface_residual(
+            bt_action,
+            residual,
+            effective_scale,
+            self.composition_mode,
+        )
+        final = clip_action(unclipped)
+        final[3] = bt_action[3]
+        correction = final - bt_action
+        clipped = bool(np.any(np.abs(final[:3] - unclipped[:3]) > 1e-7))
+        saturated = bool(apply_pulse and np.any(np.isclose(np.abs(final[:3]), 1.0)))
+        if apply_pulse:
+            self._pulse_steps += 1
+            self._correction_abs_sum += np.abs(correction)
+            self._correction_abs_max = np.maximum(
+                self._correction_abs_max, np.abs(correction)
+            )
+            self._clipped_steps += int(clipped)
+            self._saturated_steps += int(saturated)
+            diagnostics = _surface_authority_diagnostics(
+                bt_action, residual, final, effective_scale, active=True
+            )
+            _update_authority_counters(self, diagnostics)
+            if self._pulse_steps >= self.pulse_frames:
+                self._pulse_complete = True
+
+        frame = {
+            "mode": "counterfactual_pulse",
+            "gate_kind": "shot_window",
+            "gate": gate_info,
+            "shot_window_gate": gate_info,
+            "counterfactual_pulse_applied": apply_pulse,
+            "counterfactual_pulse_step": self._pulse_steps,
+            "counterfactual_pulse_frames": self.pulse_frames,
+            "effective_residual_scale": effective_scale,
+            "residual_composition_mode": self.composition_mode,
+            "bt_action": bt_action.tolist(),
+            "raw_residual_action": residual.tolist() if apply_pulse else None,
+            "applied_rl_correction": correction.tolist(),
+            "surface_authority": _surface_authority_diagnostics(
+                bt_action, residual, final, effective_scale, active=apply_pulse
+            ),
+            "final_action": final.tolist(),
+            "throttle_residual_forced_zero": True,
+            "action_clipped": clipped,
+            "action_saturation": saturated,
+        }
+        self._last_frame = frame
+        return ActionResult(final, "bt_counterfactual_pulse", self.confidence, frame)
+
+    def telemetry(self) -> dict:
+        result = self.gate.telemetry()
+        result.update(
+            {
+                "residual_inference_gate_kind": "shot_window",
+                "residual_scale": self.residual_scale,
+                "residual_composition_mode": self.composition_mode,
+                "residual_axis_mask": "counterfactual_fixed",
+                "rl_inference_calls": 0,
+                "rl_fallback_steps": 0,
+                "rl_correction_steps": self._pulse_steps,
+                "counterfactual_pulse_action": self.pulse_action.tolist(),
+                "counterfactual_pulse_frames": self.pulse_frames,
+                "counterfactual_pulse_steps": self._pulse_steps,
+                "counterfactual_pulse_complete": self._pulse_complete,
+                "rl_correction_abs_mean": (
+                    self._correction_abs_sum / max(1, self._pulse_steps)
+                ).tolist(),
+                "rl_correction_abs_max": self._correction_abs_max.tolist(),
+                "action_clipped_steps": self._clipped_steps,
+                "action_saturated_steps": self._saturated_steps,
+                **_authority_telemetry(self, self._pulse_steps),
+                "rl_inference_latency_ms_p50": 0.0,
+                "rl_inference_latency_ms_p95": 0.0,
+                "rl_inference_latency_ms_p99": 0.0,
+                "rl_inference_latency_ms_max": 0.0,
+                "last_frame": dict(self._last_frame),
+            }
+        )
+        return result
+
+    def close(self) -> None:
+        self.bt_provider.close()
+
+
 class ResidualTrainingActionProvider(ActionProvider):
     """Compose policy residuals with raw BT actions inside the training loop."""
 
