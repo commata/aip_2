@@ -115,9 +115,24 @@ def trajectory_signature(path: Path) -> str | None:
                 "ownship_action": row.get("ownship_action"),
                 "target_action": row.get("target_action"),
             }
-            digest.update(json.dumps(stable, sort_keys=True, separators=(",", ":")).encode())
+            digest.update(
+                json.dumps(
+                    canonical_numbers(stable), sort_keys=True, separators=(",", ":")
+                ).encode()
+            )
             digest.update(b"\n")
     return digest.hexdigest().upper()
+
+
+def canonical_numbers(value: Any) -> Any:
+    """Normalize signed zero while preserving exact simulator float values."""
+    if isinstance(value, dict):
+        return {key: canonical_numbers(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [canonical_numbers(item) for item in value]
+    if isinstance(value, float) and value == 0.0:
+        return 0.0
+    return value
 
 
 def common_command(args: argparse.Namespace, case: dict[str, Any], result: Path, telemetry: Path) -> list[str]:
