@@ -1,0 +1,23 @@
+{
+  "status": "NOT_PROMOTED",
+  "diagnostic_status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
+  "git_branch": "codex/shot-window-counterfactual-pulse",
+  "issue": 15,
+  "model_id": null,
+  "checkpoint": null,
+  "checkpoint_sha256": null,
+  "bundle": null,
+  "training_iterations": 0,
+  "training_environment_steps": 0,
+  "training_seeds": [],
+  "development_seeds": [6201, 6202, 6203, 6204, 6205, 6206],
+  "heldout_seeds": [5301, 5302, 5303, 5304, 5305, 5306],
+  "heldout_seeds_opened": false,
+  "heldout_evaluation": "SKIPPED_NO_CANDIDATE",
+  "proxy_target_evaluation": "SKIPPED_NO_CANDIDATE",
+  "full_fight_200s": "SKIPPED_NO_CANDIDATE",
+  "submission_bundle": "SKIPPED_NO_PROMOTED_MODEL",
+  "server_status": "SERVER_BLOCKED",
+  "target_bt_status": "TARGET_BT_PENDING",
+  "final_confirmed": false
+}

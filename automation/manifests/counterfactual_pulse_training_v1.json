@@ -1,0 +1,11 @@
+{
+  "status": "SKIPPED",
+  "reason": "DATASET_NOT_CREATED_AFTER_COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
+  "behavior_cloning": {"executed": false, "training_seeds": [], "iterations": 0},
+  "conservative_ppo": {"executed": false, "training_seeds": [], "iterations": 0},
+  "scale_sweep": {"executed": false, "scales": [0.1, 0.125, 0.15]},
+  "long_training": {"executed": false, "iterations": 0},
+  "checkpoints_created": [],
+  "short_promote_candidate": false,
+  "promote_candidate": false
+}

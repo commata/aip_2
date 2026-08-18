@@ -1,0 +1,14 @@
+{
+  "status": "SKIPPED",
+  "reason": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
+  "source_library": "automation/manifests/counterfactual_pulse_library_v1.json",
+  "dataset_created": false,
+  "training_seeds": [6101, 6102, 6103],
+  "development_seeds": [6201, 6202, 6203, 6204, 6205, 6206],
+  "heldout_seeds": [5301, 5302, 5303, 5304, 5305, 5306],
+  "heldout_seeds_opened": false,
+  "samples": 0,
+  "zero_labels": 0,
+  "nonzero_labels": 0,
+  "decision": "No reproducible cross-geometry pulse direction met the pre-frozen Damage threshold, so selecting labels would encode geometry-specific noise and regressions."
+}
