@@ -63,3 +63,13 @@
 - 같은 디렉터리에 48개 result, simulator-rate telemetry, stdout/stderr를 보존했다.
 
 단일 `vertical_high` geometry의 좋은 결과를 policy label로 채택하면 좋은 geometry 하나를 고르는 것과 같으므로 독립 개선 근거가 아니다.
+
+## 최종 검증
+
+- `python -m pytest automation/tests -q -p no:cacheprovider`: `144 passed, 26 subtests passed`
+- `python -m pytest tests -q -p no:cacheprovider`: `9 passed`
+- compileall: PASS
+- manifest JSON 28개 parse: PASS
+- `git diff --check`: PASS
+
+첫 sandbox 실행의 `TemporaryDirectory` 9개 권한 실패는 sandbox 밖에서 같은 명령을 재실행해 전부 통과함으로써 환경 문제로 분리했다.

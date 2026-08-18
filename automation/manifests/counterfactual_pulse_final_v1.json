@@ -2,6 +2,7 @@
   "status": "NOT_PROMOTED",
   "diagnostic_status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
   "git_branch": "codex/shot-window-counterfactual-pulse",
+  "evidence_git_sha": "ce9cd1abda23e4e569f476530cf7be71df344a53",
   "issue": 15,
   "model_id": null,
   "checkpoint": null,
@@ -17,6 +18,14 @@
   "proxy_target_evaluation": "SKIPPED_NO_CANDIDATE",
   "full_fight_200s": "SKIPPED_NO_CANDIDATE",
   "submission_bundle": "SKIPPED_NO_PROMOTED_MODEL",
+  "validation": {
+    "automation_tests": "144 passed, 26 subtests passed",
+    "tests": "9 passed",
+    "compileall": "PASSED",
+    "manifest_json_parsed": 28,
+    "git_diff_check": "PASSED",
+    "targeted_counterfactual_tests": "13 passed, 12 subtests passed"
+  },
   "server_status": "SERVER_BLOCKED",
   "target_bt_status": "TARGET_BT_PENDING",
   "final_confirmed": false

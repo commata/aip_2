@@ -2,6 +2,7 @@
   "status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
   "promotion_status": "NOT_PROMOTED",
   "branch": "codex/shot-window-counterfactual-pulse",
+  "evidence_git_sha": "ce9cd1abda23e4e569f476530cf7be71df344a53",
   "issue": 15,
   "evaluation": "artifacts/evaluations/counterfactual_pulse/symmetric_first_window_v1_20260819/evaluation.json",
   "evaluation_sha256": "EE5188A519F53D731B69C166912345613DDA521F46BA506325C1812D95D341A2",
