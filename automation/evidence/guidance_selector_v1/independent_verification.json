@@ -1,0 +1,45 @@
+{
+  "aggregate": "C:\\Users\\shy66\\Downloads\\DogFightEnv3\\DogFightEnv\\Release\\artifacts\\evaluations\\guidance_selector\\full_200s_v1_20260819\\aggregate.json",
+  "comparisons": {
+    "altitude": true,
+    "clean_pairs": true,
+    "configured_runs": true,
+    "contaminated_pairs": true,
+    "latency": true,
+    "max": true,
+    "mean": true,
+    "median": true,
+    "min": true,
+    "nonzero": true
+  },
+  "recomputed": {
+    "clean_damage_delta_max": -0.00035129398607214313,
+    "clean_damage_delta_mean": -0.0030799766156853203,
+    "clean_damage_delta_median": -0.0033841132970884313,
+    "clean_damage_delta_min": -0.0052003858824922755,
+    "clean_pairs": 4,
+    "completed_200s_timeout_runs": 0,
+    "configured_200s_runs": 36,
+    "contaminated_pairs": 8,
+    "end_condition_counts": {
+      "target altitude below min": 24,
+      "target destroyed": 12
+    },
+    "episode_seconds_max": 52.0,
+    "episode_seconds_min": 12.45,
+    "hybrid_invalid_actions": 0,
+    "hybrid_latency_ms_max": 0.11490000179037452,
+    "hybrid_min_altitude_m": 441.8332032,
+    "hybrid_min_speed_m_s": 181.80309599999998,
+    "hybrid_nonzero_intervention_frames": 3148,
+    "hybrid_ownship_crashes": 0,
+    "hybrid_throttle_difference_max": 0.0,
+    "hybrid_throttle_violations": 0,
+    "natural_terminal_runs": 36,
+    "positive_pairs": 0,
+    "raw_runs": 36,
+    "telemetry_checksums_verified": 36
+  },
+  "source": "raw result JSON plus frame telemetry JSONL",
+  "status": "INDEPENDENT_RECOMPUTATION_PASS"
+}

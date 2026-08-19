@@ -1,0 +1,93 @@
+{
+  "max_ms": 0.11490000179037452,
+  "over_166_7ms": 0,
+  "p50_max_ms": 0.03920000744983554,
+  "p95_max_ms": 0.0840950000565499,
+  "p99_max_ms": 0.10660401778295628,
+  "runs": [
+    {
+      "case_id": "development_autopilot_left_s8801",
+      "latency_ms_max": 0.11490000179037452,
+      "latency_ms_p50": 0.035699980799108744,
+      "latency_ms_p95": 0.07419004687108093,
+      "latency_ms_p99": 0.10660401778295628
+    },
+    {
+      "case_id": "development_autopilot_right_s8802",
+      "latency_ms_max": 0.08970004273578525,
+      "latency_ms_p50": 0.03520003519952297,
+      "latency_ms_p95": 0.0840950000565499,
+      "latency_ms_p99": 0.08821803145110607
+    },
+    {
+      "case_id": "development_bt_0815_left_s8803",
+      "latency_ms_max": 0.08190004155039787,
+      "latency_ms_p50": 0.03239998477511108,
+      "latency_ms_p95": 0.05561001016758379,
+      "latency_ms_p99": 0.07714703388046472
+    },
+    {
+      "case_id": "development_bt_0815_right_s8804",
+      "latency_ms_max": 0.06260001100599766,
+      "latency_ms_p50": 0.03374999505467713,
+      "latency_ms_p95": 0.0527899886947125,
+      "latency_ms_p99": 0.06063800654374063
+    },
+    {
+      "case_id": "development_bt_aip2_left_s8805",
+      "latency_ms_max": 0.05760003114119172,
+      "latency_ms_p50": 0.031000003218650818,
+      "latency_ms_p95": 0.047124977572821046,
+      "latency_ms_p99": 0.056571023305878036
+    },
+    {
+      "case_id": "development_bt_aip2_right_s8806",
+      "latency_ms_max": 0.10010000551119447,
+      "latency_ms_p50": 0.03484997432678938,
+      "latency_ms_p95": 0.08232500113081183,
+      "latency_ms_p99": 0.09654500463511795
+    },
+    {
+      "case_id": "held_out_autopilot_left_s8901",
+      "latency_ms_max": 0.09929999941959977,
+      "latency_ms_p50": 0.030700000934302807,
+      "latency_ms_p95": 0.06740502431057398,
+      "latency_ms_p99": 0.08932399854529649
+    },
+    {
+      "case_id": "held_out_autopilot_right_s8902",
+      "latency_ms_max": 0.07919996278360486,
+      "latency_ms_p50": 0.03239998477511108,
+      "latency_ms_p95": 0.06086000357754528,
+      "latency_ms_p99": 0.07535596960224213
+    },
+    {
+      "case_id": "held_out_bt_0815_left_s8903",
+      "latency_ms_max": 0.0858000130392611,
+      "latency_ms_p50": 0.035299977753311396,
+      "latency_ms_p95": 0.064520031446591,
+      "latency_ms_p99": 0.08133401744998994
+    },
+    {
+      "case_id": "held_out_bt_0815_right_s8904",
+      "latency_ms_max": 0.08319999324157834,
+      "latency_ms_p50": 0.03270001616328955,
+      "latency_ms_p95": 0.06084999768063426,
+      "latency_ms_p99": 0.07872999412938954
+    },
+    {
+      "case_id": "held_out_bt_aip2_left_s8905",
+      "latency_ms_max": 0.060699996538460255,
+      "latency_ms_p50": 0.03359999391250312,
+      "latency_ms_p95": 0.04876498423982411,
+      "latency_ms_p99": 0.057864990667440004
+    },
+    {
+      "case_id": "held_out_bt_aip2_right_s8906",
+      "latency_ms_max": 0.05959998816251755,
+      "latency_ms_p50": 0.03920000744983554,
+      "latency_ms_p95": 0.053099996875971556,
+      "latency_ms_p99": 0.058299989905208356
+    }
+  ]
+}

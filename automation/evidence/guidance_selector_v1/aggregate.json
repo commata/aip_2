@@ -1,0 +1,249 @@
+{
+  "completed_200s_timeout_runs": 0,
+  "configured_200s_runs": 36,
+  "early_terminal_runs": 36,
+  "gate_active_ratio_mean": 0.4607393742804334,
+  "invalid_or_nonfinite_actions": 0,
+  "latency_ms_max": 0.11490000179037452,
+  "latency_ms_p50_max": 0.03920000744983554,
+  "latency_ms_p95_max": 0.0840950000565499,
+  "latency_ms_p99_max": 0.10660401778295628,
+  "latency_over_166_7ms": 0,
+  "low_altitude_duration_s": 0.0,
+  "low_speed_duration_s": 0.0,
+  "minimum_altitude_m": 441.8332032,
+  "minimum_speed_m_s": 181.80309599999998,
+  "nonzero_intervention_frames": 3148,
+  "operational_ready": true,
+  "ownship_crashes": 0,
+  "paired": {
+    "bc": {
+      "clean_damage_delta_max": -0.00035129398607214313,
+      "clean_damage_delta_mean": -0.0030799766156853203,
+      "clean_damage_delta_median": -0.0033841132970884313,
+      "clean_damage_delta_min": -0.0052003858824922755,
+      "clean_pairs": 4,
+      "contaminated_pairs": 8,
+      "pair_records": [
+        {
+          "case_id": "development_autopilot_left_s8801",
+          "contaminated": false,
+          "damage_delta": -0.00035129398607214313,
+          "opponent": "autopilot",
+          "side": "left",
+          "split": "development"
+        },
+        {
+          "case_id": "development_autopilot_right_s8802",
+          "contaminated": false,
+          "damage_delta": -0.0052003858824922755,
+          "opponent": "autopilot",
+          "side": "right",
+          "split": "development"
+        },
+        {
+          "case_id": "development_bt_0815_left_s8803",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_0815",
+          "side": "left",
+          "split": "development"
+        },
+        {
+          "case_id": "development_bt_0815_right_s8804",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_0815",
+          "side": "right",
+          "split": "development"
+        },
+        {
+          "case_id": "development_bt_aip2_left_s8805",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_aip2",
+          "side": "left",
+          "split": "development"
+        },
+        {
+          "case_id": "development_bt_aip2_right_s8806",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_aip2",
+          "side": "right",
+          "split": "development"
+        },
+        {
+          "case_id": "held_out_autopilot_left_s8901",
+          "contaminated": false,
+          "damage_delta": -0.004357631051984834,
+          "opponent": "autopilot",
+          "side": "left",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_autopilot_right_s8902",
+          "contaminated": false,
+          "damage_delta": -0.002410595542192029,
+          "opponent": "autopilot",
+          "side": "right",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_bt_0815_left_s8903",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_0815",
+          "side": "left",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_bt_0815_right_s8904",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_0815",
+          "side": "right",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_bt_aip2_left_s8905",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_aip2",
+          "side": "left",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_bt_aip2_right_s8906",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_aip2",
+          "side": "right",
+          "split": "held_out"
+        }
+      ],
+      "pairs": 12,
+      "positive_pairs": 0,
+      "positive_ratio": 0.0
+    },
+    "bt_default": {
+      "clean_damage_delta_max": 0.0,
+      "clean_damage_delta_mean": 0.0,
+      "clean_damage_delta_median": 0.0,
+      "clean_damage_delta_min": 0.0,
+      "clean_pairs": 4,
+      "contaminated_pairs": 8,
+      "pair_records": [
+        {
+          "case_id": "development_autopilot_left_s8801",
+          "contaminated": false,
+          "damage_delta": 0.0,
+          "opponent": "autopilot",
+          "side": "left",
+          "split": "development"
+        },
+        {
+          "case_id": "development_autopilot_right_s8802",
+          "contaminated": false,
+          "damage_delta": 0.0,
+          "opponent": "autopilot",
+          "side": "right",
+          "split": "development"
+        },
+        {
+          "case_id": "development_bt_0815_left_s8803",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_0815",
+          "side": "left",
+          "split": "development"
+        },
+        {
+          "case_id": "development_bt_0815_right_s8804",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_0815",
+          "side": "right",
+          "split": "development"
+        },
+        {
+          "case_id": "development_bt_aip2_left_s8805",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_aip2",
+          "side": "left",
+          "split": "development"
+        },
+        {
+          "case_id": "development_bt_aip2_right_s8806",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_aip2",
+          "side": "right",
+          "split": "development"
+        },
+        {
+          "case_id": "held_out_autopilot_left_s8901",
+          "contaminated": false,
+          "damage_delta": 0.0,
+          "opponent": "autopilot",
+          "side": "left",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_autopilot_right_s8902",
+          "contaminated": false,
+          "damage_delta": 0.0,
+          "opponent": "autopilot",
+          "side": "right",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_bt_0815_left_s8903",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_0815",
+          "side": "left",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_bt_0815_right_s8904",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_0815",
+          "side": "right",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_bt_aip2_left_s8905",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_aip2",
+          "side": "left",
+          "split": "held_out"
+        },
+        {
+          "case_id": "held_out_bt_aip2_right_s8906",
+          "contaminated": true,
+          "damage_delta": 0.0,
+          "opponent": "bt_aip2",
+          "side": "right",
+          "split": "held_out"
+        }
+      ],
+      "pairs": 12,
+      "positive_pairs": 0,
+      "positive_ratio": 0.0
+    }
+  },
+  "process_errors": 0,
+  "promotion_status": "NOT_PROMOTED",
+  "records": 36,
+  "records_sha256": "9EB5FA1210674AEA9B5474D54D451366E7926F6C9FDF4FED9E79DF13C2657222",
+  "selected_bundle": "C:\\Users\\shy66\\Downloads\\DogFightEnv3\\DogFightEnv\\Release\\artifacts\\models\\guidance_selector_bc_v1\\seed_8799",
+  "selected_confidence_threshold": 0.55,
+  "status": "SUBMISSION_READY_HYBRID_CANDIDATE",
+  "target_crashes": 8,
+  "throttle_difference_max": 0.0,
+  "throttle_violations": 0
+}

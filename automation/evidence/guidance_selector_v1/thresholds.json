@@ -1,0 +1,14 @@
+{
+  "confidence": 0.55,
+  "cooldown_frames": 30,
+  "large_regression": -0.003,
+  "latency_s": 0.1667,
+  "maximum_active_frames": 90,
+  "meaningful_damage_delta": 0.001,
+  "minimum_altitude_m": 304.8,
+  "minimum_hold_frames": 18,
+  "positive_pair_ratio": 0.6666666666666666,
+  "rule_active_frames": 36,
+  "safety_veto_altitude_m": 350.0,
+  "safety_veto_speed_m_s": 170.0
+}

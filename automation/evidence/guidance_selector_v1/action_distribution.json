@@ -1,0 +1,26 @@
+{
+  "estimated_frame_weighted_counts": {
+    "BT_DEFAULT": 21856.0,
+    "TARGET_SPEED_DOWN_SMALL": 0.0,
+    "TARGET_SPEED_UP_SMALL": 0.0,
+    "VP_AZ_NEG_SMALL": 0.0,
+    "VP_AZ_POS_SMALL": 0.0,
+    "VP_EL_NEG_SMALL": 0.0,
+    "VP_EL_POS_SMALL": 3148.0,
+    "VP_RANGE_BACKWARD_SMALL": 0.0,
+    "VP_RANGE_FORWARD_SMALL": 0.0
+  },
+  "frame_weighted_distribution": {
+    "BT_DEFAULT": 0.8741001439769637,
+    "TARGET_SPEED_DOWN_SMALL": 0.0,
+    "TARGET_SPEED_UP_SMALL": 0.0,
+    "VP_AZ_NEG_SMALL": 0.0,
+    "VP_AZ_POS_SMALL": 0.0,
+    "VP_EL_NEG_SMALL": 0.0,
+    "VP_EL_POS_SMALL": 0.12589985602303633,
+    "VP_RANGE_BACKWARD_SMALL": 0.0,
+    "VP_RANGE_FORWARD_SMALL": 0.0
+  },
+  "nonzero_intervention_frames_exact": 3148,
+  "note": "counts reconstructed from per-run provider ratios and telemetry frame counts"
+}
