@@ -275,6 +275,12 @@ class GuidanceProviderTests(unittest.TestCase):
         snapshot = provider.telemetry()["first_nondefault_selector_snapshot"]
         self.assertEqual(snapshot["selected_action"], "VP_AZ_POS_SMALL")
         self.assertEqual(len(snapshot["observation"]), 45)
+        self.assertEqual(len(snapshot["ownship_server_state"]), 7)
+        self.assertEqual(len(snapshot["target_server_state"]), 7)
+        self.assertEqual(
+            provider.telemetry()["selector_decision_trace"][0]["selected_action"],
+            "VP_AZ_POS_SMALL",
+        )
 
     def test_shadow_nondefault_predicts_but_returns_exact_bt(self):
         provider = GuidanceSelectorActionProvider(

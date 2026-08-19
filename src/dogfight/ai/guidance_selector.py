@@ -613,6 +613,7 @@ class GuidanceSelectorActionProvider(ActionProvider):
         self._throttle_violation_steps = 0
         self._first_selector_snapshot: dict = {}
         self._first_nondefault_selector_snapshot: dict = {}
+        self._selector_decision_trace: list[dict] = []
         self._last_frame: dict = {}
 
     def _fallback(
@@ -767,7 +768,19 @@ class GuidanceSelectorActionProvider(ActionProvider):
                     "base_guidance": asdict(base),
                     "gate": dict(gate_info),
                     "bt_action": bt_action.tolist(),
+                    "selector_diagnostics": getattr(self.selector, "last_prediction", None),
                 }
+            if len(self._selector_decision_trace) < 512:
+                self._selector_decision_trace.append(
+                    {
+                        "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
+                        "observation": observation.tolist(),
+                        "selected_action_id": int(action_id),
+                        "selected_action": GUIDANCE_ACTIONS[action_id],
+                        "confidence": float(confidence),
+                        "selector_diagnostics": getattr(self.selector, "last_prediction", None),
+                    }
+                )
             if action_id != 0 and not self._first_nondefault_selector_snapshot:
                 self._first_nondefault_selector_snapshot = {
                     "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
@@ -779,6 +792,12 @@ class GuidanceSelectorActionProvider(ActionProvider):
                     "base_guidance": asdict(base),
                     "gate": dict(gate_info),
                     "bt_action": bt_action.tolist(),
+                    "ownship_server_state": np.asarray(
+                        context.ownship_state, dtype=np.float64
+                    )[:7].tolist(),
+                    "target_server_state": np.asarray(
+                        context.target_state, dtype=np.float64
+                    )[:7].tolist(),
                 }
 
         action_id = self._current_action_id
@@ -906,6 +925,7 @@ class GuidanceSelectorActionProvider(ActionProvider):
             "first_nondefault_selector_snapshot": dict(
                 self._first_nondefault_selector_snapshot
             ),
+            "selector_decision_trace": list(self._selector_decision_trace),
             "last_frame": dict(self._last_frame),
         }
 
