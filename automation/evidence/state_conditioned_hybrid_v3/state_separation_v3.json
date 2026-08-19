@@ -1,0 +1,1374 @@
+{
+  "caveats": [
+    "30 independent state groups are a pilot-sized sample",
+    "permutation ranking and separability metrics both use group out-of-fold predictions",
+    "no health or Damage value is present in runtime features"
+  ],
+  "current_observation_separable": true,
+  "damage_mean": 0.00982413771816676,
+  "damage_median": 0.0,
+  "focus": "target_high/VP_AZ_POS_SMALL/duration_36",
+  "group_cv": {
+    "decision_stump_auc": 0.6670435274166195,
+    "folds": [
+      {
+        "fold": 0,
+        "test_groups": 7,
+        "test_positive_ratio": 0.42857142857142855,
+        "test_rows": 21,
+        "train_groups": 23,
+        "train_rows": 69
+      },
+      {
+        "fold": 1,
+        "test_groups": 6,
+        "test_positive_ratio": 0.3333333333333333,
+        "test_rows": 18,
+        "train_groups": 24,
+        "train_rows": 72
+      },
+      {
+        "fold": 2,
+        "test_groups": 6,
+        "test_positive_ratio": 0.2777777777777778,
+        "test_rows": 18,
+        "train_groups": 24,
+        "train_rows": 72
+      },
+      {
+        "fold": 3,
+        "test_groups": 6,
+        "test_positive_ratio": 0.3333333333333333,
+        "test_rows": 18,
+        "train_groups": 24,
+        "train_rows": 72
+      },
+      {
+        "fold": 4,
+        "test_groups": 5,
+        "test_positive_ratio": 0.2,
+        "test_rows": 15,
+        "train_groups": 25,
+        "train_rows": 75
+      }
+    ],
+    "knn_auc": 0.7724703222159413,
+    "logistic_auc": 0.8451102317693612,
+    "logistic_average_precision": 0.8114086522188305,
+    "thresholds": [
+      {
+        "actual_damage_mean": 0.016023552335295413,
+        "actual_damage_median": 0.00019467401654787997,
+        "coverage": 0.24444444444444444,
+        "large_regression_ratio": 0.09090909090909091,
+        "precision": 0.8181818181818182,
+        "selected": 22,
+        "threshold": 0.5
+      },
+      {
+        "actual_damage_mean": 0.017241206186791716,
+        "actual_damage_median": 0.0003697735065216756,
+        "coverage": 0.16666666666666666,
+        "large_regression_ratio": 0.06666666666666667,
+        "precision": 0.9333333333333333,
+        "selected": 15,
+        "threshold": 0.6
+      },
+      {
+        "actual_damage_mean": 0.024333137471958585,
+        "actual_damage_median": 0.0003754775847296665,
+        "coverage": 0.12222222222222222,
+        "large_regression_ratio": 0.0,
+        "precision": 1.0,
+        "selected": 11,
+        "threshold": 0.7
+      },
+      {
+        "actual_damage_mean": 0.028257915826816644,
+        "actual_damage_median": 0.0003697735065216756,
+        "coverage": 0.1,
+        "large_regression_ratio": 0.0,
+        "precision": 1.0,
+        "selected": 9,
+        "threshold": 0.8
+      },
+      {
+        "actual_damage_mean": 0.02477703235645995,
+        "actual_damage_median": 0.00028652179722943316,
+        "coverage": 0.08888888888888889,
+        "large_regression_ratio": 0.0,
+        "precision": 1.0,
+        "selected": 8,
+        "threshold": 0.9
+      }
+    ]
+  },
+  "permutation_importance_diagnostic": [
+    {
+      "feature": "any_surface_saturation",
+      "mean_auc_drop": 0.07989447899001319
+    },
+    {
+      "feature": "target_yaw_norm",
+      "mean_auc_drop": 0.04503485961937056
+    },
+    {
+      "feature": "action_magnitude_norm",
+      "mean_auc_drop": 0.014132278123233403
+    },
+    {
+      "feature": "roll_negative_headroom_norm",
+      "mean_auc_drop": 0.013755417373280529
+    },
+    {
+      "feature": "delta_east_norm",
+      "mean_auc_drop": 0.00979837949877512
+    },
+    {
+      "feature": "bt_vp_local_elevation_norm",
+      "mean_auc_drop": 0.009233088373845807
+    },
+    {
+      "feature": "range_norm",
+      "mean_auc_drop": 0.007537214999057758
+    },
+    {
+      "feature": "closing_rate_norm",
+      "mean_auc_drop": 0.0073487846240813575
+    },
+    {
+      "feature": "ownship_altitude_norm",
+      "mean_auc_drop": 0.006218202374222696
+    },
+    {
+      "feature": "target_speed_norm",
+      "mean_auc_drop": 0.006218202374222659
+    },
+    {
+      "feature": "ownship_speed_norm",
+      "mean_auc_drop": 0.005841341624269821
+    },
+    {
+      "feature": "los_elevation_rate_norm",
+      "mean_auc_drop": 0.005464480874316909
+    },
+    {
+      "feature": "bt_pitch",
+      "mean_auc_drop": 0.0052760504993404345
+    },
+    {
+      "feature": "bt_vp_local_azimuth_norm",
+      "mean_auc_drop": 0.00489918974938756
+    },
+    {
+      "feature": "ownship_roll_norm",
+      "mean_auc_drop": 0.004710759374411085
+    },
+    {
+      "feature": "roll_positive_headroom_norm",
+      "mean_auc_drop": 0.00414546824948181
+    },
+    {
+      "feature": "ownship_pitch_norm",
+      "mean_auc_drop": 0.004145468249481772
+    },
+    {
+      "feature": "ownship_yaw_norm",
+      "mean_auc_drop": 0.003580177124552423
+    },
+    {
+      "feature": "bt_yaw",
+      "mean_auc_drop": 0.0033917467495759857
+    },
+    {
+      "feature": "bt_roll",
+      "mean_auc_drop": 0.0030148859996230737
+    },
+    {
+      "feature": "delta_north_norm",
+      "mean_auc_drop": 0.0028264556246466364
+    },
+    {
+      "feature": "bt_vp_distance_norm",
+      "mean_auc_drop": 0.0028264556246466364
+    },
+    {
+      "feature": "target_ata_norm",
+      "mean_auc_drop": 0.0016958733747879744
+    },
+    {
+      "feature": "yaw_negative_headroom_norm",
+      "mean_auc_drop": 0.0011305822498586249
+    },
+    {
+      "feature": "bt_target_speed_norm",
+      "mean_auc_drop": 0.0009421518748821874
+    },
+    {
+      "feature": "los_azimuth_rate_norm",
+      "mean_auc_drop": 0.00018843037497640047
+    },
+    {
+      "feature": "target_roll_norm",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "target_pitch_norm",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "phase_norm",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "bt_throttle_bipolar",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "recent_applied_requested_authority_ratio",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "previous_selected_action_norm",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "current_action_hold_norm",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "gate_elapsed_norm",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "gate_active",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "action_duration_norm",
+      "mean_auc_drop": 0.0
+    },
+    {
+      "feature": "signed_aim_elevation_norm",
+      "mean_auc_drop": -0.0018843037497645228
+    },
+    {
+      "feature": "safety_margin_norm",
+      "mean_auc_drop": -0.0030148859996231847
+    },
+    {
+      "feature": "pitch_positive_headroom_norm",
+      "mean_auc_drop": -0.0032033163745996593
+    },
+    {
+      "feature": "signed_aim_azimuth_norm",
+      "mean_auc_drop": -0.004899189749387671
+    },
+    {
+      "feature": "yaw_positive_headroom_norm",
+      "mean_auc_drop": -0.005276050499340508
+    },
+    {
+      "feature": "delta_down_norm",
+      "mean_auc_drop": -0.006406632749199208
+    },
+    {
+      "feature": "target_altitude_norm",
+      "mean_auc_drop": -0.008856227623893006
+    },
+    {
+      "feature": "pitch_negative_headroom_norm",
+      "mean_auc_drop": -0.011494252873563279
+    }
+  ],
+  "positive_definition": "damage_delta > 1e-6",
+  "positive_ratio": 0.32222222222222224,
+  "rows": 90,
+  "schema_version": "state_separation_v3.v1",
+  "temporal_recommendation": "CURRENT_42D_SUFFICIENT_FOR_MODEL_PILOT",
+  "unique_state_groups": 30,
+  "univariate_separation": [
+    {
+      "bins": [
+        {
+          "count": 90,
+          "damage_mean": 0.00982413771816676,
+          "lower": -1.0,
+          "positive_ratio": 0.32222222222222224,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": -1.1881770515720091,
+      "damage_correlation": -0.13108816989398422,
+      "feature": "any_surface_saturation"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.0005921546762518913,
+          "lower": 0.8019269108772278,
+          "positive_ratio": 0.2857142857142857,
+          "upper": 0.8469805717468262
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.007526276113700496,
+          "lower": 0.8469805717468262,
+          "positive_ratio": 0.16666666666666666,
+          "upper": 0.8792788088321686
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.02126089483921416,
+          "lower": 0.8792788088321686,
+          "positive_ratio": 0.23809523809523808,
+          "upper": 0.9204779267311096
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.010192822003392063,
+          "lower": 0.9204779267311096,
+          "positive_ratio": 0.5833333333333334,
+          "upper": 0.9699996709823608
+        }
+      ],
+      "cohens_d": 0.715541561438444,
+      "damage_correlation": 0.09565661975544666,
+      "feature": "target_ata_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 90,
+          "damage_mean": 0.00982413771816676,
+          "lower": -1.0,
+          "positive_ratio": 0.32222222222222224,
+          "upper": -0.9666666388511658
+        }
+      ],
+      "cohens_d": -0.649682395469197,
+      "damage_correlation": -0.14500257333190003,
+      "feature": "target_yaw_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.028858561392649983,
+          "lower": -0.0035503567196428776,
+          "positive_ratio": 0.2857142857142857,
+          "upper": -0.0004160871612839401
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0003486443773409546,
+          "lower": -0.0004160871612839401,
+          "positive_ratio": 0.5,
+          "upper": 0.0013298819540068507
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.014199271086143257,
+          "lower": 0.0013298819540068507,
+          "positive_ratio": 0.47619047619047616,
+          "upper": 0.005373105872422457
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.00048644259847777555,
+          "lower": 0.005373105872422457,
+          "positive_ratio": 0.041666666666666664,
+          "upper": 0.011053326539695263
+        }
+      ],
+      "cohens_d": -0.6037105757432865,
+      "damage_correlation": -0.20361168622174233,
+      "feature": "los_elevation_rate_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 90,
+          "damage_mean": 0.00982413771816676,
+          "lower": -1.0,
+          "positive_ratio": 0.32222222222222224,
+          "upper": -0.9977777600288391
+        }
+      ],
+      "cohens_d": -0.4598231996959301,
+      "damage_correlation": -0.06919209012770791,
+      "feature": "ownship_yaw_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 90,
+          "damage_mean": 0.00982413771816676,
+          "lower": 0.0,
+          "positive_ratio": 0.32222222222222224,
+          "upper": 0.020544443279504776
+        }
+      ],
+      "cohens_d": -0.45687422621444634,
+      "damage_correlation": -0.06876278228571882,
+      "feature": "ownship_roll_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 30,
+          "damage_mean": 0.00962299834356452,
+          "lower": -3.333333370392211e-05,
+          "positive_ratio": 0.36666666666666664,
+          "upper": -2.2222222469281405e-05
+        },
+        {
+          "count": 60,
+          "damage_mean": 0.009924707405467883,
+          "lower": -2.2222222469281405e-05,
+          "positive_ratio": 0.3,
+          "upper": 0.018666666001081467
+        }
+      ],
+      "cohens_d": -0.44802026526477184,
+      "damage_correlation": -0.06743158615844831,
+      "feature": "ownship_pitch_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.028858561392649983,
+          "lower": -0.03191795200109482,
+          "positive_ratio": 0.2857142857142857,
+          "upper": -0.007835936732590199
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.00011410506669754424,
+          "lower": -0.007835936732590199,
+          "positive_ratio": 0.4166666666666667,
+          "upper": 0.015984478406608105
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.008664818494284517,
+          "lower": 0.015984478406608105,
+          "positive_ratio": 0.5714285714285714,
+          "upper": 0.03980495035648346
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.003893453975360122,
+          "lower": 0.03980495035648346,
+          "positive_ratio": 0.041666666666666664,
+          "upper": 0.06488639116287231
+        }
+      ],
+      "cohens_d": -0.40799543158219614,
+      "damage_correlation": -0.21516745953513142,
+      "feature": "closing_rate_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.0,
+          "lower": -0.11010877043008804,
+          "positive_ratio": 0.0,
+          "upper": -0.037263840436935425
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0004260518313371671,
+          "lower": -0.037263840436935425,
+          "positive_ratio": 0.4166666666666667,
+          "upper": -0.014090444659814239
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.04194887694962308,
+          "lower": -0.014090444659814239,
+          "positive_ratio": 0.6666666666666666,
+          "upper": 0.0006295608473010361
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.0005613009435423283,
+          "lower": 0.0006295608473010361,
+          "positive_ratio": 0.20833333333333334,
+          "upper": 0.06872348487377167
+        }
+      ],
+      "cohens_d": 0.2766173079781736,
+      "damage_correlation": 0.08003666626890071,
+      "feature": "bt_vp_local_azimuth_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.0,
+          "lower": -0.3237571716308594,
+          "positive_ratio": 0.0,
+          "upper": -0.10807567089796066
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0004260518313371671,
+          "lower": -0.10807567089796066,
+          "positive_ratio": 0.4166666666666667,
+          "upper": -0.041321142379396214
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.04255995598966277,
+          "lower": -0.041321142379396214,
+          "positive_ratio": 0.6666666666666666,
+          "upper": 1.1035053759655966e-08
+        },
+        {
+          "count": 24,
+          "damage_mean": 2.6606783507595228e-05,
+          "lower": 1.1035053759655966e-08,
+          "positive_ratio": 0.20833333333333334,
+          "upper": 0.20048344135284424
+        }
+      ],
+      "cohens_d": 0.27552817227863996,
+      "damage_correlation": 0.07827445163844426,
+      "feature": "signed_aim_azimuth_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.0,
+          "lower": -0.018420007079839706,
+          "positive_ratio": 0.0,
+          "upper": -0.006130314897745848
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0004260518313371671,
+          "lower": -0.006130314897745848,
+          "positive_ratio": 0.4166666666666667,
+          "upper": -0.003064976714241302
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.04255995598966277,
+          "lower": -0.003064976714241302,
+          "positive_ratio": 0.6666666666666666,
+          "upper": 8.183220767676858e-10
+        },
+        {
+          "count": 24,
+          "damage_mean": 2.6606783507595228e-05,
+          "lower": 8.183220767676858e-10,
+          "positive_ratio": 0.20833333333333334,
+          "upper": 0.01366821862757206
+        }
+      ],
+      "cohens_d": 0.2646150166264525,
+      "damage_correlation": 0.07411747691204319,
+      "feature": "delta_east_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": -0.00039845071696109093,
+          "lower": -0.5150070190429688,
+          "positive_ratio": 0.5714285714285714,
+          "upper": -0.48654136061668396
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.025251241218568737,
+          "lower": -0.48654136061668396,
+          "positive_ratio": 0.25,
+          "upper": -0.4496730864048004
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.003997593000636538,
+          "lower": -0.4496730864048004,
+          "positive_ratio": 0.09523809523809523,
+          "upper": -0.40800341963768005
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.008440025726340603,
+          "lower": -0.40800341963768005,
+          "positive_ratio": 0.375,
+          "upper": -0.38639697432518005
+        }
+      ],
+      "cohens_d": -0.2597657813430392,
+      "damage_correlation": 0.017064277052898407,
+      "feature": "ownship_speed_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": -0.00039845071696109093,
+          "lower": 0.027489520609378815,
+          "positive_ratio": 0.5714285714285714,
+          "upper": 0.07018803805112839
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.025251241218568737,
+          "lower": 0.07018803805112839,
+          "positive_ratio": 0.25,
+          "upper": 0.12549034133553505
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.003997593000636538,
+          "lower": 0.12549034133553505,
+          "positive_ratio": 0.09523809523809523,
+          "upper": 0.1879947930574417
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.008440025726340603,
+          "lower": 0.1879947930574417,
+          "positive_ratio": 0.375,
+          "upper": 0.2204045206308365
+        }
+      ],
+      "cohens_d": -0.2597654338240816,
+      "damage_correlation": 0.017064211584931526,
+      "feature": "safety_margin_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": -0.00039845071696109093,
+          "lower": -0.515006959438324,
+          "positive_ratio": 0.5714285714285714,
+          "upper": -0.4865413010120392
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.025251241218568737,
+          "lower": -0.4865413010120392,
+          "positive_ratio": 0.25,
+          "upper": -0.4496731013059616
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.003997593000636538,
+          "lower": -0.4496731013059616,
+          "positive_ratio": 0.09523809523809523,
+          "upper": -0.40800347924232483
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.008440025726340603,
+          "lower": -0.40800347924232483,
+          "positive_ratio": 0.375,
+          "upper": -0.38639697432518005
+        }
+      ],
+      "cohens_d": -0.2597653885847304,
+      "damage_correlation": 0.017064228180188462,
+      "feature": "bt_target_speed_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.0,
+          "lower": -0.20306068658828735,
+          "positive_ratio": 0.0,
+          "upper": -0.07209247350692749
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0004260518313371671,
+          "lower": -0.07209247350692749,
+          "positive_ratio": 0.4166666666666667,
+          "upper": -0.025752354476330237
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.04304222248361703,
+          "lower": -0.025752354476330237,
+          "positive_ratio": 0.7619047619047619,
+          "upper": 1.3866235937243232e-10
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0003953763987023795,
+          "lower": 1.3866235937243232e-10,
+          "positive_ratio": 0.125,
+          "upper": 0.14120735228061676
+        }
+      ],
+      "cohens_d": 0.24120910553926828,
+      "damage_correlation": 0.07485064115025283,
+      "feature": "los_azimuth_rate_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.0007195744702631782,
+          "lower": -0.0316663421690464,
+          "positive_ratio": 0.38095238095238093,
+          "upper": -0.026666179299354553
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.011308291940417292,
+          "lower": -0.026666179299354553,
+          "positive_ratio": 0.125,
+          "upper": -0.01916626002639532
+        },
+        {
+          "count": 15,
+          "damage_mean": 0.040401685126549604,
+          "lower": -0.01916626002639532,
+          "positive_ratio": 0.3333333333333333,
+          "upper": -0.011666503734886646
+        },
+        {
+          "count": 30,
+          "damage_mean": -0.00027876509029257647,
+          "lower": -0.011666503734886646,
+          "positive_ratio": 0.43333333333333335,
+          "upper": -0.006666015833616257
+        }
+      ],
+      "cohens_d": 0.2386473539023752,
+      "damage_correlation": -0.024669965655211335,
+      "feature": "delta_down_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 30,
+          "damage_mean": 0.001073052396447808,
+          "lower": 0.2,
+          "positive_ratio": 0.3,
+          "upper": 0.5
+        },
+        {
+          "count": 60,
+          "damage_mean": 0.014199680379026238,
+          "lower": 0.5,
+          "positive_ratio": 0.3333333333333333,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": 0.20906185235789496,
+      "damage_correlation": 0.21576480304586224,
+      "feature": "action_magnitude_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": -0.00039845071696109093,
+          "lower": 0.09000090509653091,
+          "positive_ratio": 0.5714285714285714,
+          "upper": 0.17778009176254272
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.010450984263122076,
+          "lower": 0.17778009176254272,
+          "positive_ratio": 0.16666666666666666,
+          "upper": 0.29254910349845886
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.02136424106377918,
+          "lower": 0.29254910349845886,
+          "positive_ratio": 0.14285714285714285,
+          "upper": 0.3799062669277191
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.008044465626537453,
+          "lower": 0.3799062669277191,
+          "positive_ratio": 0.4166666666666667,
+          "upper": 0.5544660687446594
+        }
+      ],
+      "cohens_d": -0.17408621889103257,
+      "damage_correlation": 0.0340167609016263,
+      "feature": "signed_aim_elevation_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": -0.00039845071696109093,
+          "lower": 0.029413336887955666,
+          "positive_ratio": 0.5714285714285714,
+          "upper": 0.057745739817619324
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.025251241218568737,
+          "lower": 0.057745739817619324,
+          "positive_ratio": 0.25,
+          "upper": 0.09490640461444855
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.004449661686125854,
+          "lower": 0.09490640461444855,
+          "positive_ratio": 0.047619047619047616,
+          "upper": 0.12298443913459778
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.008044465626537453,
+          "lower": 0.12298443913459778,
+          "positive_ratio": 0.4166666666666667,
+          "upper": 0.17889805138111115
+        }
+      ],
+      "cohens_d": -0.17270311580235195,
+      "damage_correlation": 0.03437059077442238,
+      "feature": "bt_vp_local_elevation_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 45,
+          "damage_mean": 0.01983423284952196,
+          "lower": -1.0,
+          "positive_ratio": 0.35555555555555557,
+          "upper": -0.8021146059036255
+        },
+        {
+          "count": 21,
+          "damage_mean": -2.9454156986424048e-08,
+          "lower": -0.8021146059036255,
+          "positive_ratio": 0.047619047619047616,
+          "upper": -0.47947731614112854
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0003486443773409546,
+          "lower": -0.47947731614112854,
+          "positive_ratio": 0.5,
+          "upper": -0.23396198451519012
+        }
+      ],
+      "cohens_d": 0.16102217594281895,
+      "damage_correlation": -0.23303276881546792,
+      "feature": "bt_pitch"
+    },
+    {
+      "bins": [
+        {
+          "count": 45,
+          "damage_mean": 0.01983423284952196,
+          "lower": -1.0,
+          "positive_ratio": 0.35555555555555557,
+          "upper": -0.8021146059036255
+        },
+        {
+          "count": 21,
+          "damage_mean": -2.9454156986424048e-08,
+          "lower": -0.8021146059036255,
+          "positive_ratio": 0.047619047619047616,
+          "upper": -0.47947728633880615
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0003486443773409546,
+          "lower": -0.47947728633880615,
+          "positive_ratio": 0.5,
+          "upper": -0.23396199941635132
+        }
+      ],
+      "cohens_d": 0.16102214530456768,
+      "damage_correlation": -0.23303276963496677,
+      "feature": "pitch_negative_headroom_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.0007045750224305769,
+          "lower": 0.23396193981170654,
+          "positive_ratio": 0.5238095238095238,
+          "upper": 0.47947728633880615
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0009651732943550725,
+          "lower": 0.47947728633880615,
+          "positive_ratio": 0.08333333333333333,
+          "upper": 0.8021146059036255
+        },
+        {
+          "count": 45,
+          "damage_mean": 0.01983423284952196,
+          "lower": 0.8021146059036255,
+          "positive_ratio": 0.35555555555555557,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": -0.16102213544222868,
+      "damage_correlation": 0.23303275765776935,
+      "feature": "pitch_positive_headroom_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 30,
+          "damage_mean": 0.00042058319054818496,
+          "lower": -0.25333333015441895,
+          "positive_ratio": 0.36666666666666664,
+          "upper": -0.18666666746139526
+        },
+        {
+          "count": 60,
+          "damage_mean": 0.01452591498197605,
+          "lower": -0.18666666746139526,
+          "positive_ratio": 0.3,
+          "upper": -0.11999999731779099
+        }
+      ],
+      "cohens_d": 0.12110298498257942,
+      "damage_correlation": 0.22155740292616877,
+      "feature": "target_speed_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.00956743976188629,
+          "lower": -0.08999112248420715,
+          "positive_ratio": 0.23809523809523808,
+          "upper": -0.07899080216884613
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.010166880768262582,
+          "lower": -0.07899080216884613,
+          "positive_ratio": 0.25,
+          "upper": -0.056997671723365784
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.004586998369991292,
+          "lower": -0.056997671723365784,
+          "positive_ratio": 0.42857142857142855,
+          "upper": -0.03499072790145874
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.014288502309469889,
+          "lower": -0.03499072790145874,
+          "positive_ratio": 0.375,
+          "upper": -0.023990407586097717
+        }
+      ],
+      "cohens_d": 0.09650936477426594,
+      "damage_correlation": 0.022843674865833524,
+      "feature": "ownship_altitude_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 2.718539626533371e-07,
+          "lower": -1.0,
+          "positive_ratio": 0.09523809523809523,
+          "upper": -0.000757753849029541
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.0372663304022452,
+          "lower": -0.000757753849029541,
+          "positive_ratio": 0.7083333333333334,
+          "upper": 0.36016160249710083
+        },
+        {
+          "count": 21,
+          "damage_mean": -0.0004869163786710482,
+          "lower": 0.36016160249710083,
+          "positive_ratio": 0.47619047619047616,
+          "upper": 0.9925787448883057
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.0,
+          "lower": 0.9925787448883057,
+          "positive_ratio": 0.0,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": -0.06150304149110463,
+      "damage_correlation": -0.07803548033891695,
+      "feature": "yaw_negative_headroom_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.0,
+          "lower": -1.0,
+          "positive_ratio": 0.0,
+          "upper": -0.9925788044929504
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0004260518313371671,
+          "lower": -0.9925788044929504,
+          "positive_ratio": 0.4166666666666667,
+          "upper": -0.36016160249710083
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.03803662639923086,
+          "lower": -0.36016160249710083,
+          "positive_ratio": 0.7619047619047619,
+          "upper": 0.0007578134536743164
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.003984520175135518,
+          "lower": 0.0007578134536743164,
+          "positive_ratio": 0.125,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": 0.061503036686772025,
+      "damage_correlation": 0.07803548281019629,
+      "feature": "yaw_positive_headroom_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 2.718539626533371e-07,
+          "lower": -1.0,
+          "positive_ratio": 0.09523809523809523,
+          "upper": -0.0007577761425636709
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.0372663304022452,
+          "lower": -0.0007577761425636709,
+          "positive_ratio": 0.7083333333333334,
+          "upper": 0.36016160249710083
+        },
+        {
+          "count": 21,
+          "damage_mean": -0.0004869163786710482,
+          "lower": 0.36016160249710083,
+          "positive_ratio": 0.47619047619047616,
+          "upper": 0.9925788044929504
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.0,
+          "lower": 0.9925788044929504,
+          "positive_ratio": 0.0,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": -0.06150303230417612,
+      "damage_correlation": -0.0780354800875511,
+      "feature": "bt_yaw"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.01804144580198759,
+          "lower": 0.21582600474357605,
+          "positive_ratio": 0.38095238095238093,
+          "upper": 0.23322609066963196
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0003931313995118267,
+          "lower": 0.23322609066963196,
+          "positive_ratio": 0.20833333333333334,
+          "upper": 0.24996520578861237
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.00895938934727851,
+          "lower": 0.24996520578861237,
+          "positive_ratio": 0.2857142857142857,
+          "upper": 0.26670482754707336
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.013607917087029344,
+          "lower": 0.26670482754707336,
+          "positive_ratio": 0.4166666666666667,
+          "upper": 0.28338995575904846
+        }
+      ],
+      "cohens_d": 0.03996753480530472,
+      "damage_correlation": -0.027723925816636658,
+      "feature": "delta_north_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.02161525072243519,
+          "lower": -0.0860000029206276,
+          "positive_ratio": 0.38095238095238093,
+          "upper": -0.06599999964237213
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.00034858113834021026,
+          "lower": -0.06599999964237213,
+          "positive_ratio": 0.25,
+          "upper": -0.04649999924004078
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.004589504253348443,
+          "lower": -0.04649999924004078,
+          "positive_ratio": 0.42857142857142855,
+          "upper": -0.02800000086426735
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.014259936977654883,
+          "lower": -0.02800000086426735,
+          "positive_ratio": 0.25,
+          "upper": -0.010999999940395355
+        }
+      ],
+      "cohens_d": 0.03802313180132541,
+      "damage_correlation": 0.02884200182437991,
+      "feature": "target_altitude_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.01804144580713421,
+          "lower": -0.7319936752319336,
+          "positive_ratio": 0.38095238095238093,
+          "upper": -0.7111949920654297
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.00036703260604084575,
+          "lower": -0.7111949920654297,
+          "positive_ratio": 0.20833333333333334,
+          "upper": -0.6905243098735809
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.010948120555448406,
+          "lower": -0.6905243098735809,
+          "positive_ratio": 0.42857142857142855,
+          "upper": -0.6703293323516846
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.011841678481906412,
+          "lower": -0.6703293323516846,
+          "positive_ratio": 0.2916666666666667,
+          "upper": -0.6492592692375183
+        }
+      ],
+      "cohens_d": 0.02848591858257487,
+      "damage_correlation": -0.028033317844660743,
+      "feature": "bt_vp_distance_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 0.01804144580713421,
+          "lower": -0.5665295720100403,
+          "positive_ratio": 0.38095238095238093,
+          "upper": -0.5325153470039368
+        },
+        {
+          "count": 24,
+          "damage_mean": -0.0003669857510113274,
+          "lower": -0.5325153470039368,
+          "positive_ratio": 0.20833333333333334,
+          "upper": -0.4979860782623291
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.019874236223826468,
+          "lower": -0.4979860782623291,
+          "positive_ratio": 0.47619047619047616,
+          "upper": -0.46409741044044495
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.00403128041704609,
+          "lower": -0.46409741044044495,
+          "positive_ratio": 0.25,
+          "upper": -0.4297727346420288
+        }
+      ],
+      "cohens_d": 0.025585430500104388,
+      "damage_correlation": -0.0312256746859732,
+      "feature": "range_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 45,
+          "damage_mean": -0.00022722764337982247,
+          "lower": -1.0,
+          "positive_ratio": 0.2222222222222222,
+          "upper": -0.5
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.03803662639923086,
+          "lower": -0.5,
+          "positive_ratio": 0.7619047619047619,
+          "upper": 0.00697857141494751
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.003984520175135518,
+          "lower": 0.00697857141494751,
+          "positive_ratio": 0.125,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": -0.016979245882011634,
+      "damage_correlation": 0.09064500357030017,
+      "feature": "bt_roll"
+    },
+    {
+      "bins": [
+        {
+          "count": 21,
+          "damage_mean": 2.718539626533371e-07,
+          "lower": -1.0,
+          "positive_ratio": 0.09523809523809523,
+          "upper": -0.00697857141494751
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.0372663304022452,
+          "lower": -0.00697857141494751,
+          "positive_ratio": 0.7083333333333334,
+          "upper": 0.5
+        },
+        {
+          "count": 45,
+          "damage_mean": -0.00022722764337982247,
+          "lower": 0.5,
+          "positive_ratio": 0.2222222222222222,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": 0.016979245882011634,
+      "damage_correlation": -0.09064500357030017,
+      "feature": "roll_positive_headroom_norm"
+    },
+    {
+      "bins": [
+        {
+          "count": 45,
+          "damage_mean": -0.00022722764337982247,
+          "lower": -1.0,
+          "positive_ratio": 0.2222222222222222,
+          "upper": -0.5
+        },
+        {
+          "count": 21,
+          "damage_mean": 0.03803662639923086,
+          "lower": -0.5,
+          "positive_ratio": 0.7619047619047619,
+          "upper": 0.006978511810302734
+        },
+        {
+          "count": 24,
+          "damage_mean": 0.003984520175135518,
+          "lower": 0.006978511810302734,
+          "positive_ratio": 0.125,
+          "upper": 1.0
+        }
+      ],
+      "cohens_d": -0.01697923789184055,
+      "damage_correlation": 0.090645001503835,
+      "feature": "roll_negative_headroom_norm"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "target_roll_norm"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "target_pitch_norm"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "phase_norm"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "bt_throttle_bipolar"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "recent_applied_requested_authority_ratio"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "previous_selected_action_norm"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "current_action_hold_norm"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "gate_elapsed_norm"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "gate_active"
+    },
+    {
+      "bins": [],
+      "cohens_d": 0.0,
+      "damage_correlation": 0.0,
+      "feature": "action_duration_norm"
+    }
+  ]
+}
