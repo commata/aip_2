@@ -150,6 +150,7 @@ class PrefixReplayTacticalActionProvider(ActionProvider):
         self.bt_provider.reset(context)
         self._frame = 0
         self._prefix_snapshot: dict[str, Any] = {}
+        self._initial_snapshot: dict[str, Any] = {}
         self._last_frame: dict[str, Any] = {}
         self._intervention_frames = 0
         self._fallback_frames = 0
@@ -164,6 +165,8 @@ class PrefixReplayTacticalActionProvider(ActionProvider):
         if bt_vp.shape != (3,) or not np.all(np.isfinite(bt_vp)):
             bt_vp = np.asarray(context.ownship_state, dtype=np.float64)[:3].copy()
         snapshot = build_prefix_snapshot(frame, context, bt_action, bt_vp)
+        if frame == 0:
+            self._initial_snapshot = snapshot
         if frame == self.intervention.start_frame:
             self._prefix_snapshot = snapshot
 
@@ -237,6 +240,7 @@ class PrefixReplayTacticalActionProvider(ActionProvider):
                 "tactical_mode": self.intervention.tactical_mode,
             },
             "prefix_snapshot": dict(self._prefix_snapshot),
+            "initial_snapshot": dict(self._initial_snapshot),
             "intervention_frames": self._intervention_frames,
             "fallback_frames": self._fallback_frames,
             "throttle_violations": self._throttle_violations,

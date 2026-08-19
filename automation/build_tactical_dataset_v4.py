@@ -48,6 +48,29 @@ def load_frames(path: Path) -> list[dict[str, Any]]:
     ]
 
 
+def state_from_server_observable(values: Any) -> np.ndarray:
+    observable = np.asarray(values, dtype=np.float64)
+    if observable.shape != (11,) or not np.all(np.isfinite(observable)):
+        raise ValueError("initial prefix snapshot must contain an exact 11D observable")
+    state = np.zeros(int(StateIndex.ALT) + 1, dtype=np.float64)
+    state[:9] = observable[:9]
+    state[StateIndex.KCAS] = observable[9]
+    state[StateIndex.ALT] = observable[10]
+    return state
+
+
+def initial_state_from_provider_telemetry(
+    telemetry: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray] | None:
+    snapshot = telemetry.get("initial_snapshot") or {}
+    if not snapshot:
+        return None
+    return (
+        state_from_server_observable(snapshot["ownship_server_observable"]),
+        state_from_server_observable(snapshot["target_server_observable"]),
+    )
+
+
 def state_from_payload(payload: dict[str, Any]) -> np.ndarray:
     if "body_velocity_m_s" not in payload:
         raise ValueError("v4 primary dataset requires exact packet-visible body velocity")
@@ -64,21 +87,29 @@ def temporal_observation_at_decision(
     frames: list[dict[str, Any]],
     decision_frame: int,
     prefix_snapshot: dict[str, Any],
+    initial_state: tuple[np.ndarray, np.ndarray] | None = None,
 ) -> np.ndarray:
-    if decision_frame <= 0 or decision_frame >= len(frames):
-        raise ValueError("decision frame must provide a prior state and same-frame BT")
+    if decision_frame < 0 or decision_frame >= len(frames):
+        raise ValueError("decision frame must provide same-frame BT")
+    if decision_frame == 0 and initial_state is None:
+        raise ValueError("frame-zero decision requires exact post-reset state")
     builder = TemporalServerObservationBuilder()
     current_context: tuple[np.ndarray, np.ndarray] | None = None
     # For events before frame 30 the builder's frozen repeat-first contract
     # pads unavailable history and therefore produces zero deltas for it.
-    for frame in range(max(1, decision_frame - 30), decision_frame + 1):
+    first_frame = max(0 if initial_state is not None else 1, decision_frame - 30)
+    for frame in range(first_frame, decision_frame + 1):
         # Telemetry stores the post-step state for frame k. The action info in
         # row k+1 was computed from that state, so this reconstructs selector
         # context without a one-frame look-ahead.
-        state_row = frames[frame - 1]
         action_row = frames[frame]
-        own = state_from_payload(state_row["ownship"])
-        target = state_from_payload(state_row["target"])
+        if frame == 0:
+            assert initial_state is not None
+            own, target = (value.copy() for value in initial_state)
+        else:
+            state_row = frames[frame - 1]
+            own = state_from_payload(state_row["ownship"])
+            target = state_from_payload(state_row["target"])
         hybrid = action_row["hybrid"]
         bt_action = np.asarray(hybrid["bt_action"], dtype=np.float32)
         bt_vp = np.asarray(hybrid["bt_vp"], dtype=np.float64)
@@ -135,7 +166,11 @@ def records_from_oracle_root(
         result = json.loads((run / "result.json").read_text(encoding="utf-8"))
         prefix = result["ownship_provider_telemetry"]["prefix_snapshot"]
         decision_frame = int(options[0]["decision_frame"])
-        if decision_frame <= 30:
+        telemetry_path = run / "telemetry.jsonl"
+        initial_state = initial_state_from_provider_telemetry(
+            result["ownship_provider_telemetry"]
+        )
+        if decision_frame <= 30 and initial_state is None:
             if exclusions is not None:
                 exclusions.append(
                     {
@@ -146,7 +181,10 @@ def records_from_oracle_root(
                 )
             continue
         observation = temporal_observation_at_decision(
-            load_frames(run / "telemetry.jsonl"), decision_frame, prefix
+            load_frames(telemetry_path),
+            decision_frame,
+            prefix,
+            initial_state=initial_state,
         )
         common = {
             "event_id": event_id,

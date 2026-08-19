@@ -5,6 +5,7 @@ import pytest
 
 from automation.build_tactical_dataset_v4 import (
     grouped_split,
+    initial_state_from_provider_telemetry,
     state_from_payload,
     validate_group_assignment,
 )
@@ -67,3 +68,16 @@ def test_temporal_builder_padding_contract_supports_early_events() -> None:
     current = np.zeros(42, dtype=np.float32)
     first = builder.append_observation(current)
     np.testing.assert_array_equal(first[42:], np.zeros(51, dtype=np.float32))
+
+
+def test_initial_state_loader_requires_exact_prefix_observable() -> None:
+    initial = initial_state_from_provider_telemetry(
+        {
+            "initial_snapshot": {
+                "ownship_server_observable": [0, 0, -5000, 0, 0, 0, 240, 0, 0, 240, 5000],
+                "target_server_observable": [1000, 0, -5000, 0, 0, 0, 220, 0, 0, 220, 5000],
+            }
+        }
+    )
+    assert initial is not None
+    assert initial[0][6] == 240
