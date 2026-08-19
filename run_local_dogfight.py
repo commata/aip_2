@@ -38,6 +38,7 @@ from dogfight.ai.guidance_selector import (
     GuidanceSelectorActionProvider,
     NumpyMLPGuidanceSelector,
 )
+from dogfight.ai.state_action_advantage import load_guidance_selector_bundle
 from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
@@ -284,7 +285,7 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
         if guidance_fixed_action:
             selector = FixedGuidanceSelector(guidance_fixed_action)
         elif bundle_dir:
-            selector = NumpyMLPGuidanceSelector(bundle_dir)
+            selector = load_guidance_selector_bundle(bundle_dir)
         else:
             raise ValueError(
                 f"--{side}-bundle-dir or --guidance-fixed-action is required "

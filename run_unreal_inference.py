@@ -19,8 +19,8 @@ from dogfight.ai.bt_rule_manager import activate_rule_xml
 from dogfight.ai.hybrid_action_provider import ResidualInferenceActionProvider
 from dogfight.ai.guidance_selector import (
     GuidanceSelectorActionProvider,
-    NumpyMLPGuidanceSelector,
 )
+from dogfight.ai.state_action_advantage import load_guidance_selector_bundle
 from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
@@ -149,7 +149,7 @@ def build_action_provider(args):
         )
 
     if args.mode == "guidance":
-        selector = NumpyMLPGuidanceSelector(submission.bundle_path)
+        selector = load_guidance_selector_bundle(submission.bundle_path)
         bt_provider = BTActionProvider(
             dll_name=args.bt_dll,
             enable_turn_throttle_optimization=False,

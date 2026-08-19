@@ -573,6 +573,9 @@ class GuidanceSelectorActionProvider(ActionProvider):
     ):
         self.bt_provider = bt_provider
         self.selector = selector
+        self.observation_contract = getattr(
+            selector, "observation_contract", GUIDANCE_SELECTOR_CONTRACT_VERSION
+        )
         self.action_config = _coerce_config(action_config, GuidanceActionConfig)
         self.controller_config = _coerce_config(controller_config, GuidanceControllerConfig)
         self.runtime_config = _coerce_config(runtime_config, GuidanceRuntimeConfig)
@@ -679,22 +682,41 @@ class GuidanceSelectorActionProvider(ActionProvider):
 
         try:
             base = _vp_local_setpoint(bt_result, context.ownship_state)
-            observation = build_guidance_observation(
-                context.observation,
-                context.ownship_state,
-                context.target_state,
-                bt_action,
-                base,
-                sim_time_s=float(context.info.get("sim_time_s", 0.0)),
-                previous_action_id=self._current_action_id,
-                action_hold_frames=self._action_hold_frames,
-                gate_elapsed_frames=self._gate_elapsed_frames,
-                gate_active=True,
-                minimum_action_hold_frames=self.runtime_config.minimum_action_hold_frames,
-                maximum_active_frames=self.runtime_config.maximum_active_frames,
-                recent_authority_ratio=self._recent_authority_ratio,
-                safety_config=self.safety_config,
-            )
+            observation_arguments = {
+                "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
+                "previous_action_id": self._current_action_id,
+                "action_hold_frames": self._action_hold_frames,
+                "gate_elapsed_frames": self._gate_elapsed_frames,
+                "gate_active": True,
+                "minimum_action_hold_frames": self.runtime_config.minimum_action_hold_frames,
+                "maximum_active_frames": self.runtime_config.maximum_active_frames,
+                "recent_authority_ratio": self._recent_authority_ratio,
+                "safety_config": self.safety_config,
+            }
+            if self.observation_contract == GUIDANCE_SELECTOR_CONTRACT_VERSION:
+                observation = build_guidance_observation(
+                    context.observation,
+                    context.ownship_state,
+                    context.target_state,
+                    bt_action,
+                    base,
+                    **observation_arguments,
+                )
+            else:
+                from dogfight.ai.guidance_advantage import (
+                    GUIDANCE_SERVER_CONTRACT_VERSION,
+                    build_server_guidance_observation,
+                )
+
+                if self.observation_contract != GUIDANCE_SERVER_CONTRACT_VERSION:
+                    raise ValueError(f"unsupported Guidance observation contract: {self.observation_contract}")
+                observation = build_server_guidance_observation(
+                    context.ownship_state,
+                    context.target_state,
+                    bt_action,
+                    base,
+                    **observation_arguments,
+                )
         except Exception as exc:
             return self._fallback(f"observation_{type(exc).__name__}", bt_action, gate_info)
 
@@ -785,7 +807,7 @@ class GuidanceSelectorActionProvider(ActionProvider):
         frame = {
             "mode": "guidance_selector",
             "gate": gate_info,
-            "observation_contract": GUIDANCE_SELECTOR_CONTRACT_VERSION,
+            "observation_contract": self.observation_contract,
             "observation": observation.tolist(),
             "selected_action_id": action_id,
             "selected_action": GUIDANCE_ACTIONS[action_id],
@@ -809,8 +831,8 @@ class GuidanceSelectorActionProvider(ActionProvider):
         return {
             **self.gate.telemetry(),
             "mode": "guidance_selector",
-            "observation_contract": GUIDANCE_SELECTOR_CONTRACT_VERSION,
-            "observation_size": GUIDANCE_SELECTOR_OBSERVATION_SIZE,
+            "observation_contract": self.observation_contract,
+            "observation_size": 42 if self.observation_contract != GUIDANCE_SELECTOR_CONTRACT_VERSION else GUIDANCE_SELECTOR_OBSERVATION_SIZE,
             "action_config": asdict(self.action_config),
             "controller_config": asdict(self.controller_config),
             "runtime_config": asdict(self.runtime_config),

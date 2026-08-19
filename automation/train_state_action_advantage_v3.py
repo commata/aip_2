@@ -13,6 +13,13 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from dogfight.ai.guidance_advantage import (
+    GUIDANCE_ADVANTAGE_ACTIONS,
+    GUIDANCE_SERVER_CONTRACT_VERSION,
+    GUIDANCE_SERVER_FEATURES,
+)
+from dogfight.ai.state_action_advantage import MODEL_KIND
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATASET = ROOT / "automation/evidence/state_conditioned_hybrid_v3/state_matrix_v3.json"
@@ -320,6 +327,11 @@ def train_and_evaluate(
         "unique_states": len({row["state_hash"] for row in unique}),
         "unique_state_action_pairs": len(unique),
         "input_contract": "guidance_selector_server_v2_42d + factorized_action_6d",
+        "model_kind": MODEL_KIND,
+        "observation_contract": GUIDANCE_SERVER_CONTRACT_VERSION,
+        "observation_size": 42,
+        "features": list(GUIDANCE_SERVER_FEATURES),
+        "actions": list(GUIDANCE_ADVANTAGE_ACTIONS),
         "model_architecture": "MLP 48-64-64, mean/P(positive)/P(large-regression) heads",
         "seeds": list(seeds),
         "epochs_per_model": epochs,
@@ -348,6 +360,14 @@ def save_bundle(
     model_path = output / "model.npz"
     np.savez_compressed(model_path, **arrays)
     metadata = dict(result)
+    selected = result["selected_oof_policy"]
+    metadata["offline_gate_passed"] = bool(selected["offline_gate_passed"])
+    metadata["runtime_threshold"] = dict(selected["threshold"])
+    metadata["runtime_candidates"] = [
+        {"action": action, "magnitude_deg": 0.25, "duration_frames": 36}
+        for action in GUIDANCE_ADVANTAGE_ACTIONS[1:]
+    ]
+    metadata["ensemble_size"] = len(models)
     metadata["model_sha256"] = hashlib.sha256(model_path.read_bytes()).hexdigest().upper()
     (output / "metadata.json").write_text(
         json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8"
