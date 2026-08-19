@@ -33,6 +33,7 @@ from dogfight.ai.temporal_observation import (
 ENSEMBLE_SEEDS = (41001, 41002, 41003)
 POSITIVE_EPSILON = 1e-9
 LARGE_REGRESSION = -1e-6
+CORE_POLICY_VALUE = core.policy_value
 
 
 class TacticalAdvantageNetwork(core.AdvantageNetwork):
@@ -98,10 +99,25 @@ def assign_scenario_folds(
     return assignment
 
 
+def tactical_policy_value(
+    rows: list[dict[str, Any]],
+    predictions: dict[str, np.ndarray],
+    threshold: dict[str, float],
+) -> dict[str, Any]:
+    """Match runtime: BT_DEFAULT is an abstention anchor, never an intervention option."""
+    indices = [index for index, row in enumerate(rows) if row["action"] != "BT_DEFAULT"]
+    filtered_rows = [rows[index] for index in indices]
+    filtered_predictions = {
+        key: np.asarray(values)[indices] for key, values in predictions.items()
+    }
+    return CORE_POLICY_VALUE(filtered_rows, filtered_predictions, threshold)
+
+
 def configure_core(target_scale: float) -> None:
     core.AdvantageNetwork = TacticalAdvantageNetwork
     core.encode_factorized_input = encode_input
     core.assign_group_folds = assign_scenario_folds
+    core.policy_value = tactical_policy_value
     core.POSITIVE_EPSILON = POSITIVE_EPSILON
     core.LARGE_REGRESSION = LARGE_REGRESSION
     core.TARGET_SCALE = target_scale

@@ -5,6 +5,7 @@ import numpy as np
 from automation.train_tactical_advantage_v4 import (
     assign_scenario_folds,
     encode_input,
+    tactical_policy_value,
     transform_rows,
 )
 
@@ -44,3 +45,33 @@ def test_scenario_group_oof_never_splits_events_from_same_family() -> None:
             if row["scenario_id"] == scenario
         }
         assert len(folds) == 1
+
+
+def test_oof_policy_never_counts_bt_default_as_intervention() -> None:
+    rows = [
+        {
+            "action": "BT_DEFAULT",
+            "state_hash": "event-1",
+            "candidate_id": "BT_DEFAULT",
+            "damage_delta": 0.0,
+        },
+        {
+            "action": "PURE_PURSUIT",
+            "state_hash": "event-1",
+            "candidate_id": "PURE_PURSUIT__d30",
+            "damage_delta": 0.002,
+        },
+    ]
+    predictions = {
+        "mean": np.asarray([0.01, 0.002]),
+        "std": np.asarray([0.0, 0.0]),
+        "positive_probability": np.asarray([0.99, 0.99]),
+        "regression_probability": np.asarray([0.0, 0.0]),
+    }
+    policy = tactical_policy_value(
+        rows,
+        predictions,
+        {"score": 0.0005, "positive": 0.6, "regression": 0.02, "lambda": 1.0},
+    )
+    assert policy["interventions"] == 1
+    assert policy["selected_rows"][0]["candidate_id"] == "PURE_PURSUIT__d30"
