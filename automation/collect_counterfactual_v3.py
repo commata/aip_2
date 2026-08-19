@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -13,11 +14,30 @@ for import_root in (ROOT, ROOT / "src"):
     if str(import_root) not in sys.path:
         sys.path.insert(0, str(import_root))
 
-from automation.evaluate_guidance_ablation_v2 import compact, run_one, summarize, write_csv
+from automation.evaluate_guidance_ablation_v2 import (
+    EXPECTED_PURE_DLL_SHA256,
+    EXPECTED_PURE_XML_SHA256,
+    compact,
+    run_one,
+    summarize,
+    write_csv,
+)
 from dogfight.ai.guidance_advantage import GUIDANCE_ADVANTAGE_ACTIONS
 
 
 DEFAULT_OUTPUT = ROOT / "artifacts/evaluations/state_conditioned_hybrid_v3/adaptive_stage1_20260819"
+
+
+def verify_pure_baseline(dll: Path, xml: Path) -> None:
+    for path, expected, label in (
+        (dll, EXPECTED_PURE_DLL_SHA256, "Pure BT DLL"),
+        (xml, EXPECTED_PURE_XML_SHA256, "Pure BT XML"),
+    ):
+        if not path.is_file():
+            raise FileNotFoundError(f"{label} not found: {path}")
+        actual = hashlib.sha256(path.read_bytes()).hexdigest().upper()
+        if actual != expected:
+            raise ValueError(f"{label} SHA256 mismatch: expected={expected}, actual={actual}")
 
 
 def build_adaptive_cases(count: int, *, start_index: int = 0) -> list[dict[str, Any]]:
@@ -133,6 +153,7 @@ def main() -> None:
     args = parse_args()
     pure_dll = args.pure_bt_dll.resolve()
     pure_xml = args.pure_bt_xml.resolve()
+    verify_pure_baseline(pure_dll, pure_xml)
     output = args.output_root.resolve()
     output.mkdir(parents=True, exist_ok=True)
     cases = build_adaptive_cases(args.states, start_index=args.start_index)

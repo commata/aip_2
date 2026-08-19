@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from automation.collect_counterfactual_v3 import build_adaptive_cases, coarse_candidates
+import pytest
+
+from automation.collect_counterfactual_v3 import (
+    build_adaptive_cases,
+    coarse_candidates,
+    verify_pure_baseline,
+)
 
 
 def test_adaptive_cases_are_unique_balanced_and_deterministic():
@@ -26,3 +32,8 @@ def test_coarse_stage_covers_every_primary_axis_and_sign_once():
     }
     assert {candidate["magnitude_deg"] for candidate in candidates} == {0.25}
     assert {candidate["duration_frames"] for candidate in candidates} == {36}
+
+
+def test_baseline_preflight_fails_before_rollout_for_missing_file(tmp_path):
+    with pytest.raises(FileNotFoundError, match="Pure BT DLL"):
+        verify_pure_baseline(tmp_path / "missing.dll", tmp_path / "missing.xml")
