@@ -1,0 +1,93 @@
+{
+  "schema_version": "state_conditioned_hybrid_v3.final_research_summary.v1",
+  "status": "NOT_PROMOTED",
+  "hard_stop": "ACTION_SPACE_LADDER_1_TO_4_SHADOW_NONACTIONABLE",
+  "base_main_sha": "5e52665ab0be12006c777aec61b44149fef1f591",
+  "pure_bt_dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+  "pure_bt_xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE",
+  "hybrid_v1_model_sha256": "FAD2BCB268D4669BD65DB89CE8F36832B1E8C4B646163897E9BBC2A6372FBB6C",
+  "observation_contract": "guidance_selector_server_v2",
+  "temporal_contract": "not_promoted; bounded selector trace used offline only",
+  "controller_contract": "vp_error_pd_v2; exact BT throttle",
+  "dataset": {
+    "all_reconstructed_unique_states": 678,
+    "all_observed_nondefault_pairs": 3078,
+    "coherent_training_unique_states": 612,
+    "coherent_training_state_action_pairs": 2448,
+    "sha256": "4DFBF311AA680AA8F8054F9ED969A0729CAB89B1A1EEEFF0D7D8492F8614D6A3"
+  },
+  "model": {
+    "kind": "numpy_state_action_distributional_advantage",
+    "architecture": "MLP 48-64-64 with mean, P(positive), P(large regression) heads",
+    "seeds": [31001, 31002, 31003],
+    "epochs_per_model": 160,
+    "optimizer_updates": 2880,
+    "sha256": "7B97E8DF6CEA3250AE873FAC00C77C1B4AE923B12D0AC596C0DC25F1F36550F2",
+    "runtime_threshold": {"lambda": 2.0, "positive": 0.6, "regression": 0.2, "score": 0.002},
+    "ood_contract": "nearest_training_state_rms_z_v1; threshold=2.0; OOD => BT_DEFAULT"
+  },
+  "offline_policy": {
+    "coverage": 0.013071895424836602,
+    "intervention_precision": 0.75,
+    "mean_policy_value": 0.0003830093997209951,
+    "large_regression_ratio": 0.0,
+    "consistent_model_seeds": 2,
+    "pearson": 0.38500750204510964,
+    "spearman": 0.3299905706945508,
+    "top_action_agreement": 0.3627450980392157,
+    "oracle_regret": 0.0008276490298689683
+  },
+  "dynamic_trace_oracle": {
+    "states": 48,
+    "level1_mean": 0.00009948558207532414,
+    "level1_median": 0.0,
+    "level1_positive_ratio": 0.20833333333333334,
+    "level1_plus_level2_mean": 0.00010092408434717269,
+    "level1_plus_level2_median": 0.0,
+    "level1_plus_level2_positive_ratio": 0.20833333333333334,
+    "level1_plus_level2_plus_level3_mean": 0.00010092408434717269,
+    "level1_plus_level2_plus_level3_positive_ratio": 0.20833333333333334,
+    "level4_balanced_states": 12,
+    "level4_nondefault_pairs": 192,
+    "level4_all_damage_deltas_zero": true
+  },
+  "shadow": {
+    "clean_pairs": 6,
+    "predicted_nondefault_frames": 0,
+    "actual_intervention_frames": 0,
+    "damage_delta_mean": 0.0,
+    "damage_delta_median": 0.0,
+    "crashes": 0,
+    "throttle_violations": 0,
+    "invalid_actions": 0,
+    "e2e_latency_ms_p99_max": 0.9839150169864292,
+    "e2e_latency_ms_max": 1.7183999880217016,
+    "over_166_7ms": 0,
+    "gate_passed": false
+  },
+  "live_evaluation": {
+    "first_micro_clean_pairs": 12,
+    "first_micro_damage_mean": -0.00002154083252330537,
+    "first_micro_damage_median": 0.0,
+    "first_micro_positive_ratio": 0.08333333333333333,
+    "first_micro_bootstrap_95ci": [-0.0000957055, 0.0000456982],
+    "first_micro_intervention_frames": 396,
+    "development_pairs": 0,
+    "heldout_pairs": 0,
+    "ppo_iterations": 0,
+    "ppo_steps": 0,
+    "ppo_episodes": 0
+  },
+  "safety": {
+    "all_new_causal_rollouts": 1800,
+    "ownship_crashes": 0,
+    "target_crashes": 0,
+    "contaminated_pairs": 0,
+    "process_errors": 0,
+    "throttle_violations": 0,
+    "exact_bt_default_parity": true
+  },
+  "server_status": "SERVER_BLOCKED",
+  "submission_bundle_created": false,
+  "recommendation": "PURE_BT_FALLBACK_RECOMMENDED"
+}
