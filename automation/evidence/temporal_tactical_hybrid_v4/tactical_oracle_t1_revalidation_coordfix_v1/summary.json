@@ -1,0 +1,21 @@
+{
+  "schema_version": "tactical_oracle_v4.v1",
+  "stage": "INDEPENDENT_REVALIDATION_AFTER_VP_COORDINATE_FIX",
+  "action_space_level": "T1",
+  "events_requested": 36,
+  "clean_pairs": 324,
+  "contaminated_or_invalid_pairs": 0,
+  "oracle_nondefault_coverage": 0.75,
+  "oracle_intervention_mean": 0.0917577034910315,
+  "oracle_intervention_median": 0.0037556443889907865,
+  "overall_policy_value": 0.06881827761827365,
+  "best_static_tactical_mode": "LEAD_PURSUIT_T060__d60",
+  "best_static_value": 0.06122473046307656,
+  "oracle_static_gap": 0.00759354715519709,
+  "positive_geometry_count": 9,
+  "large_regression_pairs": 111,
+  "decision": "TACTICAL_ORACLE_FEASIBLE",
+  "oracle_sha256": "800701B823C4458FAA64CB326452B715192747B3E84781BC9B8A6EDB65CCDD5D",
+  "pairs_sha256": "C9AD38937C6347F5D75A433051768866C664F76D99D051E39427BCEDE1CFDAD9",
+  "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/tactical_oracle_t1_revalidation_coordfix_v1"
+}

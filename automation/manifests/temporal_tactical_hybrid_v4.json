@@ -122,7 +122,7 @@
     "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1"
   },
   "tactical_oracle": {
-    "status": "REVALIDATION_REQUIRED_AFTER_VP_COORDINATE_FIX",
+    "status": "TACTICAL_ORACLE_FEASIBLE_AFTER_VP_COORDINATE_FIX",
     "action_space_level": "T1",
     "discovery_events": 12,
     "clean_pairs": 108,
@@ -141,10 +141,23 @@
     "independent_positive_geometry_count": 9,
     "independent_large_regression_pairs": 129,
     "best_static_value": -0.010091185467276957,
-    "action_space_gate_passed": false,
+    "coordinate_fixed_discovery_events": 12,
+    "coordinate_fixed_discovery_clean_pairs": 108,
+    "coordinate_fixed_discovery_coverage": 0.8333333333333334,
+    "coordinate_fixed_discovery_overall_policy_value": 0.003928045496657845,
+    "coordinate_fixed_revalidation_events": 36,
+    "coordinate_fixed_revalidation_clean_pairs": 324,
+    "coordinate_fixed_revalidation_coverage": 0.75,
+    "coordinate_fixed_revalidation_intervention_median": 0.0037556443889907865,
+    "coordinate_fixed_revalidation_overall_policy_value": 0.06881827761827365,
+    "coordinate_fixed_revalidation_positive_geometry_count": 9,
+    "coordinate_fixed_revalidation_large_regression_pairs": 111,
+    "action_space_gate_passed": true,
     "superseded_evidence_reason": "Champion VP Z-up was interpreted as NED Z-down in the controller baseline; rerun required",
     "discovery_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_v2/summary.json",
-    "revalidation_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_revalidation_v1/summary.json"
+    "revalidation_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_revalidation_v1/summary.json",
+    "coordinate_fixed_discovery_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_coordfix_v1/summary.json",
+    "coordinate_fixed_revalidation_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_revalidation_coordfix_v1/summary.json"
   },
   "promotion": {
     "submission_freeze_allowed": false,

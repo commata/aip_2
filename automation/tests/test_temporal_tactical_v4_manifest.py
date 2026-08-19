@@ -44,12 +44,14 @@ def test_v4_manifest_freezes_phase0_contract() -> None:
     assert manifest["pure_bt_decision_events"]["diagnostic_taxonomy_is_label"] is False
     assert (
         manifest["tactical_oracle"]["status"]
-        == "REVALIDATION_REQUIRED_AFTER_VP_COORDINATE_FIX"
+        == "TACTICAL_ORACLE_FEASIBLE_AFTER_VP_COORDINATE_FIX"
     )
     assert manifest["tactical_oracle"]["independent_revalidation_target_events"] >= 36
     assert manifest["tactical_oracle"]["risk_head_required"] is True
-    assert manifest["tactical_oracle"]["action_space_gate_passed"] is False
+    assert manifest["tactical_oracle"]["action_space_gate_passed"] is True
     assert manifest["tactical_oracle"]["independent_revalidation_events"] >= 36
+    assert manifest["tactical_oracle"]["coordinate_fixed_revalidation_events"] >= 36
+    assert manifest["tactical_oracle"]["coordinate_fixed_revalidation_clean_pairs"] == 324
 
 
 def test_v4_hashes_match_frozen_contract() -> None:
