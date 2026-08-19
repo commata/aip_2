@@ -7,6 +7,7 @@ import numpy as np
 
 from dogfight.ai.action_provider import ActionContext, ActionProvider, ActionResult
 from dogfight.ai.hybrid_action_provider import (
+    CounterfactualPulseActionProvider,
     ResidualInferenceActionProvider,
     ShotWindowActivationGate,
     ShotWindowGateConfig,
@@ -272,6 +273,59 @@ class ShotWindowGateTests(unittest.TestCase):
         self.assertAlmostEqual(float(middle.action[0]), 0.0625)
         self.assertAlmostEqual(float(last.action[0]), 0.0)
         self.assertAlmostEqual(float(last.action[3]), float(bt.action[3]))
+
+    def test_counterfactual_pulse_is_first_window_six_frames_and_inference_free(self) -> None:
+        bt = _Provider([0.2, -0.1, 0.05, 0.82])
+        provider = CounterfactualPulseActionProvider(
+            bt,
+            [0.5, 0.0, 0.0, -1.0],
+            residual_scale=0.125,
+            pulse_frames=6,
+            composition_mode="saturation_aware",
+        )
+        beam_own, beam_target = _geometry(90.0)
+        off = provider.compute_action(_context(beam_own, beam_target))
+        np.testing.assert_array_equal(off.action, bt.action)
+
+        own, target = _geometry(180.0)
+        provider.compute_action(_context(own, target, sim_time_s=1 / 60.0))
+        active = [
+            provider.compute_action(
+                _context(own, target, sim_time_s=frame / 60.0)
+            )
+            for frame in range(2, 9)
+        ]
+        self.assertTrue(all(row.info["counterfactual_pulse_applied"] for row in active[:6]))
+        self.assertFalse(active[6].info["counterfactual_pulse_applied"])
+        self.assertTrue(all(float(row.action[3]) == float(bt.action[3]) for row in active))
+        self.assertGreater(float(active[0].action[0]), float(bt.action[0]))
+        np.testing.assert_array_equal(active[6].action, bt.action)
+        telemetry = provider.telemetry()
+        self.assertEqual(telemetry["counterfactual_pulse_steps"], 6)
+        self.assertEqual(telemetry["rl_inference_calls"], 0)
+
+    def test_counterfactual_pulse_does_not_resume_after_first_window_exit(self) -> None:
+        bt = _Provider([0.0, 0.0, 0.0, 0.82])
+        provider = CounterfactualPulseActionProvider(
+            bt,
+            [0.5, 0.0, 0.0, 0.0],
+            pulse_frames=6,
+            shot_window_gate=ShotWindowGateConfig(
+                max_active_steps=60,
+                cooldown_steps=1,
+                require_condition_exit_for_rearm=False,
+            ),
+        )
+        own, target = _geometry(180.0)
+        provider.compute_action(_context(own, target, sim_time_s=0.0))
+        first = provider.compute_action(_context(own, target, sim_time_s=1 / 60.0))
+        self.assertTrue(first.info["counterfactual_pulse_applied"])
+        outside, outside_target = _geometry(180.0, distance_m=1100.0)
+        provider.compute_action(_context(outside, outside_target, sim_time_s=2 / 60.0))
+        provider.compute_action(_context(own, target, sim_time_s=3 / 60.0))
+        later = provider.compute_action(_context(own, target, sim_time_s=4 / 60.0))
+        self.assertFalse(later.info["counterfactual_pulse_applied"])
+        np.testing.assert_array_equal(later.action, bt.action)
 
 
 if __name__ == "__main__":

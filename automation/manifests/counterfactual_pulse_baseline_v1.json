@@ -1,0 +1,42 @@
+{
+  "status": "BASELINE_FROZEN",
+  "branch": "codex/shot-window-counterfactual-pulse",
+  "implementation_git_sha": "8866435d00fe7d4ac004738c0547cb0aa3c506b9",
+  "issue": 15,
+  "suite": "automation/scenarios/counterfactual_pulse_dev_suite_v1.json",
+  "suite_sha256": "7D00CA04D22AD6BD3D065AD7F1063EA4564865CB969D1578B37E0C6B277CF5A3",
+  "evaluation": "artifacts/evaluations/counterfactual_pulse/baseline_repeat_v1_20260819/evaluation.json",
+  "evaluation_sha256": "A1ECA86C7949781123904BE5B85BCF29C702908F8631D87369737C5DB4AD16CE",
+  "geometries": ["lateral_left", "lateral_right", "crossing_left", "crossing_right", "vertical_high", "vertical_low"],
+  "evaluation_seeds": [6201, 6202, 6203, 6204, 6205, 6206],
+  "repeats_per_geometry": 3,
+  "pure_episodes": 18,
+  "zero_residual_episodes": 18,
+  "pure_exact_determinism": true,
+  "zero_residual_exact_equality": true,
+  "damage_range": 0.0,
+  "damage_mad": 0.0,
+  "p95_abs_damage_deviation": 0.0,
+  "minimum_meaningful_damage_delta": 0.001,
+  "maximum_geometry_regression": -0.003,
+  "threshold_rationale": "Pure BT repeated trajectories and Damage are exact; require at least 0.001 absolute Damage improvement and reject geometry regression below -0.003.",
+  "runtime_contract": {
+    "pure_bt_hz": 60,
+    "rl_cadence_frames": 6,
+    "shot_window_max_active_frames": 60,
+    "cooldown_frames": 30,
+    "rearm": "condition_exit",
+    "residual_scale": 0.125,
+    "composition": "saturation_aware",
+    "throttle": "bt_only"
+  },
+  "target": {
+    "kind": "autopilot",
+    "ownship_bt_dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "rule_xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+  },
+  "heldout_seeds_opened": false,
+  "heldout_seeds": [5301, 5302, 5303, 5304, 5305, 5306],
+  "server_status": "SERVER_BLOCKED",
+  "target_bt_status": "TARGET_BT_PENDING"
+}

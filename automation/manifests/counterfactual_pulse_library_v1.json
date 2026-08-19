@@ -1,0 +1,82 @@
+{
+  "status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
+  "promotion_status": "NOT_PROMOTED",
+  "branch": "codex/shot-window-counterfactual-pulse",
+  "evidence_git_sha": "ce9cd1abda23e4e569f476530cf7be71df344a53",
+  "issue": 15,
+  "evaluation": "artifacts/evaluations/counterfactual_pulse/symmetric_first_window_v1_20260819/evaluation.json",
+  "evaluation_sha256": "EE5188A519F53D731B69C166912345613DDA521F46BA506325C1812D95D341A2",
+  "suite": "automation/scenarios/counterfactual_pulse_dev_suite_v1.json",
+  "evaluation_seeds": [6201, 6202, 6203, 6204, 6205, 6206],
+  "heldout_seeds_opened": false,
+  "pulse_contract": {
+    "window": "first_shot_window_only",
+    "frames": 6,
+    "raw_magnitude": 0.19867990911006927,
+    "magnitude_source": "PPO i15 first-window pooled median absolute raw surface action",
+    "residual_scale": 0.125,
+    "nominal_correction": 0.02483498863875866,
+    "composition": "saturation_aware",
+    "axes": ["roll", "pitch", "yaw"],
+    "directions": ["positive", "negative"],
+    "throttle": "bt_only",
+    "rl_inference_calls": 0
+  },
+  "thresholds": {
+    "minimum_meaningful_damage_delta": 0.001,
+    "maximum_geometry_regression": -0.003
+  },
+  "episodes": {
+    "total": 48,
+    "pure": 6,
+    "zero": 6,
+    "nonzero_pulse": 36,
+    "clean_pulse_pairs": 33,
+    "target_crash_contaminated": 3,
+    "ownship_crash": 0,
+    "process_error": 0
+  },
+  "runtime_contract": {
+    "zero_residual_exact_equality": true,
+    "pulse_steps_per_episode": 6,
+    "total_counterfactual_applied_frames_including_zero": 252,
+    "invalid_or_nonfinite_actions": 0,
+    "throttle_violations": 0,
+    "inference_calls": 0
+  },
+  "clean_results": {
+    "mean_damage_delta": -0.0006406864848974267,
+    "median_damage_delta": 0.0,
+    "positive_pairs": 15,
+    "pairs": 33,
+    "positive_ratio": 0.45454545454545453,
+    "meaningful_positive_pairs": 4,
+    "large_regression_pairs": 4,
+    "significant_positive_best_geometries": 1,
+    "median_best_geometry_damage_delta": 0.0003736625016024231,
+    "consistent_winning_direction_count": 1
+  },
+  "best_by_geometry": [
+    {"geometry": "lateral_left", "pulse": "yaw_pos", "damage_delta": 0.000701936493252564},
+    {"geometry": "lateral_right", "pulse": "yaw_neg", "damage_delta": 0.00009054314744894043},
+    {"geometry": "crossing_left", "pulse": "yaw_neg", "damage_delta": 0.00034049065552954616},
+    {"geometry": "crossing_right", "pulse": "yaw_pos", "damage_delta": 0.0004068343476753},
+    {"geometry": "vertical_high", "pulse": "pitch_pos", "damage_delta": 0.002040209360244738},
+    {"geometry": "vertical_low", "pulse": "roll_pos", "damage_delta": 0.000020669113624638413}
+  ],
+  "worst_clean": {
+    "geometry": "lateral_left",
+    "pulse": "roll_neg",
+    "damage_delta": -0.005819447741756578,
+    "cone_delta_s": -0.016666666666666607
+  },
+  "contamination": {
+    "label": "TARGET_CRASH_CONTAMINATED",
+    "geometry": "crossing_left",
+    "pulses": ["roll_pos", "pitch_neg", "yaw_pos"],
+    "excluded_from_primary": true
+  },
+  "decision": "Only vertical_high exceeded the pre-frozen meaningful threshold; directions did not repeat across geometries and clean aggregate was negative. Dataset construction is forbidden by the phase gate.",
+  "server_status": "SERVER_BLOCKED",
+  "target_bt_status": "TARGET_BT_PENDING"
+}

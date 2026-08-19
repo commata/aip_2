@@ -1,0 +1,13 @@
+{
+  "name": "counterfactual_pulse_dev_suite_v1",
+  "purpose": "first Shot-Window 6-frame symmetric pulse causal diagnostic",
+  "independence_note": "Seeds 6201-6206 were fixed before pulse outcomes; held-out 5301-5306 remain unopened.",
+  "cases": [
+    {"name": "lateral_left", "scenario": "automation/scenarios/0815_aim_mirror/lateral_left.json", "seed": 6201},
+    {"name": "lateral_right", "scenario": "automation/scenarios/0815_aim_mirror/lateral_right.json", "seed": 6202},
+    {"name": "crossing_left", "scenario": "automation/scenarios/0815_aim_mirror/crossing_left.json", "seed": 6203},
+    {"name": "crossing_right", "scenario": "automation/scenarios/0815_aim_mirror/crossing_right.json", "seed": 6204},
+    {"name": "vertical_high", "scenario": "automation/scenarios/0815_aim_mirror/vertical_high.json", "seed": 6205},
+    {"name": "vertical_low", "scenario": "automation/scenarios/0815_aim_mirror/vertical_low.json", "seed": 6206}
+  ]
+}
