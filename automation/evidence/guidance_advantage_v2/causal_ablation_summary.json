@@ -1,0 +1,125 @@
+{
+  "schema_version": "guidance_advantage_v2.causal_summary.v1",
+  "status": "HARD_BLOCKED",
+  "hard_stop_condition": "D",
+  "promotion_status": "NOT_PROMOTED",
+  "base_main_sha": "7b8a05ea316378965c7d5786634edeffdb1dc059",
+  "controller": "vp_error_pd_v2",
+  "observation_contract": "guidance_selector_server_v2",
+  "primary_actions": [
+    "BT_DEFAULT",
+    "VP_AZ_POS_SMALL",
+    "VP_AZ_NEG_SMALL",
+    "VP_EL_POS_SMALL",
+    "VP_EL_NEG_SMALL"
+  ],
+  "magnitudes_deg": [0.1, 0.25, 0.5],
+  "durations_frames": [6, 12, 18, 24, 36],
+  "actual_simulator_rollouts": 810,
+  "clean_nondefault_pairs": 630,
+  "bt_default_parity_pairs": 90,
+  "causal_signal_candidates": 0,
+  "ownship_crashes": 0,
+  "target_crashes": 0,
+  "target_crash_contaminated_pairs": 0,
+  "invalid_or_process_errors": 0,
+  "throttle_violations": 0,
+  "latency_ms_max": 0.09210000280290842,
+  "phase_coverage": [1],
+  "phase_gate": {
+    "mean_damage_delta_gt_zero": true,
+    "median_damage_delta_gt_zero": true,
+    "positive_ratio_min": 0.6,
+    "large_regressions": 0,
+    "family_positive_ratio_min": 0.6,
+    "dominant_positive_contribution_max": 0.5,
+    "result": "FAILED"
+  },
+  "experiments": [
+    {
+      "name": "ablation_pilot_20260819",
+      "rollouts": 372,
+      "clean_pairs": 360,
+      "aggregate_sha256": "11542DDDF53A3159922C313024D4920AFD72DCE8E711B1069707EB0C57C234C2",
+      "pairs_sha256": "33E55315234B1A649A1FE7A4BB5121AE73F6457743EB9EFBDEB9E051FEFC6FAE"
+    },
+    {
+      "name": "ablation_elpos_revalidation_20260819",
+      "rollouts": 90,
+      "clean_pairs": 54,
+      "aggregate_sha256": "C50203568931D98404D0F2860C14AD98F3F6DBD0CDF536EC331874ECE6271C09",
+      "pairs_sha256": "A8140E8789785669AE2E0BB0303FB52C1DAB7AC67760557D3F4DA916B0DE014D"
+    },
+    {
+      "name": "ablation_elpos_near_revalidation_20260819",
+      "rollouts": 90,
+      "clean_pairs": 54,
+      "aggregate_sha256": "0A7ABD98131EE4462F35DD2622450C158B48F558EA57DCA5574AF93BADED4540",
+      "pairs_sha256": "8A83BD252F6D2F1F8117048689052EA7EE1D70F424AD42B76330A58891A73064"
+    },
+    {
+      "name": "ablation_signed_near_revalidation_20260819",
+      "rollouts": 108,
+      "clean_pairs": 72,
+      "aggregate_sha256": "E141F46F7295945498F86D5841BAA074C6FDA823A6E7B023D8937386CABEF95F",
+      "pairs_sha256": "A94F9E27592047A8922380B4E1DF23FB8979076D76742032EB2DFE50E69E5C67"
+    },
+    {
+      "name": "ablation_vertical_high_focus_20260819",
+      "rollouts": 150,
+      "clean_pairs": 90,
+      "aggregate_sha256": "D8D119BB85B79CE227A443503E0CADFE4D804120BFDCD9D4D4A88B12500DB5C6",
+      "pairs_sha256": "9A36D741607C37FF1D3CE063DA13BB37F96C27B227D3C3D4EF7C69F891A88D65"
+    }
+  ],
+  "final_bounded_hypothesis": {
+    "bucket": "target_high",
+    "action": "VP_AZ_POS_SMALL",
+    "duration_frames": 36,
+    "results_by_magnitude": [
+      {
+        "magnitude_deg": 0.1,
+        "pairs": 30,
+        "damage_delta_mean": 0.001073052396447808,
+        "damage_delta_median": 0.0,
+        "positive_ratio": 0.43333333333333335,
+        "large_regressions": 1,
+        "damage_delta_min": -0.025675500463463785
+      },
+      {
+        "magnitude_deg": 0.25,
+        "pairs": 30,
+        "damage_delta_mean": 0.007859163731286678,
+        "damage_delta_median": 0.0,
+        "positive_ratio": 0.43333333333333335,
+        "large_regressions": 2,
+        "damage_delta_min": -0.035879806428036676
+      },
+      {
+        "magnitude_deg": 0.5,
+        "pairs": 30,
+        "damage_delta_mean": 0.020540197026765798,
+        "damage_delta_median": 0.0,
+        "positive_ratio": 0.43333333333333335,
+        "large_regressions": 1,
+        "damage_delta_min": -0.01544758915047717
+      }
+    ],
+    "result": "REVALIDATION_FAILED"
+  },
+  "downstream": {
+    "dataset_v2": "SKIPPED_CAUSAL_GATE_FAILED",
+    "advantage_training": "SKIPPED_CAUSAL_GATE_FAILED",
+    "shadow_evaluation": "SKIPPED_NO_MODEL",
+    "micro_intervention": "SKIPPED_NO_MODEL",
+    "development_clean_paired": "SKIPPED_NO_CANDIDATE",
+    "held_out": "UNOPENED_NO_CANDIDATE",
+    "ppo": "NOT_RUN_FAILED_PRECONDITIONS",
+    "submission_bundle_v2": "NOT_CREATED_NOT_PROMOTED"
+  },
+  "pure_bt": {
+    "dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE",
+    "recommendation": "PURE_BT_FALLBACK_RECOMMENDED"
+  }
+}

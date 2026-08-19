@@ -53,6 +53,115 @@ def candidate_grid() -> list[dict[str, Any]]:
     ]
 
 
+def build_near_event_cases(count: int) -> list[dict[str, Any]]:
+    """Build unique near-shot states so a two-second Damage horizon is observable."""
+    if count % 6:
+        raise ValueError("near_event_v2 state count must be a multiple of six")
+    families = (
+        "lateral_left", "lateral_right", "vertical_high",
+        "vertical_low", "crossing_left", "crossing_right",
+    )
+    cases = []
+    for index in range(count):
+        family_index = index % len(families)
+        family = families[family_index]
+        replicate = index // len(families)
+        distance = 680.0 + 70.0 * replicate
+        lateral = 0.0
+        altitude_delta = 0.0
+        target_heading = 0.0
+        if family == "lateral_left":
+            lateral = -(35.0 + 24.0 * replicate)
+        elif family == "lateral_right":
+            lateral = 35.0 + 24.0 * replicate
+        elif family == "vertical_high":
+            altitude_delta = 25.0 + 18.0 * replicate
+        elif family == "vertical_low":
+            altitude_delta = -(25.0 + 18.0 * replicate)
+        elif family == "crossing_left":
+            lateral = -(55.0 + 20.0 * replicate)
+            target_heading = -(25.0 + 4.0 * replicate)
+        elif family == "crossing_right":
+            lateral = 55.0 + 20.0 * replicate
+            target_heading = 25.0 + 4.0 * replicate
+        own_altitude = 4700.0 + 90.0 * replicate + 15.0 * family_index
+        own_speed = 218.0 + 4.0 * ((family_index + replicate) % 5)
+        target_speed = 214.0 + 5.0 * ((2 * family_index + replicate) % 5)
+        target_altitude = own_altitude + altitude_delta
+        seed = 9701 + index
+        cases.append(
+            {
+                "case_id": f"near_state_{index + 1:03d}_{family}",
+                "seed": seed,
+                "family": family,
+                "distance_band": "near",
+                "closing_band": "positive" if own_speed > target_speed else "negative",
+                "scenario": {
+                    "name": f"guidance_ablation_near_{index + 1:03d}_{family}",
+                    "env_config": {
+                        "ownship": [0.0, 0.0, -own_altitude, 0.0, 0.0, 0.0, own_speed],
+                        "target": [
+                            distance, lateral, -target_altitude,
+                            0.0, 0.0, target_heading, target_speed,
+                        ],
+                        "initial_scenario": {"mode": "default", "legacy_use_random_scenario": False},
+                        "ownship_randomization": {"enabled": False},
+                        "target_randomization": {"enabled": False},
+                        "target_autopilot": {
+                            "heading_cmd": target_heading,
+                            "altitude_cmd": target_altitude,
+                            "speed_cmd": target_speed,
+                        },
+                    },
+                },
+            }
+        )
+    return cases
+
+
+def build_vertical_high_focus_cases(count: int) -> list[dict[str, Any]]:
+    """Independent target-high states for the smallest state/action hypothesis test."""
+    cases = []
+    for index in range(count):
+        distance = 650.0 + 50.0 * (index % 5)
+        altitude_delta = 20.0 + 15.0 * (index % 6)
+        lateral = float(((-1) ** index) * 18.0 * (index % 4))
+        own_altitude = 4550.0 + 55.0 * (index % 7)
+        own_speed = 216.0 + 4.0 * (index % 6)
+        target_speed = 212.0 + 5.0 * ((index * 2) % 6)
+        target_heading = float(((-1) ** index) * 3.0 * (index % 4))
+        target_altitude = own_altitude + altitude_delta
+        seed = 9901 + index
+        cases.append(
+            {
+                "case_id": f"vertical_high_focus_{index + 1:03d}",
+                "seed": seed,
+                "family": "vertical_high",
+                "distance_band": "near",
+                "closing_band": "positive" if own_speed > target_speed else "negative",
+                "scenario": {
+                    "name": f"guidance_vertical_high_focus_{index + 1:03d}",
+                    "env_config": {
+                        "ownship": [0.0, 0.0, -own_altitude, 0.0, 0.0, 0.0, own_speed],
+                        "target": [
+                            distance, lateral, -target_altitude,
+                            0.0, 0.0, target_heading, target_speed,
+                        ],
+                        "initial_scenario": {"mode": "default", "legacy_use_random_scenario": False},
+                        "ownship_randomization": {"enabled": False},
+                        "target_randomization": {"enabled": False},
+                        "target_autopilot": {
+                            "heading_cmd": target_heading,
+                            "altitude_cmd": target_altitude,
+                            "speed_cmd": target_speed,
+                        },
+                    },
+                },
+            }
+        )
+    return cases
+
+
 def _scenario_path(case: dict[str, Any], case_root: Path) -> Path:
     path = case_root / "scenario.json"
     if not path.exists():
@@ -237,9 +346,22 @@ def summarize(records: list[dict[str, Any]]) -> tuple[dict[str, Any], list[dict[
         cone = np.asarray([row["cone_time_delta_s"] for row in clean], dtype=float)
         los = np.asarray([row["los_improvement_deg"] for row in clean], dtype=float)
         families = sorted({row["family"] for row in clean})
-        family_positive = sum(
+        family_positive = int(sum(
             np.mean([row["damage_delta"] for row in clean if row["family"] == family]) > 0.0
             for family in families
+        ))
+        positive_by_family = {
+            family: max(
+                0.0,
+                float(np.sum([row["damage_delta"] for row in clean if row["family"] == family])),
+            )
+            for family in families
+        }
+        positive_total = float(sum(positive_by_family.values()))
+        dominant_positive_contribution = (
+            max(positive_by_family.values(), default=0.0) / positive_total
+            if positive_total > 0.0
+            else 1.0
         )
         candidate = {
             "candidate_id": name,
@@ -262,6 +384,8 @@ def summarize(records: list[dict[str, Any]]) -> tuple[dict[str, Any], list[dict[
             "los_improvement_mean_deg": float(np.mean(los)) if los.size else None,
             "family_positive_count": family_positive,
             "family_count": len(families),
+            "positive_damage_by_family": positive_by_family,
+            "dominant_positive_contribution": dominant_positive_contribution,
             "ownship_crashes": sum(row["ownship_crash"] for row in rows),
             "target_crashes": sum(row["target_crash"] for row in rows),
             "intervention_frames": sum(row["intervention_frames"] for row in rows),
@@ -273,6 +397,7 @@ def summarize(records: list[dict[str, Any]]) -> tuple[dict[str, Any], list[dict[
             and candidate["damage_delta_median"] > 0.0
             and candidate["positive_ratio"] >= 0.60
             and family_positive >= max(2, int(np.ceil(0.60 * max(1, len(families)))))
+            and dominant_positive_contribution <= 0.50
             and candidate["large_regressions"] == 0
             and candidate["ownship_crashes"] == 0
             and candidate["throttle_violations"] == 0
@@ -343,6 +468,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--states", type=int, default=6)
     parser.add_argument("--timeout-s", type=float, default=120.0)
+    parser.add_argument(
+        "--suite-mode",
+        choices=("original_v1", "near_event_v2", "vertical_high_focus_v2"),
+        default="original_v1",
+    )
+    parser.add_argument(
+        "--candidate-id",
+        action="append",
+        default=[],
+        help="Run only the named frozen candidate; repeat for a small revalidation set.",
+    )
     return parser.parse_args()
 
 
@@ -352,10 +488,26 @@ def main() -> None:
         raise ValueError("--states must be between 6 and 100")
     output_root = args.output_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
-    cases = build_cases(args.states)
+    if args.suite_mode == "near_event_v2":
+        cases = build_near_event_cases(args.states)
+    elif args.suite_mode == "vertical_high_focus_v2":
+        cases = build_vertical_high_focus_cases(args.states)
+    else:
+        cases = build_cases(args.states)
     grid = candidate_grid()
+    if args.candidate_id:
+        requested = set(args.candidate_id)
+        known = {row["candidate_id"] for row in grid}
+        unknown = sorted(requested - known)
+        if unknown:
+            raise ValueError(f"unknown --candidate-id values: {unknown}")
+        grid = [row for row in grid if row["candidate_id"] in requested]
     (output_root / "suite.json").write_text(
-        json.dumps({"cases": cases, "candidates": grid}, indent=2, sort_keys=True),
+        json.dumps(
+            {"suite_mode": args.suite_mode, "cases": cases, "candidates": grid},
+            indent=2,
+            sort_keys=True,
+        ),
         encoding="utf-8",
     )
     records = []
