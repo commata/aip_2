@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import math
@@ -22,6 +23,10 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 from automation.evaluate_aim_residual import build_record
+from dogfight.research.mirror_symmetry import (
+    action_class_to_canonical,
+    canonical_geometry,
+)
 
 
 PULSES = (
@@ -42,15 +47,119 @@ def sha256(path: Path) -> str:
     return digest.hexdigest().upper()
 
 
+def git_sha() -> str:
+    return subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+    ).strip()
+
+
+def file_identity(path: Path) -> dict[str, Any]:
+    resolved = path.resolve()
+    if not resolved.is_file():
+        raise FileNotFoundError(resolved)
+    return {"path": str(resolved), "sha256": sha256(resolved)}
+
+
+def build_run_fingerprint(
+    args: argparse.Namespace,
+    suite_path: Path,
+    magnitude: float,
+) -> dict[str, Any]:
+    """Freeze every input that can change a resumed counterfactual result."""
+    return {
+        "schema_version": "counterfactual.resume.v2",
+        "git_sha": git_sha(),
+        "mode": args.mode,
+        "suite": file_identity(suite_path),
+        "ownship_bt_dll": file_identity(Path(args.ownship_bt_dll)),
+        "target_bt_dll": file_identity(Path(args.target_bt_dll)),
+        "bt_rule_xml": file_identity(Path(args.bt_rule_xml)),
+        "bt_rule_alias": list(args.bt_rule_alias),
+        "target_backend": args.target_backend,
+        "pure_reference": (
+            file_identity(args.pure_reference)
+            if args.pure_reference is not None else None
+        ),
+        "residual_scale": float(args.residual_scale),
+        "pulse_frames": int(args.pulse_frames),
+        "pulse_start_offset_frames": int(args.pulse_start_offset_frames),
+        "pulse_magnitude": float(magnitude),
+        "max_engage_time": float(args.max_engage_time),
+        "episode_step_limit": int(args.episode_step_limit),
+        "shot_window": {
+            "max_active_steps": 60,
+            "cooldown_steps": 30,
+            "rearm_mode": "condition_exit",
+        },
+    }
+
+
+def prepare_output(
+    output: Path,
+    fingerprint: dict[str, Any],
+    *,
+    resume: bool,
+) -> None:
+    manifest_path = output / "run_manifest.json"
+    existing_files = list(output.iterdir()) if output.is_dir() else []
+    if resume:
+        if existing_files and not manifest_path.is_file():
+            raise ValueError("resume refused: existing output has no run_manifest.json")
+        if manifest_path.is_file():
+            previous = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if previous != fingerprint:
+                raise ValueError("resume refused: run fingerprint mismatch")
+    elif existing_files:
+        raise FileExistsError(f"refusing to overwrite non-empty output: {output}")
+    output.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(
+        json.dumps(fingerprint, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def telemetry_quality(path: Path) -> dict[str, int]:
+    invalid = 0
+    throttle_violations = 0
+    if not path.is_file():
+        return {"invalid_or_nonfinite_actions": 1, "throttle_violations": 1}
+    with path.open(encoding="utf-8") as stream:
+        for line in stream:
+            row = json.loads(line)
+            if row.get("record_type") != "frame":
+                continue
+            hybrid = row.get("hybrid", {}) or {}
+            action = hybrid.get("final_action", row.get("ownship_action"))
+            if (
+                not isinstance(action, list)
+                or len(action) != 4
+                or not all(math.isfinite(float(value)) for value in action)
+            ):
+                invalid += 1
+            bt_action = hybrid.get("bt_action")
+            if isinstance(action, list) and isinstance(bt_action, list):
+                if len(action) != 4 or len(bt_action) != 4:
+                    throttle_violations += 1
+                elif not math.isclose(
+                    float(action[3]), float(bt_action[3]), rel_tol=0.0, abs_tol=1e-7
+                ):
+                    throttle_violations += 1
+    return {
+        "invalid_or_nonfinite_actions": invalid,
+        "throttle_violations": throttle_violations,
+    }
+
+
 def load_suite(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     cases = payload.get("cases")
     if not isinstance(cases, list) or len(cases) < 6:
         raise ValueError("counterfactual suite requires at least six cases")
     names = [str(case["name"]) for case in cases]
-    seeds = [int(case["seed"]) for case in cases]
-    if len(set(names)) != len(names) or len(set(seeds)) != len(seeds):
-        raise ValueError("counterfactual case names and seeds must be unique")
+    if len(set(names)) != len(names):
+        raise ValueError("counterfactual case names must be unique")
+    for case in cases:
+        int(case["seed"])
     return payload
 
 
@@ -163,7 +272,12 @@ def run_episode(
     repeat: int,
     magnitude: float,
 ) -> dict[str, Any]:
-    run_id = f"{case['name']}_s{case['seed']}_{controller}_r{repeat:02d}"
+    offset = int(
+        case.get("shot_window_elapsed_frames", args.pulse_start_offset_frames)
+    )
+    run_id = (
+        f"{case['name']}_f{offset:02d}_s{case['seed']}_{controller}_r{repeat:02d}"
+    )
     result_path = output / "summaries" / f"{run_id}.json"
     telemetry_path = output / "telemetry" / f"{run_id}.jsonl"
     stdout_path = output / "raw" / f"{run_id}.stdout.txt"
@@ -181,12 +295,15 @@ def run_episode(
                 "--counterfactual-pulse", controller,
                 "--counterfactual-pulse-magnitude", str(magnitude),
                 "--counterfactual-pulse-frames", str(args.pulse_frames),
+                "--counterfactual-pulse-start-offset-frames", str(offset),
                 "--residual-scale", str(args.residual_scale),
                 "--residual-composition", "saturation_aware",
                 "--shot-window-max-active-steps", "60",
                 "--shot-window-cooldown-steps", "30",
                 "--shot-window-rearm-mode", "condition_exit",
             ]
+        with (output / "command_history.txt").open("a", encoding="utf-8") as stream:
+            stream.write(subprocess.list2cmdline(command) + "\n")
         protected = ROOT / "aircraft" / "f16" / "f16_init.xml"
         protected_bytes = protected.read_bytes()
         started = time.monotonic()
@@ -216,15 +333,28 @@ def run_episode(
         run_id, int(case["seed"]), controller, None if controller == "pure_0815" else args.residual_scale,
         result, returncode=returncode, wall_seconds=wall_seconds, resumed=resumed,
     )
+    quality = telemetry_quality(telemetry_path)
+    provider = result.get("ownship_provider_telemetry", {}) or {}
+    snapshot = provider.get("counterfactual_pulse_snapshot", {}) or {}
+    world_geometry = str(case.get("geometry", case["name"]))
     record.update(
         {
-            "geometry": case["name"],
+            "state_id": case["name"],
+            "geometry": world_geometry,
+            "canonical_geometry": str(
+                case.get("canonical_geometry", canonical_geometry(world_geometry))
+            ),
+            "mirror_pair": case.get("mirror_pair"),
+            "state_neighborhood": case.get("state_neighborhood", {}),
+            "shot_window_elapsed_frames": offset,
             "scenario": case["scenario"],
             "repeat": repeat,
             "pulse_raw_magnitude": 0.0 if controller in ("pure_0815", "zero") else magnitude,
             "trajectory_sha256": trajectory_signature(telemetry_path),
             "result_sha256": sha256(result_path) if result_path.is_file() else None,
             "telemetry_sha256": sha256(telemetry_path) if telemetry_path.is_file() else None,
+            "snapshot": snapshot,
+            **quality,
         }
     )
     return record
@@ -288,20 +418,43 @@ def analyze_pulses(records: list[dict[str, Any]], thresholds: dict[str, Any]) ->
     meaningful = float(thresholds["minimum_meaningful_damage_delta"])
     regression = float(thresholds["maximum_geometry_regression"])
     rows: list[dict[str, Any]] = []
-    best_by_geometry: list[dict[str, Any]] = []
+    best_by_state: list[dict[str, Any]] = []
     zero_exact = True
     direction_wins: Counter[str] = Counter()
-    for geometry in sorted({str(row["geometry"]) for row in records}):
-        pure = next(row for row in records if row["geometry"] == geometry and row["controller"] == "pure_0815")
-        zero = next(row for row in records if row["geometry"] == geometry and row["controller"] == "zero")
+    state_ids = sorted({str(row.get("state_id", row["geometry"])) for row in records})
+    for state_id in state_ids:
+        state_records = [
+            row for row in records if str(row.get("state_id", row["geometry"])) == state_id
+        ]
+        pure_rows = [row for row in state_records if row["controller"] == "pure_0815"]
+        zero_rows = [row for row in state_records if row["controller"] == "zero"]
+        if len(pure_rows) != 1 or len(zero_rows) != 1:
+            raise ValueError(f"state {state_id!r} requires exactly one Pure and ZERO record")
+        pure, zero = pure_rows[0], zero_rows[0]
+        geometry = str(pure["geometry"])
         zero_exact = zero_exact and pure["trajectory_sha256"] == zero["trajectory_sha256"]
         clean = []
-        for row in records:
-            if row["geometry"] != geometry or row["controller"] not in PULSES:
+        for row in state_records:
+            if row["controller"] not in PULSES:
                 continue
-            delta = float(row["damage_dealt"]) - float(pure["damage_dealt"])
+            process_error = bool(row.get("returncode")) or row.get("outcome") == "process_error"
+            invalid = int(row.get("invalid_or_nonfinite_actions") or 0)
+            throttle_violations = int(row.get("throttle_violations") or 0)
+            finite_damage = row.get("damage_dealt") is not None and pure.get("damage_dealt") is not None
+            delta = (
+                float(row["damage_dealt"]) - float(pure["damage_dealt"])
+                if finite_damage
+                else None
+            )
             item = {
-                "geometry": geometry, "seed": row["seed"], "pulse": row["controller"],
+                "state_id": state_id,
+                "geometry": geometry,
+                "canonical_geometry": row.get("canonical_geometry", canonical_geometry(geometry)),
+                "state_neighborhood": row.get("state_neighborhood", {}),
+                "shot_window_elapsed_frames": row.get("shot_window_elapsed_frames", 0),
+                "seed": row["seed"],
+                "pulse": row["controller"],
+                "canonical_pulse": action_class_to_canonical(row["controller"], geometry),
                 "damage_pure": pure["damage_dealt"], "damage_pulse": row["damage_dealt"],
                 "damage_delta": delta,
                 "first_damage_delta_s": None if row.get("time_to_first_damage_s") is None or pure.get("time_to_first_damage_s") is None else float(row["time_to_first_damage_s"]) - float(pure["time_to_first_damage_s"]),
@@ -310,28 +463,84 @@ def analyze_pulses(records: list[dict[str, Any]], thresholds: dict[str, Any]) ->
                 "pulse_steps": row.get("rl_correction_steps"),
                 "inference_calls": row.get("rl_inference_calls"),
                 "ownship_crash": row.get("ownship_crash"), "target_crash": row.get("target_crash"),
+                "process_error": process_error,
+                "invalid_or_nonfinite_actions": invalid,
+                "throttle_violations": throttle_violations,
+                "snapshot": row.get("snapshot", {}),
                 "contamination": "TARGET_CRASH_CONTAMINATED" if row.get("target_crash") else "CLEAN",
             }
             rows.append(item)
-            if not row.get("target_crash") and not row.get("ownship_crash"):
+            if (
+                not row.get("target_crash")
+                and not row.get("ownship_crash")
+                and not process_error
+                and not invalid
+                and not throttle_violations
+                and finite_damage
+            ):
                 clean.append(item)
         if clean:
             best = max(clean, key=lambda item: item["damage_delta"])
-            best_by_geometry.append(best)
+            best_by_state.append(best)
             if best["damage_delta"] >= meaningful:
-                direction_wins[best["pulse"]] += 1
-    clean_rows = [row for row in rows if row["contamination"] == "CLEAN" and not row["ownship_crash"]]
-    best_deltas = [float(row["damage_delta"]) for row in best_by_geometry]
-    significant_best = [row for row in best_by_geometry if row["damage_delta"] >= meaningful]
-    geometry_regressions = [row for row in best_by_geometry if row["damage_delta"] < regression]
+                direction_wins[best["canonical_pulse"]] += 1
+    clean_rows = [
+        row for row in rows
+        if row["contamination"] == "CLEAN"
+        and not row["ownship_crash"]
+        and not row["process_error"]
+        and not row["invalid_or_nonfinite_actions"]
+        and not row["throttle_violations"]
+        and row["damage_delta"] is not None
+    ]
+    best_deltas = [float(row["damage_delta"]) for row in best_by_state]
+    significant_best = [row for row in best_by_state if row["damage_delta"] >= meaningful]
+    geometry_regressions = [row for row in clean_rows if row["damage_delta"] < regression]
     consistent_direction, consistent_count = direction_wins.most_common(1)[0] if direction_wins else (None, 0)
+    mirror_groups: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    for row in significant_best:
+        key = (
+            str(row["canonical_geometry"]),
+            int(row.get("shot_window_elapsed_frames") or 0),
+        )
+        mirror_groups.setdefault(key, []).append(row)
+    mirror_pairs = [group for group in mirror_groups.values() if len(group) >= 2]
+    inconsistent_mirror_pairs = [
+        group for group in mirror_pairs
+        if len({row["canonical_pulse"] for row in group}) != 1
+    ]
+    process_errors = sum(bool(row.get("returncode")) for row in records)
+    invalid_actions = sum(int(row.get("invalid_or_nonfinite_actions") or 0) for row in records)
+    throttle_violations = sum(int(row.get("throttle_violations") or 0) for row in records)
+    ownship_crashes = sum(bool(row.get("ownship_crash")) for row in records)
+    positive_ratio = (
+        sum(float(row["damage_delta"]) > 0.0 for row in clean_rows) / len(clean_rows)
+        if clean_rows else 0.0
+    )
+    meaningful_geometries = {str(row["geometry"]) for row in significant_best}
+    raw_recomputed = recompute_pulse_summary(rows, meaningful, regression)
+    recompute_matches = bool(
+        raw_recomputed["clean_pairs"] == len(clean_rows)
+        and math.isclose(raw_recomputed["positive_ratio"], positive_ratio, abs_tol=1e-15)
+        and raw_recomputed["large_regressions"] == len(geometry_regressions)
+        and raw_recomputed["process_errors"] == sum(row["process_error"] for row in rows)
+    )
     sufficient = bool(
         zero_exact
-        and len(significant_best) >= 4
+        and len(meaningful_geometries) >= 4
         and consistent_count >= 2
-        and statistics.median(best_deltas) >= meaningful
+        and best_deltas
+        and statistics.median(best_deltas) > 0.0
+        and positive_ratio >= 2.0 / 3.0
         and not geometry_regressions
+        and mirror_pairs
+        and not inconsistent_mirror_pairs
+        and process_errors == 0
+        and invalid_actions == 0
+        and throttle_violations == 0
+        and ownship_crashes == 0
         and all(float(row.get("inference_calls") or 0.0) == 0.0 for row in clean_rows)
+        and recompute_matches
     )
     return {
         "status": "COUNTERFACTUAL_SIGNAL_SUFFICIENT" if sufficient else "COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
@@ -341,16 +550,118 @@ def analyze_pulses(records: list[dict[str, Any]], thresholds: dict[str, Any]) ->
         "clean_pulse_pairs": len(clean_rows),
         "contaminated_pulse_pairs": len(rows) - len(clean_rows),
         "significant_positive_best_geometries": len(significant_best),
-        "best_geometry_count": len(best_by_geometry),
-        "pooled_clean_positive_ratio": sum(row["damage_delta"] > 0 for row in clean_rows) / max(1, len(clean_rows)),
+        "meaningful_world_geometry_count": len(meaningful_geometries),
+        "best_geometry_count": len(best_by_state),
+        "pooled_clean_positive_ratio": positive_ratio,
         "median_best_geometry_damage_delta": statistics.median(best_deltas) if best_deltas else None,
         "consistent_winning_direction": consistent_direction,
         "consistent_winning_direction_count": consistent_count,
         "direction_win_counts": dict(direction_wins),
+        "canonical_mirror_pair_count": len(mirror_pairs),
+        "canonical_mirror_consistent": bool(mirror_pairs and not inconsistent_mirror_pairs),
+        "canonical_mirror_inconsistencies": inconsistent_mirror_pairs,
         "geometry_regressions": geometry_regressions,
-        "best_by_geometry": best_by_geometry,
+        "process_errors": process_errors,
+        "invalid_or_nonfinite_actions": invalid_actions,
+        "throttle_violations": throttle_violations,
+        "ownship_crashes": ownship_crashes,
+        "raw_recomputed": raw_recomputed,
+        "raw_aggregate_recompute_match": recompute_matches,
+        "best_by_geometry": best_by_state,
         "pulse_pairs": rows,
     }
+
+
+def recompute_pulse_summary(
+    rows: list[dict[str, Any]],
+    meaningful: float,
+    regression: float,
+) -> dict[str, Any]:
+    """Independently recompute gate-critical totals from raw paired rows."""
+    clean = []
+    for row in rows:
+        if (
+            row.get("contamination") == "CLEAN"
+            and not row.get("ownship_crash")
+            and not row.get("process_error")
+            and not row.get("invalid_or_nonfinite_actions")
+            and not row.get("throttle_violations")
+            and row.get("damage_delta") is not None
+        ):
+            clean.append(row)
+    return {
+        "clean_pairs": len(clean),
+        "positive_pairs": sum(float(row["damage_delta"]) > 0.0 for row in clean),
+        "positive_ratio": (
+            sum(float(row["damage_delta"]) > 0.0 for row in clean) / len(clean)
+            if clean else 0.0
+        ),
+        "meaningful_positive_pairs": sum(
+            float(row["damage_delta"]) >= meaningful for row in clean
+        ),
+        "large_regressions": sum(
+            float(row["damage_delta"]) < regression for row in clean
+        ),
+        "process_errors": sum(bool(row.get("process_error")) for row in rows),
+        "target_crash_contaminated": sum(
+            row.get("contamination") == "TARGET_CRASH_CONTAMINATED" for row in rows
+        ),
+    }
+
+
+def write_episode_records(path: Path, records: list[dict[str, Any]]) -> None:
+    fields = (
+        "run_id", "state_id", "seed", "geometry", "canonical_geometry",
+        "shot_window_elapsed_frames", "controller", "damage_dealt", "damage_received",
+        "ownship_crash", "target_crash", "returncode",
+        "invalid_or_nonfinite_actions", "throttle_violations", "trajectory_sha256",
+        "result_sha256", "telemetry_sha256",
+    )
+    with path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(records)
+
+
+def reuse_pure_records(reference_path: Path, cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Clone a frozen deterministic Pure trajectory for case neighborhoods only."""
+    payload = json.loads(reference_path.read_text(encoding="utf-8"))
+    analysis = payload.get("analysis", {}) or {}
+    if not analysis.get("pure_exact_determinism"):
+        raise ValueError("Pure reference is not marked exact deterministic")
+    source_records = [
+        row for row in payload.get("records", []) if row.get("controller") == "pure_0815"
+    ]
+    reused = []
+    for case in cases:
+        geometry = str(case.get("geometry", case["name"]))
+        matches = [row for row in source_records if row.get("geometry") == geometry]
+        if not matches:
+            raise ValueError(f"Pure reference has no geometry {geometry!r}")
+        row = dict(matches[0])
+        row.update(
+            {
+                "run_id": f"{case['name']}_pure_reference",
+                "state_id": case["name"],
+                "seed": int(case["seed"]),
+                "geometry": geometry,
+                "canonical_geometry": str(
+                    case.get("canonical_geometry", canonical_geometry(geometry))
+                ),
+                "mirror_pair": case.get("mirror_pair"),
+                "state_neighborhood": case.get("state_neighborhood", {}),
+                "shot_window_elapsed_frames": int(
+                    case.get("shot_window_elapsed_frames", 0)
+                ),
+                "baseline_reused": True,
+                "baseline_reference_path": str(reference_path.resolve()),
+                "baseline_reference_sha256": sha256(reference_path),
+                "invalid_or_nonfinite_actions": 0,
+                "throttle_violations": 0,
+            }
+        )
+        reused.append(row)
+    return reused
 
 
 def parser() -> argparse.ArgumentParser:
@@ -359,6 +670,7 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--suite", type=Path, required=True)
     value.add_argument("--output", type=Path, required=True)
     value.add_argument("--threshold-manifest", type=Path)
+    value.add_argument("--pure-reference", type=Path)
     value.add_argument("--ownship-bt-dll", required=True)
     value.add_argument("--target-backend", choices=("autopilot", "bt"), default="autopilot")
     value.add_argument("--target-bt-dll", required=True)
@@ -367,6 +679,7 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--baseline-repeats", type=int, default=3)
     value.add_argument("--residual-scale", type=float, default=0.125)
     value.add_argument("--pulse-frames", type=int, default=6)
+    value.add_argument("--pulse-start-offset-frames", type=int, default=0)
     value.add_argument("--pulse-magnitude", type=float)
     value.add_argument("--historical-glob", action="append", default=["artifacts/evaluations/shot_window_research/stage1_ppo*i000015*screening_20260818/case_*/telemetry/*hybrid*.jsonl"])
     value.add_argument("--max-engage-time", type=float, default=30.0)
@@ -380,12 +693,18 @@ def main() -> int:
     args = parser().parse_args()
     suite_path = args.suite.resolve()
     suite = load_suite(suite_path)
-    output = args.output.resolve()
-    for name in ("summaries", "telemetry", "raw"):
-        (output / name).mkdir(parents=True, exist_ok=True)
     historical = historical_pulse_magnitude(args.historical_glob)
     magnitude = float(args.pulse_magnitude) if args.pulse_magnitude is not None else float(historical["raw_magnitude"])
-    controllers = ("pure_0815", "zero") if args.mode == "baseline" else ("pure_0815", "zero", *PULSES)
+    output = args.output.resolve()
+    fingerprint = build_run_fingerprint(args, suite_path, magnitude)
+    prepare_output(output, fingerprint, resume=args.resume)
+    for name in ("summaries", "telemetry", "raw"):
+        (output / name).mkdir(parents=True, exist_ok=True)
+    controllers = (
+        ("pure_0815", "zero")
+        if args.mode == "baseline"
+        else (("zero", *PULSES) if args.pure_reference else ("pure_0815", "zero", *PULSES))
+    )
     repeats = args.baseline_repeats if args.mode == "baseline" else 1
     records = []
     total = len(suite["cases"]) * len(controllers) * repeats
@@ -399,6 +718,8 @@ def main() -> int:
                 records.append(record)
                 payload = {"settings": vars_json(args), "suite": suite, "historical_pulse": historical, "records": records}
                 (output / "evaluation.partial.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    if args.mode == "pulses" and args.pure_reference is not None:
+        records.extend(reuse_pure_records(args.pure_reference, suite["cases"]))
     if args.mode == "baseline":
         analysis = analyze_baseline(records)
     else:
@@ -408,6 +729,7 @@ def main() -> int:
         thresholds = threshold_payload.get("analysis", threshold_payload)
         analysis = analyze_pulses(records, thresholds)
     payload = {
+        "run_fingerprint": fingerprint,
         "settings": vars_json(args), "suite": suite,
         "suite_sha256": sha256(suite_path),
         "historical_pulse": historical,
@@ -415,6 +737,7 @@ def main() -> int:
         "analysis": analysis, "records": records,
     }
     (output / "evaluation.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_episode_records(output / "episode_records.csv", records)
     print(json.dumps(analysis, ensure_ascii=False, indent=2))
     return 0
 

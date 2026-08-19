@@ -1,0 +1,20 @@
+{
+  "status": "PREFLIGHT_COMPLETE",
+  "issue": 17,
+  "branch": "codex/state-conditioned-shot-window-residual",
+  "base_sha": "a72492946938bbeeb034a88e7660826c8a511aa9",
+  "raw_artifact": ".runtime_tmp/preflight-bt-smoke-20260819",
+  "raw_record_count": 0,
+  "heldout_opened": false,
+  "tests": {
+    "automation": "153 passed, 26 subtests passed",
+    "core": "9 passed",
+    "compileall": "PASSED"
+  },
+  "pure_bt_smoke": {
+    "steps": 59,
+    "ownship_crash": false,
+    "result_sha256": "37F509E52BC17DE255AF91202C44AA1BA795ACB79B668A3E72839BBB4101B84C",
+    "telemetry_sha256": "DD4B35C393438DB118DC30146EC7A47F459EC04F0FCD5B8A729ECF5A87E0E5D5"
+  }
+}

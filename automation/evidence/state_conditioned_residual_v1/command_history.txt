@@ -1,0 +1,4 @@
+2026-08-19: python -m pytest automation/tests -q -p no:cacheprovider
+2026-08-19: python -m pytest tests -q -p no:cacheprovider
+2026-08-19: python -m compileall src automation scripts run_local_dogfight.py run_unreal_inference.py train_rllib.py train_curriculum.py
+2026-08-19: run_local_dogfight.py Pure 0815 raw-BT smoke, 60-frame limit, seed 7101

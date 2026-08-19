@@ -1813,6 +1813,7 @@ class CounterfactualPulseActionProvider(ActionProvider):
         *,
         residual_scale: float = 0.125,
         pulse_frames: int = 6,
+        pulse_start_offset_frames: int = 0,
         aim_gate: AimGateConfig | dict | None = None,
         offensive_gate: OffensiveGateConfig | dict | None = None,
         rear120_gate: Rear120GateConfig | dict | None = None,
@@ -1833,11 +1834,14 @@ class CounterfactualPulseActionProvider(ActionProvider):
             raise ValueError("pulse_action must be a finite action vector with shape (4,)")
         if int(pulse_frames) <= 0:
             raise ValueError("pulse_frames must be positive")
+        if int(pulse_start_offset_frames) < 0:
+            raise ValueError("pulse_start_offset_frames must be non-negative")
         self.bt_provider = bt_provider
         self.pulse_action = np.clip(pulse, -1.0, 1.0)
         self.pulse_action[3] = 0.0
         self.residual_scale = float(residual_scale)
         self.pulse_frames = int(pulse_frames)
+        self.pulse_start_offset_frames = int(pulse_start_offset_frames)
         self.composition_mode = composition_mode
         self.confidence = float(confidence)
         self.gate = ShotWindowActivationGate(
@@ -1855,6 +1859,8 @@ class CounterfactualPulseActionProvider(ActionProvider):
         self._pulse_started = False
         self._pulse_complete = False
         self._pulse_steps = 0
+        self._first_window_elapsed_steps = 0
+        self._pulse_snapshot: dict = {}
         self._correction_abs_sum = np.zeros(4, dtype=np.float64)
         self._correction_abs_max = np.zeros(4, dtype=np.float64)
         self._clipped_steps = 0
@@ -1873,6 +1879,7 @@ class CounterfactualPulseActionProvider(ActionProvider):
         )
         if gate_info["entry"] and not self._pulse_started:
             self._pulse_started = True
+            self._first_window_elapsed_steps = 0
         if gate_info["exit"] and self._pulse_started:
             self._pulse_complete = True
 
@@ -1880,6 +1887,7 @@ class CounterfactualPulseActionProvider(ActionProvider):
             gate_info["active"]
             and self._pulse_started
             and not self._pulse_complete
+            and self._first_window_elapsed_steps >= self.pulse_start_offset_frames
             and self._pulse_steps < self.pulse_frames
         )
         residual = self.pulse_action if apply_pulse else np.zeros(4, dtype=np.float32)
@@ -1896,6 +1904,20 @@ class CounterfactualPulseActionProvider(ActionProvider):
         clipped = bool(np.any(np.abs(final[:3] - unclipped[:3]) > 1e-7))
         saturated = bool(apply_pulse and np.any(np.isclose(np.abs(final[:3]), 1.0)))
         if apply_pulse:
+            if not self._pulse_snapshot:
+                observation = np.asarray(context.observation, dtype=np.float32)
+                self._pulse_snapshot = {
+                    "frame": context.info.get("frame"),
+                    "sim_time_s": context.info.get("sim_time_s"),
+                    "shot_window_elapsed_steps": self._first_window_elapsed_steps,
+                    "observation_tactical16": observation.tolist(),
+                    "bt_action": bt_action.tolist(),
+                    "distance_m": gate_info.get("distance_m"),
+                    "aim_error_deg": gate_info.get("aim_error_deg"),
+                    "aim_error_rate_deg_s": gate_info.get("aim_error_rate_deg_s"),
+                    "closing_rate_m_s": gate_info.get("closing_rate_m_s"),
+                    "target_ata_deg": gate_info.get("target_ata_deg"),
+                }
             self._pulse_steps += 1
             self._correction_abs_sum += np.abs(correction)
             self._correction_abs_max = np.maximum(
@@ -1909,6 +1931,8 @@ class CounterfactualPulseActionProvider(ActionProvider):
             _update_authority_counters(self, diagnostics)
             if self._pulse_steps >= self.pulse_frames:
                 self._pulse_complete = True
+        if gate_info["active"] and self._pulse_started:
+            self._first_window_elapsed_steps += 1
 
         frame = {
             "mode": "counterfactual_pulse",
@@ -1918,6 +1942,7 @@ class CounterfactualPulseActionProvider(ActionProvider):
             "counterfactual_pulse_applied": apply_pulse,
             "counterfactual_pulse_step": self._pulse_steps,
             "counterfactual_pulse_frames": self.pulse_frames,
+            "counterfactual_pulse_start_offset_frames": self.pulse_start_offset_frames,
             "effective_residual_scale": effective_scale,
             "residual_composition_mode": self.composition_mode,
             "bt_action": bt_action.tolist(),
@@ -1947,8 +1972,10 @@ class CounterfactualPulseActionProvider(ActionProvider):
                 "rl_correction_steps": self._pulse_steps,
                 "counterfactual_pulse_action": self.pulse_action.tolist(),
                 "counterfactual_pulse_frames": self.pulse_frames,
+                "counterfactual_pulse_start_offset_frames": self.pulse_start_offset_frames,
                 "counterfactual_pulse_steps": self._pulse_steps,
                 "counterfactual_pulse_complete": self._pulse_complete,
+                "counterfactual_pulse_snapshot": dict(self._pulse_snapshot),
                 "rl_correction_abs_mean": (
                     self._correction_abs_sum / max(1, self._pulse_steps)
                 ).tolist(),
