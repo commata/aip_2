@@ -98,6 +98,7 @@ def parse_args():
     )
     parser.add_argument("--counterfactual-pulse-magnitude", type=float, default=0.5)
     parser.add_argument("--counterfactual-pulse-frames", type=int, default=6)
+    parser.add_argument("--counterfactual-pulse-start-offset-frames", type=int, default=0)
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
         "--bt-turn-throttle-mode",
@@ -151,7 +152,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -230,6 +231,7 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             pulse,
             residual_scale=residual_scale,
             pulse_frames=counterfactual_pulse_frames,
+            pulse_start_offset_frames=counterfactual_pulse_start_offset_frames,
             aim_gate=aim_gate,
             offensive_gate=offensive_gate,
             rear120_gate=rear120_gate,
@@ -322,6 +324,7 @@ def main():
         counterfactual_pulse=args.counterfactual_pulse,
         counterfactual_pulse_magnitude=args.counterfactual_pulse_magnitude,
         counterfactual_pulse_frames=args.counterfactual_pulse_frames,
+        counterfactual_pulse_start_offset_frames=args.counterfactual_pulse_start_offset_frames,
     )
     target_provider = build_provider(
         side="target",
@@ -346,6 +349,7 @@ def main():
         counterfactual_pulse=args.counterfactual_pulse,
         counterfactual_pulse_magnitude=args.counterfactual_pulse_magnitude,
         counterfactual_pulse_frames=args.counterfactual_pulse_frames,
+        counterfactual_pulse_start_offset_frames=args.counterfactual_pulse_start_offset_frames,
     )
 
     with activate_rule_xml(

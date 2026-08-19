@@ -327,6 +327,31 @@ class ShotWindowGateTests(unittest.TestCase):
         self.assertFalse(later.info["counterfactual_pulse_applied"])
         np.testing.assert_array_equal(later.action, bt.action)
 
+    def test_counterfactual_pulse_can_start_at_frozen_window_offset(self) -> None:
+        bt = _Provider([0.0, 0.0, 0.0, 0.82])
+        provider = CounterfactualPulseActionProvider(
+            bt,
+            [0.5, 0.0, 0.0, 0.0],
+            pulse_frames=2,
+            pulse_start_offset_frames=3,
+        )
+        own, target = _geometry(180.0)
+        provider.compute_action(_context(own, target, sim_time_s=0.0))
+        frames = [
+            provider.compute_action(_context(own, target, sim_time_s=i / 60.0))
+            for i in range(1, 7)
+        ]
+        self.assertEqual(
+            [row.info["counterfactual_pulse_applied"] for row in frames],
+            [False, False, False, True, True, False],
+        )
+        telemetry = provider.telemetry()
+        self.assertEqual(telemetry["counterfactual_pulse_start_offset_frames"], 3)
+        self.assertEqual(
+            telemetry["counterfactual_pulse_snapshot"]["shot_window_elapsed_steps"],
+            3,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,8 @@
+{
+  "minimum_meaningful_damage_delta": 0.001,
+  "maximum_geometry_regression": -0.003,
+  "pooled_clean_positive_ratio_min": 0.6666666666666666,
+  "minimum_meaningful_world_geometries": 4,
+  "median_best_state_damage_delta_strictly_positive": true,
+  "frozen_before_stage_a": true
+}

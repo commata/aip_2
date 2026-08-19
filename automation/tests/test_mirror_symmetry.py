@@ -10,11 +10,15 @@ from dogfight.envs.observation import aim_residual_geometry, build_observation
 from dogfight.research.mirror_symmetry import (
     LATERAL_CONTRACT,
     VERTICAL_CONTRACT,
+    action_class_to_canonical,
+    action_to_canonical,
+    canonical_geometry,
     mirror_action,
     mirror_pose_lateral,
     mirror_pose_vertical,
     mirror_state_lateral,
     mirror_state_vertical,
+    signed_features_to_canonical,
 )
 from dogfight.sim.state_schema import StateIndex
 
@@ -97,6 +101,37 @@ class MirrorSymmetryTests(unittest.TestCase):
         np.testing.assert_allclose(
             mirror_action(action, VERTICAL_CONTRACT),
             [-0.2, 0.3, 0.1, 0.77],
+        )
+
+    def test_lateral_and_crossing_action_classes_share_canonical_signs(self) -> None:
+        self.assertEqual(action_class_to_canonical("yaw_pos", "lateral_left"), "yaw_pos")
+        self.assertEqual(action_class_to_canonical("yaw_neg", "lateral_right"), "yaw_pos")
+        self.assertEqual(action_class_to_canonical("roll_pos", "crossing_left"), "roll_pos")
+        self.assertEqual(action_class_to_canonical("roll_neg", "crossing_right"), "roll_pos")
+        self.assertEqual(canonical_geometry("crossing_right"), "crossing")
+
+    def test_vertical_action_classes_and_signed_features_are_canonical(self) -> None:
+        self.assertEqual(action_class_to_canonical("pitch_pos", "vertical_high"), "pitch_pos")
+        self.assertEqual(action_class_to_canonical("pitch_neg", "vertical_low"), "pitch_pos")
+        world = {"aim_elevation_deg": -2.0, "los_elevation_rate_deg_s": 3.0}
+        self.assertEqual(
+            signed_features_to_canonical(world, "vertical_low"),
+            {"aim_elevation_deg": 2.0, "los_elevation_rate_deg_s": -3.0},
+        )
+
+    def test_double_mirror_returns_original_state_and_action(self) -> None:
+        np.testing.assert_allclose(
+            mirror_state_lateral(mirror_state_lateral(self.own)),
+            self.own,
+        )
+        action = np.asarray([0.2, -0.3, 0.1, 0.77])
+        np.testing.assert_allclose(
+            mirror_action(mirror_action(action, LATERAL_CONTRACT), LATERAL_CONTRACT),
+            action,
+        )
+        np.testing.assert_allclose(
+            action_to_canonical([-0.2, -0.3, -0.1, 0.77], "lateral_right"),
+            action,
         )
 
     def test_scenario_pose_pairs_are_mathematical_mirrors(self) -> None:

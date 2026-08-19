@@ -1,0 +1,19 @@
+{
+  "preferred_candidate": null,
+  "bc_candidate": null,
+  "pure_bt_fallback": {
+    "alias": "Pure 0815 BT",
+    "dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE",
+    "action_mode": "raw_native_bt",
+    "throttle_mode": "raw_bt_only"
+  },
+  "promotion_status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT / DATASET_NOT_CREATED / NOT_PROMOTED",
+  "target_bt_status": "TARGET_BT_PENDING",
+  "server_status": "SERVER_BLOCKED",
+  "next_gate": "PURE_BT_FALLBACK_SUBMISSION_PREPARATION",
+  "evidence_sha256": {
+    "stage_a_evaluation": "B565B7AB86103832FC12BF6C30D3FA31159954BBD93D18E643E3CEAA21AE224E",
+    "pure_bt_baseline": "A1ECA86C7949781123904BE5B85BCF29C702908F8631D87369737C5DB4AD16CE"
+  }
+}

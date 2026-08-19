@@ -1,0 +1,28 @@
+{
+  "status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
+  "issue": 17,
+  "branch": "codex/state-conditioned-shot-window-residual",
+  "base_sha": "a72492946938bbeeb034a88e7660826c8a511aa9",
+  "raw_artifact": "artifacts/evaluations/state_conditioned_residual/stage_a_elapsed_v1_20260819",
+  "raw_record_count": 96,
+  "new_episode_count": 84,
+  "compact_pair_count": 72,
+  "heldout_opened": false,
+  "tests": {
+    "automation": "153 passed, 26 subtests passed",
+    "core": "9 passed",
+    "compileall": "PASSED"
+  },
+  "pure_bt_smoke": {
+    "steps": 59,
+    "ownship_crash": false,
+    "result_sha256": "37F509E52BC17DE255AF91202C44AA1BA795ACB79B668A3E72839BBB4101B84C",
+    "telemetry_sha256": "DD4B35C393438DB118DC30146EC7A47F459EC04F0FCD5B8A729ECF5A87E0E5D5"
+  },
+  "stage_a": {
+    "evaluation_sha256": "B565B7AB86103832FC12BF6C30D3FA31159954BBD93D18E643E3CEAA21AE224E",
+    "raw_episode_csv_sha256": "6F45A124C6508D3614AD2CE4B8BF84676B01EBAC9BDEE0CCBA2580532106FEB7",
+    "run_fingerprint_sha256": "FD94A2AB288AE5BA9C6EAFB2697291C4AA8AAFE5886EFCEC0BA9A7E21019D19B",
+    "raw_command_history_sha256": "840C12DE1F7AA868D30ABB40D80E185DA02F19D0610DAB19CD177A72EB259BD5"
+  }
+}
