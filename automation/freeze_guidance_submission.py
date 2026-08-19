@@ -42,17 +42,22 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest().upper()
 
 
-def write_json(path: Path, payload) -> None:
+def write_text_lf(path: Path, text: str, *, encoding: str = "utf-8") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    with path.open("w", encoding=encoding, newline="\n") as handle:
+        handle.write(text)
+
+
+def write_json(path: Path, payload) -> None:
+    write_text_lf(path, json.dumps(payload, indent=2, sort_keys=True))
 
 
 def copy_model() -> tuple[Path, dict]:
     bundle = SUBMISSION_ROOT / "bundle"
     bundle.mkdir(parents=True, exist_ok=True)
-    for name in ("model.npz", "metadata.json"):
-        shutil.copy2(MODEL_SOURCE / name, bundle / name)
-    metadata = json.loads((bundle / "metadata.json").read_text(encoding="utf-8"))
+    shutil.copy2(MODEL_SOURCE / "model.npz", bundle / "model.npz")
+    metadata = json.loads((MODEL_SOURCE / "metadata.json").read_text(encoding="utf-8"))
+    write_json(bundle / "metadata.json", metadata)
     model_sha = sha256(bundle / "model.npz")
     if metadata["model_sha256"] != model_sha:
         raise RuntimeError("copied model metadata/hash mismatch")
@@ -213,7 +218,8 @@ def freeze_contracts(metadata: dict, model_sha: str) -> None:
             "actual_200s_timeout_runs": aggregate["completed_200s_timeout_runs"],
         },
     )
-    (SUBMISSION_ROOT / "README.md").write_text(
+    write_text_lf(
+        SUBMISSION_ROOT / "README.md",
         """# Guidance Selector Hybrid v1
 
 이 bundle은 fallback ladder 4단계의 rule-distilled safe Guidance Selector다. Rear120+safety Gate 초기 구간에서만 최소 VP_EL_POS_SMALL을 선택하고, 나머지는 exact Pure BT다. Throttle은 항상 BT-only다.
@@ -228,7 +234,6 @@ Config dry-run:
 
     python -c "from dogfight.submission import load_guidance_submission_config; load_guidance_submission_config('configs/submission/guidance_selector_hybrid_v1.json')"
 """,
-        encoding="utf-8",
     )
 
 
@@ -267,14 +272,16 @@ def freeze_evidence() -> dict:
         "throttle_difference_max", "invalid_or_nonfinite_actions", "telemetry_sha256",
     ]
     with (EVIDENCE_ROOT / "episode_records.csv").open("w", newline="", encoding="utf-8-sig") as handle:
-        writer = csv.DictWriter(handle, fieldnames=csv_fields, extrasaction="ignore")
+        writer = csv.DictWriter(
+            handle, fieldnames=csv_fields, extrasaction="ignore", lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(records)
     with (EVIDENCE_ROOT / "paired_200s_results.csv").open(
         "w", newline="", encoding="utf-8-sig"
     ) as handle:
         fields = ["controller", "case_id", "split", "opponent", "side", "damage_delta", "contaminated"]
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for controller, summary in aggregate["paired"].items():
             for row in summary["pair_records"]:
@@ -327,7 +334,8 @@ def freeze_evidence() -> dict:
             "cooldown_frames": 30,
         },
     )
-    (EVIDENCE_ROOT / "command_history.txt").write_text(
+    write_text_lf(
+        EVIDENCE_ROOT / "command_history.txt",
         "\n".join(
             (
                 "python automation/evaluate_guidance_counterfactual.py",
@@ -340,7 +348,6 @@ def freeze_evidence() -> dict:
             )
         )
         + "\n",
-        encoding="utf-8",
     )
     return aggregate
 
@@ -348,7 +355,8 @@ def freeze_evidence() -> dict:
 def write_reports(aggregate: dict) -> None:
     paired = aggregate["paired"]["bc"]
     report_root = ROOT / "automation/reports"
-    (report_root / "GuidanceSelector_200초_전체전.md").write_text(
+    write_text_lf(
+        report_root / "GuidanceSelector_200초_전체전.md",
         f"""# Guidance Selector 200초 상한 전체전
 
 ## 결론
@@ -374,9 +382,9 @@ clean {paired['clean_pairs']} pair, contaminated {paired['contaminated_pairs']} 
 
 target destroyed 12회, target altitude below min 24회로 모두 Phase 1 안에 끝났다. Phase 2/3 cone dwell은 0이며, phase boundary 자체는 unit test 대상이지 이 flight matrix의 실측 coverage가 아니다. AIP2는 0815와 별도 DLL이지만 독립 계보를 입증하지 못해 unseen-independent-opponent 주장에 사용하지 않는다. 실제 서버 정보는 없어 `SERVER_BLOCKED`다.
 """,
-        encoding="utf-8",
     )
-    (report_root / "GuidanceSelector_독립재검증.md").write_text(
+    write_text_lf(
+        report_root / "GuidanceSelector_독립재검증.md",
         """# Guidance Selector 독립 재검증
 
 raw result JSON과 frame telemetry JSONL 36개를 평가 집계와 별도 코드 경로로 다시 읽었다. telemetry SHA256 36개, run 수, clean/contaminated pair, Damage mean/median/min/max, nonzero intervention, altitude, latency가 aggregate와 모두 일치했다.
@@ -385,9 +393,9 @@ raw result JSON과 frame telemetry JSONL 36개를 평가 집계와 별도 코드
 
 상세 machine-readable 결과는 `automation/evidence/guidance_selector_v1/independent_verification.json`에 있다. 재검증은 성능 승격 근거가 아니라 결과 무결성 확인이다.
 """,
-        encoding="utf-8",
     )
-    (report_root / "GuidanceSelector_최종후보_및_제출Fallback.md").write_text(
+    write_text_lf(
+        report_root / "GuidanceSelector_최종후보_및_제출Fallback.md",
         f"""# Guidance Selector 최종 후보 및 제출 fallback
 
 ## 최종 상태
@@ -411,12 +419,15 @@ Pure fallback SHA256:
 
 - 정규 회귀: `191 passed, 26 subtests passed`
 - Guidance 집중 검증: `29 passed`
-- compileall, config/model load, checksum, JSON/CSV 검증: 통과
-- 변경 파일 1 MiB 초과 및 credential pattern: 없음
+- compileall: 통과
+- config fail-fast parse / model load-only inference: 통과
+- artifact/evidence checksum: 통과
+- JSON parse / CSV nonempty: 통과 (`episode_records` 36행, `paired_200s_results` 24행)
+- 변경 파일 1 MiB 초과: 없음
+- tracked-file credential pattern scan: 검출 없음
 
-정규 범위 밖의 수동 `test_ias.py`와 외부 `MyTrainEnv/logs` fixture 의존 web log viewer test는 별도 실패했으며, 두 파일은 이 branch diff에 포함되지 않는다.
+추가로 정규 범위 밖의 `test_ias.py`는 인자 fixture가 없는 수동 스크립트라 pytest collection error가 났고, web log viewer test는 Git에 없는 `MyTrainEnv/logs` fixture 때문에 실패했다. 두 파일은 이 branch diff에 포함되지 않는다.
 """,
-        encoding="utf-8",
     )
 
 
@@ -426,13 +437,13 @@ def write_checksums(config_path: Path) -> None:
     )
     lines = [f"{sha256(path)}  {path.relative_to(SUBMISSION_ROOT).as_posix()}" for path in artifact_files]
     lines.append(f"{sha256(config_path)}  ../../../configs/submission/{config_path.name}")
-    (SUBMISSION_ROOT / "sha256sums.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_text_lf(SUBMISSION_ROOT / "sha256sums.txt", "\n".join(lines) + "\n")
     evidence_files = sorted(
         path for path in EVIDENCE_ROOT.iterdir() if path.is_file() and path.name != "checksums.sha256"
     )
-    (EVIDENCE_ROOT / "checksums.sha256").write_text(
+    write_text_lf(
+        EVIDENCE_ROOT / "checksums.sha256",
         "\n".join(f"{sha256(path)}  {path.name}" for path in evidence_files) + "\n",
-        encoding="utf-8",
     )
 
 
