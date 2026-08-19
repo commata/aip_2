@@ -24,6 +24,7 @@ from automation.evaluate_guidance_ablation_v2 import (
     write_csv,
 )
 from dogfight.ai.guidance_advantage import GUIDANCE_ADVANTAGE_ACTIONS
+from dogfight.ai.guidance_selector import GUIDANCE_COMPOSITE_ACTIONS
 
 
 DEFAULT_OUTPUT = ROOT / "artifacts/evaluations/state_conditioned_hybrid_v3/adaptive_stage1_20260819"
@@ -252,6 +253,18 @@ def coarse_candidates() -> list[dict[str, Any]]:
     ]
 
 
+def two_axis_candidates() -> list[dict[str, Any]]:
+    return [
+        {
+            "candidate_id": f"{action}__m0.25__d36",
+            "action": action,
+            "magnitude_deg": 0.25,
+            "duration_frames": 36,
+        }
+        for action in GUIDANCE_COMPOSITE_ACTIONS
+    ]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect adaptive state-action counterfactuals v3")
     parser.add_argument("--pure-bt-dll", type=Path, required=True)
@@ -265,6 +278,7 @@ def parse_args() -> argparse.Namespace:
         default="adaptive",
     )
     parser.add_argument("--trace-root", type=Path)
+    parser.add_argument("--action-level", choices=("single-axis", "two-axis"), default="single-axis")
     parser.add_argument("--timeout-s", type=float, default=120.0)
     return parser.parse_args()
 
@@ -299,13 +313,13 @@ def main() -> None:
             "magnitude_deg": 0.25,
             "duration_frames": 36,
         },
-        *coarse_candidates(),
+        *(coarse_candidates() if args.action_level == "single-axis" else two_axis_candidates()),
     ]
     (output / "suite.json").write_text(
         json.dumps(
             {
                 "schema_version": "state_conditioned_acquisition_v3.v1",
-                "strategy": f"coarse_all_axis_sign_m0.25_d36_{args.profile}",
+                "strategy": f"coarse_{args.action_level}_m0.25_d36_{args.profile}",
                 "cases": cases,
                 "candidates": candidates,
             },

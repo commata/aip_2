@@ -171,6 +171,27 @@ class FixedGuidanceSelector:
         return self.action_id, self.confidence, probabilities
 
 
+GUIDANCE_COMPOSITE_ACTIONS = (
+    "VP_AZ_POS_EL_POS_SMALL",
+    "VP_AZ_POS_EL_NEG_SMALL",
+    "VP_AZ_NEG_EL_POS_SMALL",
+    "VP_AZ_NEG_EL_NEG_SMALL",
+)
+
+
+class FixedCompositeGuidanceSelector(FixedGuidanceSelector):
+    """Diagnostic-only bounded two-axis selector for action-space oracle tests."""
+
+    def __init__(self, action: str, confidence: float = 1.0):
+        if action not in GUIDANCE_COMPOSITE_ACTIONS:
+            raise ValueError(f"unsupported composite Guidance action: {action}")
+        az_sign = 1 if "AZ_POS" in action else -1
+        el_sign = 1 if "EL_POS" in action else -1
+        super().__init__("VP_AZ_POS_SMALL" if az_sign > 0 else "VP_AZ_NEG_SMALL", confidence)
+        self.action_name = action
+        self.axis_signs = (az_sign, el_sign)
+
+
 class NumpyMLPGuidanceSelector:
     """Small categorical model with an auditable, dependency-light bundle."""
 
@@ -763,7 +784,9 @@ class GuidanceSelectorActionProvider(ActionProvider):
                     "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
                     "observation": observation.tolist(),
                     "selected_action_id": int(action_id),
-                    "selected_action": GUIDANCE_ACTIONS[action_id],
+                    "selected_action": getattr(
+                        self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+                    ),
                     "confidence": float(confidence),
                     "base_guidance": asdict(base),
                     "gate": dict(gate_info),
@@ -776,7 +799,9 @@ class GuidanceSelectorActionProvider(ActionProvider):
                         "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
                         "observation": observation.tolist(),
                         "selected_action_id": int(action_id),
-                        "selected_action": GUIDANCE_ACTIONS[action_id],
+                        "selected_action": getattr(
+                            self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+                        ),
                         "confidence": float(confidence),
                         "selector_diagnostics": getattr(self.selector, "last_prediction", None),
                         "ownship_server_state": np.asarray(
@@ -792,7 +817,9 @@ class GuidanceSelectorActionProvider(ActionProvider):
                     "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
                     "observation": observation.tolist(),
                     "selected_action_id": int(action_id),
-                    "selected_action": GUIDANCE_ACTIONS[action_id],
+                    "selected_action": getattr(
+                        self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+                    ),
                     "confidence": float(confidence),
                     "selector_diagnostics": getattr(self.selector, "last_prediction", None),
                     "base_guidance": asdict(base),
@@ -825,7 +852,9 @@ class GuidanceSelectorActionProvider(ActionProvider):
                 "observation_contract": self.observation_contract,
                 "observation": observation.tolist(),
                 "selected_action_id": action_id,
-                "selected_action": GUIDANCE_ACTIONS[action_id],
+                "selected_action": getattr(
+                    self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+                ),
                 "selector_refreshed": refresh,
                 "selector_confidence": float(confidence),
                 "selector_probabilities": probabilities.tolist() if probabilities is not None else None,
@@ -838,7 +867,20 @@ class GuidanceSelectorActionProvider(ActionProvider):
             self._last_frame = frame
             return ActionResult(bt_action.copy(), "bt_guidance_selector_shadow", 1.0, frame)
 
-        corrected = compose_guidance_setpoint(base, action_id, self.action_config)
+        axis_signs = getattr(self.selector, "axis_signs", None)
+        if axis_signs is None:
+            corrected = compose_guidance_setpoint(base, action_id, self.action_config)
+        else:
+            corrected = GuidanceSetpoint(
+                local_azimuth_deg=float(
+                    base.local_azimuth_deg + axis_signs[0] * self.action_config.angular_offset_deg
+                ),
+                local_elevation_deg=float(
+                    base.local_elevation_deg + axis_signs[1] * self.action_config.angular_offset_deg
+                ),
+                distance_m=base.distance_m,
+                target_speed_m_s=base.target_speed_m_s,
+            )
         final, controller = guidance_to_surface_action(
             bt_action,
             base,
@@ -869,7 +911,9 @@ class GuidanceSelectorActionProvider(ActionProvider):
             "observation_contract": self.observation_contract,
             "observation": observation.tolist(),
             "selected_action_id": action_id,
-            "selected_action": GUIDANCE_ACTIONS[action_id],
+            "selected_action": getattr(
+                self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+            ),
             "selector_refreshed": refresh,
             "selector_confidence": float(confidence),
             "selector_probabilities": probabilities.tolist() if probabilities is not None else None,

@@ -8,6 +8,7 @@ from automation.collect_counterfactual_v3 import (
     build_evaluation_boundary_cases,
     build_shadow_trace_cases,
     coarse_candidates,
+    two_axis_candidates,
     verify_pure_baseline,
 )
 
@@ -58,6 +59,16 @@ def test_evaluation_boundary_cases_cover_clean_geometry_without_exact_state_reus
 def test_baseline_preflight_fails_before_rollout_for_missing_file(tmp_path):
     with pytest.raises(FileNotFoundError, match="Pure BT DLL"):
         verify_pure_baseline(tmp_path / "missing.dll", tmp_path / "missing.xml")
+
+
+def test_two_axis_stage_names_every_actual_combined_effect():
+    candidates = two_axis_candidates()
+    assert {candidate["action"] for candidate in candidates} == {
+        "VP_AZ_POS_EL_POS_SMALL",
+        "VP_AZ_POS_EL_NEG_SMALL",
+        "VP_AZ_NEG_EL_POS_SMALL",
+        "VP_AZ_NEG_EL_NEG_SMALL",
+    }
 
 
 def test_shadow_trace_cases_preserve_only_server_pose_and_speed(tmp_path):
