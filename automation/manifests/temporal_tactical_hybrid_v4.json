@@ -1,0 +1,102 @@
+{
+  "schema_version": "temporal_tactical_hybrid_v4.research_manifest.v1",
+  "status": "IN_PROGRESS",
+  "issue": "https://github.com/commata/aip_2/issues/28",
+  "branch": "codex/temporal-tactical-mode-hybrid-v4",
+  "base_main_sha": "ae4b2e0c1ea43d9f1b74e783a65293b5490ffcc4",
+  "artifact_protection": "append_only; preserve all v1/v2/v3 artifacts and raw evidence",
+  "frozen_hashes": {
+    "pure_bt_dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "pure_bt_xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE",
+    "hybrid_v1_model_sha256": "FAD2BCB268D4669BD65DB89CE8F36832B1E8C4B646163897E9BBC2A6372FBB6C",
+    "hybrid_v3_model_sha256": "7B97E8DF6CEA3250AE873FAC00C77C1B4AE923B12D0AC596C0DC25F1F36550F2",
+    "hybrid_v3_dataset_sha256": "4DFBF311AA680AA8F8054F9ED969A0729CAB89B1A1EEEFF0D7D8492F8614D6A3"
+  },
+  "v3_hard_block": {
+    "category": "ACTION_SPACE",
+    "code": "CURRENT_BOUNDED_PULSE_ACTION_SPACE_HARD_BLOCKED",
+    "repeated_work_forbidden": [
+      "simple AZ/EL 0.10/0.25/0.50 degree sweep",
+      "short bounded pulse duration sweep",
+      "PPO on the same bounded pulse actions",
+      "epoch-only or hidden-width-only scaling"
+    ]
+  },
+  "phase0_inventory": {
+    "champion_xml_nodes": [
+      "SelectTarget",
+      "DirectionVectorUpdate",
+      "DistanceUpdate",
+      "CheckSight",
+      "AngleOffUpdate",
+      "AspectAngleUpdate",
+      "Task_Pursue"
+    ],
+    "champion_dll_confirmed_exports": [
+      "CreateBehaviorTree",
+      "ChangeData",
+      "Step",
+      "GetVP",
+      "Reset",
+      "RemoveBT"
+    ],
+    "champion_dll_absent_probed_exports": [
+      "PurePursuitRun",
+      "LagPursuitRun",
+      "LeadPursuitRun",
+      "SetPursuitMode",
+      "SetMode",
+      "SetVP"
+    ],
+    "champion_runtime_mode_switch": false,
+    "implementation_path": "B_SERVER_VISIBLE_DETERMINISTIC_VP_GENERATORS",
+    "existing_controller": "vp_error_pd_v2 with exact BT throttle",
+    "runners": [
+      "run_local_dogfight.py",
+      "run_unreal_inference.py"
+    ]
+  },
+  "tactical_action_space": {
+    "default_action": "BT_DEFAULT",
+    "primary_bounded_pulses_forbidden": true,
+    "discovery_hold_frames_frozen": [30, 60, 120],
+    "conditional_extension_hold_frames": [240],
+    "candidate_levels": {
+      "T1": ["BT_DEFAULT", "PURE_PURSUIT", "LEAD_PURSUIT_T060", "LAG_PURSUIT_D250"],
+      "T2": ["LOS_RATE_DAMPED_PURSUIT", "CROSSING_LEAD_T100", "CONE_CAPTURE"]
+    },
+    "throttle": "EXACT_PURE_BT_ONLY"
+  },
+  "counterfactual": {
+    "causal_truth": "PREFIX_REPLAY",
+    "restart_state_use": "AUDIT_ONLY_UNTIL_PARITY_PROVEN",
+    "horizons_seconds": [1, 2, 4, 8, 12, "terminal"],
+    "required_prefix_fields": [
+      "frame",
+      "ownship_server_state",
+      "target_server_state",
+      "bt_action",
+      "bt_vp",
+      "damage",
+      "observable_telemetry_hash"
+    ]
+  },
+  "noise_floor": {
+    "status": "PENDING_MEASUREMENT",
+    "epsilon": null,
+    "large_regression_threshold": null
+  },
+  "temporal_observation": {
+    "contract": "guidance_selector_server_temporal_v4",
+    "history_frames": [0, 6, 12, 30],
+    "startup_padding": "repeat_first_zero_delta",
+    "runtime_forbidden": ["health", "Damage", "hidden FDM truth", "offline labels"]
+  },
+  "promotion": {
+    "submission_freeze_allowed": false,
+    "held_out_opened": false,
+    "ppo_allowed": false,
+    "fallback": "PURE_BT_CHAMPION"
+  },
+  "actual_server": "SERVER_BLOCKED"
+}
