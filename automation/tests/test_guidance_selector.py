@@ -272,6 +272,9 @@ class GuidanceProviderTests(unittest.TestCase):
         self.assertFalse(np.array_equal(result.action[:3], provider.bt_provider.action[:3]))
         self.assertEqual(result.action[3], provider.bt_provider.action[3])
         self.assertEqual(provider.telemetry()["nonzero_intervention_frames"], 1)
+        snapshot = provider.telemetry()["first_nondefault_selector_snapshot"]
+        self.assertEqual(snapshot["selected_action"], "VP_AZ_POS_SMALL")
+        self.assertEqual(len(snapshot["observation"]), 45)
 
     def test_shadow_nondefault_predicts_but_returns_exact_bt(self):
         provider = GuidanceSelectorActionProvider(
@@ -290,6 +293,10 @@ class GuidanceProviderTests(unittest.TestCase):
         telemetry = provider.telemetry()
         self.assertTrue(telemetry["shadow_mode"])
         self.assertEqual(telemetry["nonzero_intervention_frames"], 0)
+        self.assertEqual(
+            telemetry["first_nondefault_selector_snapshot"]["selected_action"],
+            "VP_AZ_POS_SMALL",
+        )
 
     def test_exception_falls_back_to_exact_bt(self):
         provider = self.provider(FailingSelector())
