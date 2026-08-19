@@ -515,6 +515,11 @@ def main() -> None:
         (output / "progress.json").write_text(
             json.dumps(progress, indent=2, sort_keys=True), encoding="utf-8"
         )
+        # Preserve every completed event boundary. A simulator/process failure
+        # must not discard already paid-for prefix-replay causal labels.
+        (output / "pairs.partial.json").write_text(
+            json.dumps(records, indent=2, sort_keys=True), encoding="utf-8"
+        )
         print(json.dumps(progress, sort_keys=True), flush=True)
     summary = summarize_oracle(records)
     summary.update(
