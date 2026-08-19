@@ -259,6 +259,7 @@ def select_threshold(diagnostics: list[dict[str, Any]]) -> dict[str, Any]:
         and row["policy"]["intervention_precision"] >= 0.65
         and row["policy"]["mean"] > 0.0
         and row["policy"]["large_regression_ratio"] <= 0.05
+        and row.get("consistent_seed_count", 0) >= 2
     ]
     candidates = eligible or diagnostics
     selected = max(
@@ -384,8 +385,34 @@ def train_and_evaluate(
         )
     threshold_diagnostics = []
     for threshold in threshold_grid():
+        seed_gate_metrics = {}
+        for member_index, seed in enumerate(seeds):
+            member_policy = policy_value(unique, member_oof[member_index], threshold)
+            seed_gate_metrics[str(seed)] = {
+                key: member_policy[key]
+                for key in (
+                    "interventions",
+                    "coverage",
+                    "mean",
+                    "median",
+                    "intervention_precision",
+                    "large_regression_ratio",
+                    "oracle_regret_mean",
+                )
+            }
+        consistent_seed_count = sum(
+            policy["mean"] > 0.0
+            and policy["intervention_precision"] >= 0.60
+            and policy["large_regression_ratio"] <= 0.05
+            for policy in seed_gate_metrics.values()
+        )
         threshold_diagnostics.append(
-            {"threshold": threshold, "policy": policy_value(unique, oof, threshold)}
+            {
+                "threshold": threshold,
+                "policy": policy_value(unique, oof, threshold),
+                "seed_gate_metrics": seed_gate_metrics,
+                "consistent_seed_count": consistent_seed_count,
+            }
         )
     selected = select_threshold(threshold_diagnostics)
     seed_policies = {

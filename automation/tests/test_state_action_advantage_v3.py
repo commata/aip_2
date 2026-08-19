@@ -81,6 +81,22 @@ def test_threshold_selection_reports_failed_gate_honestly() -> None:
     assert selected["selection_status"] == "OFFLINE_POLICY_GATE_FAILED"
 
 
+def test_threshold_selection_requires_two_risk_consistent_seeds() -> None:
+    base = {
+        "threshold": {"score": 0.001},
+        "policy": {
+            "interventions": 10,
+            "intervention_precision": 0.9,
+            "mean": 0.01,
+            "large_regression_ratio": 0.0,
+        },
+    }
+    failed = select_threshold([{**base, "consistent_seed_count": 1}])
+    passed = select_threshold([{**base, "consistent_seed_count": 2}])
+    assert not failed["offline_gate_passed"]
+    assert passed["offline_gate_passed"]
+
+
 def test_prediction_diagnostics_use_state_grouped_top_action_value() -> None:
     rows = [
         _row("a", "pos", 0.02),
