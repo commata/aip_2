@@ -3,18 +3,18 @@
 ## 결론
 
 - 판정: `ORACLE_UNDERSAMPLED`
-- canonical unique state: 66
-- observed nondefault state-action pair: 630
-- State Oracle ΔDamage mean/median: 0.023589715 / 0.000000034
-- Oracle positive/meaningful-positive ratio: 56.06% / 30.30%
-- Oracle positive ratio (epsilon 1e-6): 45.45%
-- Oracle bootstrap mean 95% CI: [0.010555027, 0.039911530]
-- default-optimal state ratio: 43.94%
+- canonical unique state: 186
+- observed nondefault state-action pair: 1110
+- State Oracle ΔDamage mean/median: 0.012266727 / 0.000001464
+- Oracle positive/meaningful-positive ratio: 56.45% / 35.48%
+- Oracle positive ratio (epsilon 1e-6): 50.00%
+- Oracle bootstrap mean 95% CI: [0.007115028, 0.018474955]
+- default-optimal state ratio: 43.55%
 
 ## Best Static 비교
 
 - candidate: `VP_AZ_POS_SMALL__m0.50__d36`
-- coverage: 36/66 (54.55%)
+- coverage: 36/186 (19.35%)
 - ΔDamage mean/median/positive: 0.018601428 / 0.000000000 / 44.44%
 - 같은 state에서 Oracle mean gap: 0.005093138
 

@@ -439,7 +439,7 @@ def write_outputs(
 ) -> None:
     output.mkdir(parents=True, exist_ok=True)
     states_path = output / "state_matrix_v3.json"
-    dataset_path = output / "counterfactual_bootstrap_v3.jsonl"
+    dataset_path = output / "counterfactual_bootstrap_v3.dataset.json"
     analysis_path = output / "oracle_analysis_v3.json"
     states_payload = {
         "schema_version": "counterfactual_state_matrix_v3.v1",
@@ -468,7 +468,14 @@ def write_outputs(
                 "label_source": "definition_vs_exact_pure_bt",
             }
         )
-    _write_jsonl(dataset_path, sorted(dataset_rows, key=lambda row: (row["state_hash"], row["candidate_id"])))
+    dataset_path.write_text(
+        json.dumps(
+            sorted(dataset_rows, key=lambda row: (row["state_hash"], row["candidate_id"])),
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+        encoding="utf-8",
+    )
     analysis_path.write_text(json.dumps(analysis, indent=2, sort_keys=True), encoding="utf-8")
     manifest = {
         "schema_version": "counterfactual_bootstrap_v3.manifest.v1",

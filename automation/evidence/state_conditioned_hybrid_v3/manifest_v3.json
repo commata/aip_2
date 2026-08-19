@@ -1,19 +1,20 @@
 {
-  "dataset_rows_including_default": 696,
-  "dataset_sha256": "041461498C7697FC986488FBAACC43B680F01CB3CEE93D29E9AF5EB6457630D1",
+  "dataset_rows_including_default": 1296,
+  "dataset_sha256": "159E9C9C68301B8A8BB8BF6536CD21B062FC18D5030524D5EE1E4DF74EB47D02",
   "feasibility": "ORACLE_UNDERSAMPLED",
   "health_runtime_features": [],
   "observation_contract": "guidance_selector_server_v2_reconstructed_from_v2_raw",
-  "observed_nondefault_pairs": 630,
-  "oracle_analysis_sha256": "A60DB88859EAB0B7B5BA987D2B77C31D05A754FC4BE33CA14D3E6644D97FBB83",
+  "observed_nondefault_pairs": 1110,
+  "oracle_analysis_sha256": "4E94AC8E84260BADBF4D0CD36F85A9F43B79F6181F1B155089A530FAFFB30B65",
   "schema_version": "counterfactual_bootstrap_v3.manifest.v1",
   "source_experiments": [
     "ablation_pilot_20260819",
     "ablation_elpos_revalidation_20260819",
     "ablation_elpos_near_revalidation_20260819",
     "ablation_signed_near_revalidation_20260819",
-    "ablation_vertical_high_focus_20260819"
+    "ablation_vertical_high_focus_20260819",
+    "adaptive_stage1_20260819"
   ],
-  "state_matrix_sha256": "0C241A4A98374232B15E4403113A643D25E261374D9109AF6FA093F083613932",
-  "unique_states": 66
+  "state_matrix_sha256": "E105CEA2A2E3CB67E4F2558BC358A046FE6581B25C676B660CC1FC793F2D54AC",
+  "unique_states": 186
 }
