@@ -112,6 +112,50 @@ def build_discovery_cases(variants_per_geometry: int = 3) -> list[dict[str, Any]
     return cases
 
 
+def build_revalidation_cases() -> list[dict[str, Any]]:
+    """Build independent outer geometry perturbations and new seed groups."""
+    outer = [
+        case
+        for case in build_discovery_cases(5)
+        if case["geometry"] in BASE_GEOMETRIES
+        and case["case_id"].endswith(("vm2", "vp2"))
+    ]
+    cases = []
+    for source in outer:
+        case = json.loads(json.dumps(source))
+        case["case_id"] = f"reval_{case['case_id']}"
+        case["seed"] = 73001 + len(cases)
+        case["scenario"]["name"] = f"temporal_tactical_v4_{case['case_id']}"
+        cases.append(case)
+    extra_names = ("neutral", "head_on", "tail_chase", "high_closing", "long_range")
+    discovery_extras = {
+        case["geometry"]: case
+        for case in build_discovery_cases(3)
+        if case["geometry"] in extra_names
+    }
+    for geometry in extra_names:
+        for sign in (-1, 1):
+            case = json.loads(json.dumps(discovery_extras[geometry]))
+            env = case["scenario"]["env_config"]
+            env["target"][0] += sign * 120.0
+            env["target"][1] += sign * 45.0
+            env["target"][2] += sign * 60.0
+            env["target"][5] = (env["target"][5] + sign * 3.0) % 360.0
+            env["ownship"][6] += sign * 8.0
+            env["target"][6] -= sign * 6.0
+            env["target_autopilot"] = {
+                "heading_cmd": env["target"][5],
+                "altitude_cmd": -env["target"][2],
+                "speed_cmd": env["target"][6],
+            }
+            suffix = "m" if sign < 0 else "p"
+            case["case_id"] = f"reval_{geometry}_{suffix}"
+            case["seed"] = 73001 + len(cases)
+            case["scenario"]["name"] = f"temporal_tactical_v4_{case['case_id']}"
+            cases.append(case)
+    return cases
+
+
 def run_case(
     case: dict[str, Any],
     *,
@@ -195,6 +239,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pure-bt-xml", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--variants-per-geometry", type=int, default=3)
+    parser.add_argument(
+        "--suite-kind", choices=("discovery", "revalidation"), default="discovery"
+    )
     parser.add_argument("--episode-frames", type=int, default=720)
     return parser.parse_args()
 
@@ -208,7 +255,11 @@ def main() -> None:
     if output.exists():
         raise FileExistsError(f"refusing to overwrite event evidence: {output}")
     output.mkdir(parents=True)
-    cases = build_discovery_cases(args.variants_per_geometry)
+    cases = (
+        build_discovery_cases(args.variants_per_geometry)
+        if args.suite_kind == "discovery"
+        else build_revalidation_cases()
+    )
     (output / "suite.json").write_text(
         json.dumps({"cases": cases}, indent=2, sort_keys=True), encoding="utf-8"
     )

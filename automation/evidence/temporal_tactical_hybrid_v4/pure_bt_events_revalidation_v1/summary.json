@@ -1,0 +1,16 @@
+{
+  "schema_version": "pure_bt_decision_events_v4.v1",
+  "stage": "INDEPENDENT_REVALIDATION_SOURCE",
+  "unique_events": 1839,
+  "fights": 22,
+  "raw_frames": 14810,
+  "scenarios": 11,
+  "opponents": 1,
+  "ownship_crashes": 0,
+  "target_crashes": 0,
+  "diagnostic_taxonomy_is_label": false,
+  "events_sha256": "542F529B246605161523B692160371B12B880219BD0E952CB8F3B260CFF63EF5",
+  "seed_group": "73001+",
+  "geometry_relation": "outer and independently perturbed from discovery",
+  "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/pure_bt_events_revalidation_v1"
+}

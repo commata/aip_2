@@ -112,7 +112,7 @@
     "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1"
   },
   "tactical_oracle": {
-    "status": "DISCOVERY_POSITIVE_REVALIDATION_REQUIRED",
+    "status": "TACTICAL_ORACLE_FEASIBLE",
     "action_space_level": "T1",
     "discovery_events": 12,
     "clean_pairs": 108,
@@ -123,7 +123,17 @@
     "large_regression_pairs": 50,
     "risk_head_required": true,
     "independent_revalidation_target_events": 36,
-    "summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_v2/summary.json"
+    "independent_revalidation_events": 36,
+    "independent_clean_pairs": 324,
+    "independent_oracle_nondefault_coverage": 0.6388888888888888,
+    "independent_oracle_intervention_mean": 0.03408376499356323,
+    "independent_overall_policy_value": 0.02177573874588762,
+    "independent_positive_geometry_count": 9,
+    "independent_large_regression_pairs": 129,
+    "best_static_value": -0.010091185467276957,
+    "action_space_gate_passed": true,
+    "discovery_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_v2/summary.json",
+    "revalidation_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_revalidation_v1/summary.json"
   },
   "promotion": {
     "submission_freeze_allowed": false,

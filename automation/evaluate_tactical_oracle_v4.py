@@ -412,6 +412,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--level", choices=("T1", "T2"), default="T1")
     parser.add_argument("--event-count", type=int, default=12)
     parser.add_argument("--event-offset", type=int, default=0)
+    parser.add_argument(
+        "--stage",
+        choices=("DISCOVERY", "INDEPENDENT_REVALIDATION"),
+        default="DISCOVERY",
+    )
     parser.add_argument("--post-event-frames", type=int, default=720)
     return parser.parse_args()
 
@@ -493,7 +498,7 @@ def main() -> None:
     summary.update(
         {
             "schema_version": "tactical_oracle_v4.v1",
-            "stage": "DISCOVERY" if args.event_offset == 0 else "INDEPENDENT_REVALIDATION",
+            "stage": args.stage,
             "action_space_level": args.level,
             "epsilon": 1e-9,
             "large_regression_threshold": 1e-6,
