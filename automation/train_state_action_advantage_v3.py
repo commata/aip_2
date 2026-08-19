@@ -12,6 +12,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+from scipy.stats import rankdata
 
 from dogfight.ai.guidance_advantage import (
     GUIDANCE_ADVANTAGE_ACTIONS,
@@ -277,6 +278,62 @@ def select_threshold(diagnostics: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def prediction_diagnostics(
+    rows: list[dict[str, Any]], damage: np.ndarray, predictions: dict[str, np.ndarray]
+) -> dict[str, Any]:
+    mean = predictions["mean"]
+    positive_label = (damage > POSITIVE_EPSILON).astype(np.float64)
+    regression_label = (damage <= LARGE_REGRESSION).astype(np.float64)
+    pearson = float(np.corrcoef(mean, damage)[0, 1]) if np.std(mean) > 1e-12 else 0.0
+    spearman = float(
+        np.corrcoef(rankdata(mean, method="average"), rankdata(damage, method="average"))[0, 1]
+    )
+    by_state: dict[str, list[int]] = defaultdict(list)
+    for index, row in enumerate(rows):
+        by_state[row["state_hash"]].append(index)
+    agreement = []
+    regrets = []
+    for indices in by_state.values():
+        predicted = max(indices, key=lambda index: mean[index])
+        actual = max(indices, key=lambda index: damage[index])
+        agreement.append(rows[predicted]["candidate_id"] == rows[actual]["candidate_id"])
+        regrets.append(float(damage[actual] - damage[predicted]))
+
+    def calibration(probability: np.ndarray, label: np.ndarray) -> list[dict[str, Any]]:
+        bins = []
+        for lower in np.linspace(0.0, 0.8, 5):
+            upper = lower + 0.2
+            selected = (probability >= lower) & (
+                probability <= upper if upper >= 1.0 else probability < upper
+            )
+            if np.any(selected):
+                bins.append(
+                    {
+                        "lower": float(lower),
+                        "upper": float(upper),
+                        "count": int(np.sum(selected)),
+                        "predicted_mean": float(np.mean(probability[selected])),
+                        "actual_ratio": float(np.mean(label[selected])),
+                    }
+                )
+        return bins
+
+    return {
+        "predicted_actual_advantage_pearson": pearson,
+        "predicted_actual_advantage_spearman": spearman,
+        "positive_brier": float(np.mean((predictions["positive_probability"] - positive_label) ** 2)),
+        "large_regression_brier": float(
+            np.mean((predictions["regression_probability"] - regression_label) ** 2)
+        ),
+        "top_action_agreement": float(np.mean(agreement)),
+        "ungated_top_action_regret_mean": float(np.mean(regrets)),
+        "positive_calibration": calibration(predictions["positive_probability"], positive_label),
+        "large_regression_calibration": calibration(
+            predictions["regression_probability"], regression_label
+        ),
+    }
+
+
 def train_and_evaluate(
     rows: list[dict[str, Any]], *, folds: int, epochs: int, seeds: tuple[int, ...]
 ) -> tuple[dict[str, Any], list[tuple[AdvantageNetwork, dict[str, np.ndarray]]]]:
@@ -288,6 +345,13 @@ def train_and_evaluate(
         key: np.zeros(len(unique), dtype=np.float64)
         for key in ("mean", "std", "positive_probability", "regression_probability")
     }
+    member_oof = [
+        {
+            key: np.zeros(len(unique), dtype=np.float64)
+            for key in ("mean", "std", "positive_probability", "regression_probability")
+        }
+        for _ in seeds
+    ]
     fold_summaries = []
     for fold in range(folds):
         test = np.asarray([assignment[row["state_hash"]] == fold for row in unique])
@@ -301,6 +365,14 @@ def train_and_evaluate(
         predicted = ensemble_predictions(fold_models, x[test])
         for key in oof:
             oof[key][test] = predicted[key]
+        for member_index, (model, normalization) in enumerate(fold_models):
+            member_mean, member_positive, member_regression = predict(
+                model, normalization, x[test]
+            )
+            member_oof[member_index]["mean"][test] = member_mean
+            member_oof[member_index]["std"][test] = 0.0
+            member_oof[member_index]["positive_probability"][test] = member_positive
+            member_oof[member_index]["regression_probability"][test] = member_regression
         fold_summaries.append(
             {
                 "fold": fold,
@@ -316,6 +388,10 @@ def train_and_evaluate(
             {"threshold": threshold, "policy": policy_value(unique, oof, threshold)}
         )
     selected = select_threshold(threshold_diagnostics)
+    seed_policies = {
+        str(seed): policy_value(unique, member_oof[index], selected["threshold"])
+        for index, seed in enumerate(seeds)
+    }
     final_models = []
     training_losses = {}
     for seed in seeds:
@@ -339,6 +415,8 @@ def train_and_evaluate(
         "folds": fold_summaries,
         "threshold_grid_frozen_before_oof_evaluation": threshold_grid(),
         "selected_oof_policy": selected,
+        "oof_prediction_diagnostics": prediction_diagnostics(unique, damage, oof),
+        "seed_oof_policies_at_selected_threshold": seed_policies,
         "all_threshold_diagnostics": threshold_diagnostics,
         "training_losses": training_losses,
     }

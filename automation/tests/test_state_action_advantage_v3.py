@@ -6,6 +6,7 @@ from automation.train_state_action_advantage_v3 import (
     assign_group_folds,
     encode_factorized_input,
     policy_value,
+    prediction_diagnostics,
     select_threshold,
     unique_state_actions,
 )
@@ -78,3 +79,23 @@ def test_threshold_selection_reports_failed_gate_honestly() -> None:
     selected = select_threshold([diagnostic])
     assert not selected["offline_gate_passed"]
     assert selected["selection_status"] == "OFFLINE_POLICY_GATE_FAILED"
+
+
+def test_prediction_diagnostics_use_state_grouped_top_action_value() -> None:
+    rows = [
+        _row("a", "pos", 0.02),
+        _row("a", "neg", -0.01),
+        _row("b", "pos", 0.0),
+        _row("b", "neg", 0.01),
+    ]
+    damage = np.asarray([row["damage_delta"] for row in rows])
+    predictions = {
+        "mean": damage.copy(),
+        "std": np.zeros(4),
+        "positive_probability": np.asarray([0.9, 0.1, 0.1, 0.9]),
+        "regression_probability": np.asarray([0.1, 0.9, 0.1, 0.1]),
+    }
+    result = prediction_diagnostics(rows, damage, predictions)
+    assert result["top_action_agreement"] == 1.0
+    assert result["ungated_top_action_regret_mean"] == 0.0
+    assert result["predicted_actual_advantage_spearman"] == 1.0
