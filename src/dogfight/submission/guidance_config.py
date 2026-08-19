@@ -17,6 +17,13 @@ from dogfight.ai.guidance_selector import (
     GuidanceControllerConfig,
     GuidanceRuntimeConfig,
 )
+from dogfight.ai.guidance_advantage import (
+    GUIDANCE_ADVANTAGE_ACTIONS,
+    GUIDANCE_SERVER_CONTRACT_VERSION,
+    GUIDANCE_SERVER_FEATURES,
+    GUIDANCE_SERVER_NORMALIZATION_VERSION,
+    GUIDANCE_SERVER_OBSERVATION_SIZE,
+)
 from dogfight.envs.observation import OFFICIAL_DAMAGE_PHASES
 
 
@@ -57,21 +64,40 @@ def load_guidance_submission_config(
     if payload.get("status") not in {
         "SUBMISSION_READY_HYBRID_CANDIDATE",
         "PROMOTED_LOCAL_GUIDANCE_HYBRID",
+        "PROMOTED_LOCAL_STATE_CONDITIONED_HYBRID",
     }:
         raise ValueError("Guidance submission status is not runnable")
     if payload.get("throttle_policy") != "bt_only":
         raise ValueError("Guidance submission throttle_policy must be bt_only")
     if payload.get("fallback_mode") != "exact_pure_bt":
         raise ValueError("Guidance fallback_mode must be exact_pure_bt")
-    if payload.get("selector_observation_contract") != GUIDANCE_SELECTOR_CONTRACT_VERSION:
+    observation_contract = payload.get("selector_observation_contract")
+    contracts = {
+        GUIDANCE_SELECTOR_CONTRACT_VERSION: (
+            GUIDANCE_SELECTOR_NORMALIZATION_VERSION,
+            GUIDANCE_SELECTOR_OBSERVATION_SIZE,
+            GUIDANCE_SELECTOR_FEATURES,
+            GUIDANCE_ACTIONS,
+        ),
+        GUIDANCE_SERVER_CONTRACT_VERSION: (
+            GUIDANCE_SERVER_NORMALIZATION_VERSION,
+            GUIDANCE_SERVER_OBSERVATION_SIZE,
+            GUIDANCE_SERVER_FEATURES,
+            GUIDANCE_ADVANTAGE_ACTIONS,
+        ),
+    }
+    if observation_contract not in contracts:
         raise ValueError("Guidance selector observation contract mismatch")
-    if payload.get("normalization_version") != GUIDANCE_SELECTOR_NORMALIZATION_VERSION:
+    normalization, observation_size, observation_features, action_library = contracts[
+        observation_contract
+    ]
+    if payload.get("normalization_version") != normalization:
         raise ValueError("Guidance normalization version mismatch")
-    if int(payload.get("selector_observation_size", -1)) != GUIDANCE_SELECTOR_OBSERVATION_SIZE:
+    if int(payload.get("selector_observation_size", -1)) != observation_size:
         raise ValueError("Guidance selector observation size mismatch")
-    if tuple(payload.get("observation_features", ())) != GUIDANCE_SELECTOR_FEATURES:
+    if tuple(payload.get("observation_features", ())) != observation_features:
         raise ValueError("Guidance selector feature order mismatch")
-    if tuple(payload.get("action_library", ())) != GUIDANCE_ACTIONS:
+    if tuple(payload.get("action_library", ())) != action_library:
         raise ValueError("Guidance action library mismatch")
     if payload.get("runtime_observation_mode") != "tactical16":
         raise ValueError("Guidance runtime source observation must be tactical16")

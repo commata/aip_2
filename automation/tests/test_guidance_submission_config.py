@@ -16,6 +16,13 @@ from dogfight.ai.guidance_selector import (
     GUIDANCE_SELECTOR_NORMALIZATION_VERSION,
     GUIDANCE_SELECTOR_OBSERVATION_SIZE,
 )
+from dogfight.ai.guidance_advantage import (
+    GUIDANCE_ADVANTAGE_ACTIONS,
+    GUIDANCE_SERVER_CONTRACT_VERSION,
+    GUIDANCE_SERVER_FEATURES,
+    GUIDANCE_SERVER_NORMALIZATION_VERSION,
+    GUIDANCE_SERVER_OBSERVATION_SIZE,
+)
 from dogfight.envs.observation import OFFICIAL_DAMAGE_PHASES
 from dogfight.submission.guidance_config import load_guidance_submission_config
 from run_unreal_inference import resolve_runtime_contract
@@ -115,6 +122,26 @@ class GuidanceSubmissionConfigTests(unittest.TestCase):
             loaded = load_guidance_submission_config(self.fixture(Path(temp)))
             self.assertEqual(loaded.runtime_config.minimum_action_hold_frames, 18)
             self.assertEqual(loaded.bundle_path.name, "bundle")
+
+    def test_loads_server_safe_state_action_contract(self):
+        with TemporaryDirectory() as temp:
+            path = self.fixture(Path(temp))
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload.update(
+                {
+                    "selector_observation_contract": GUIDANCE_SERVER_CONTRACT_VERSION,
+                    "selector_observation_size": GUIDANCE_SERVER_OBSERVATION_SIZE,
+                    "normalization_version": GUIDANCE_SERVER_NORMALIZATION_VERSION,
+                    "observation_features": list(GUIDANCE_SERVER_FEATURES),
+                    "action_library": list(GUIDANCE_ADVANTAGE_ACTIONS),
+                }
+            )
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            loaded = load_guidance_submission_config(path)
+            self.assertEqual(
+                loaded.raw["selector_observation_contract"],
+                GUIDANCE_SERVER_CONTRACT_VERSION,
+            )
 
     def test_hash_mismatch_fails_fast(self):
         with TemporaryDirectory() as temp:
