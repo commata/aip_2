@@ -1,0 +1,2943 @@
+{
+  "caveat": "Failure taxonomy is diagnostic; model labels and promotion remain actual paired Damage.",
+  "classification_kind": "deterministic_server_safe_diagnostic_rule",
+  "schema_version": "bt_failure_taxonomy_v3.v1",
+  "state_rows": [
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 2.516147845632588e-09,
+      "state_hash": "00DC578347B46358E1BCA86FA267C18381566C7FAE78D6EFB29E91C8B0DBCDC9"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 1.4351723809924444e-05,
+      "state_hash": "028383956FD16E49243907EA1D1F5399DDFA7AA3E49A61D6F854128AECD31322"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "0298C865CB3502C4FE28DD7158E42BC763B13BD5C862C75898A9CA85355EE4A5"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0013962458409568779,
+      "state_hash": "0393FEC89726B25F3A1C15F7A9900B5C8CD060BF18EEB67294969FE587BB6E2C"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "062D5C9595D0485FC99813DEC75183C131BD64153DEE4BEC53736F4CEB434A64"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "06458FC80EB2178BDA345ECD46E5583B80A437ED4A182BEE24A97AC4BBC5D712"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "0A21E49B8DD1A4EADE11033F278D2BE8892D3A27E2BEBE53A4366CF1F48BA229"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.1,
+        "magnitude_norm": 0.2,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.10__d36",
+      "oracle_damage_delta": 4.240628848073413e-09,
+      "state_hash": "0ACDDFBD413FE3E354FBAE045E790DCD3CC548785A9398E17344ED58581F7EFE"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.012342297368765465,
+      "state_hash": "0C6A8984A8E8E1E51B351AA564F33E1929E7D1A677F1B07F9642F06625507033"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.09987114793643215,
+      "state_hash": "0DFB34399C4626F5069FF3B6C701EAEB29C9D272EF76AC4F266457BFC668C486"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "0EE382FFA0F2A11639EEB5635A551F6FD84C222F836FACF1CB6A138DBC7D6118"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0016537578465186664,
+      "state_hash": "0FA37E5672A361633FE112BADE8C42606B2971EB7CF9B0BDF3CCC2CE9E01ECE5"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "A_AZIMUTH_OVERSHOOT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.00893033132758747,
+      "state_hash": "11CC3D85B9B33DAF92BE7B20237EDD079F9617BC92E672FBD7D4AFF267867A21"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "129711F90A6B50CD2A16760075B054E5DE1026A05ACCEF31982E379DEBE1CCDC"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.009345584162807508,
+      "state_hash": "16106F08260255C83E76D8A51A5C4E25EEE03D2D93E650C745F6645B32AE2CEB"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 4.9393371176709167e-05,
+      "state_hash": "177492121786B3B6A5D1828CA8ADB4AD80C25F6FCB09F994E3BA51941D657120"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "1AA7EA9B426A431032581332EA3D5387989C6629C7D18ABA475E326D3F687904"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "1CDC196D6512EAB48F8763A15F730EA87BCCEA32D03D8BE0A8EB19E3F0AB5DC0"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "1ECBE09CE8F34545042A95737A7CE550F539AF4BB0C0EAE3353D34C3F5E2F934"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "1F80662C5090EC721586971AAE2FE31819BEF3DCACE43DDB880B14966465539D"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "1FA5C52AC4580BCCB4D8DA287CE8AD8759D725FCEAEBA13203744B878413C472"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "2163683D289C81F0B0EF5FDE870A343190975E7998F50897150B463C514526A8"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "259A9F23DBEDFA49DB12D3B1A2E428F673512C2DEE878DD2C6578ED767CB0897"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.013207364677546574,
+      "state_hash": "25FF9A9ADB1AB6CFD32375183C726ACA46014F66EF405D85F85E352F828AB8F8"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "26F414F30B69EBF9AD6C35F5E0FAAD4D5A76B84243B8B5BE4BB6CC2C6EB21644"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.18518707514719057,
+      "state_hash": "275E5119E07322AB056CADB814F817F91E239A05097D8533FA3953DC80134832"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "276739655EE70B9CEAE4655EC81F07CAF2234986887AE4416EB40C9CBD954E5F"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "280A51352582A5F423AE7AA8EA5ED5A3477ADAC40C58E9EA9E063F3952044824"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "28A01F9C771474AA0A5946FB056F5B31424BEF57F4B431C0455AF8591A83CC38"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 1.0808986428134659e-07,
+      "state_hash": "290B4A54C1777D9220CE1A3E986A9D077208F41894E7D7CE5D552BA8C488D1BC"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "A_AZIMUTH_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.029106542812563196,
+      "state_hash": "2A2D32E08800446AEDB03B159372CF682D56FF4467DB4EE547C7805D2B958C09"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "2A59FE5201640272620B0805A3B3005F1D56F7A68CC4C809BC990EFAF1EC0307"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "2CD2584B2675F17BD1F11A3BF4569EAFB068361F3EE3128DAF5A3D79EA1C3E82"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "2E8DB2B9CE73AAD6A854CB4CA1FBCDE703CC09945201C5E705D6D91C485CC4B9"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.005821636455556445,
+      "state_hash": "2EA8A984F0C5247D14BB0D025BA7573DD820E479E6507C5DAA3DD1B32E29E8FC"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.04623393297938483,
+      "state_hash": "2EE8B2317BFDB40109025AF31113E6D490BEA5EC0C698720B68F0A704F82EB02"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0766409999857166,
+      "state_hash": "30238A182E5EFED149B450789A64EA07E6F7F21EAF06F0EE2B233DACB5038D17"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "32698B0393962D849E3E018106A7D0DA5DFB0399A8ADAC7428FFB231622AF932"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.025298153335871487,
+      "state_hash": "3272514B5650E25A0491354CB8C062C7E3FA7CA6C3F6C8CDEC28391E128C84A1"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "32C4F97F8BBAEADBB8B7D762DDB4FFC0B8F530BEBCEC1FA5F30BCC7DB3D49A4F"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "32E1AF0840F3D9AF93F49624DA71F70B454D851D58CAB8D8E76DC957B1C5294E"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 5.183132386621381e-06,
+      "state_hash": "33E09E7208D64FD8F9A9410BF5F591F3F9066ED48A965B6A5AF218615F7F6B62"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.011656025120293179,
+      "state_hash": "33ED82D695A220B3B6C03F93A02DAB69C8146658B19AFB571B0A16ECCC7546BF"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.004679087899186918,
+      "state_hash": "35003EC2201B073B16CCD53563BA4C07F3129E1EE58FE6C2A2FC8C65C4123214"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "35D80AFD13247F8E51D99288B904D8B8CCF65EC7C354D4E04DE883F8130B0902"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.011788084338949956,
+      "state_hash": "36C5566ACF574CE3541BD36557D2BD3C41D6E30F811C46AA41C4743660CB6A95"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "37D861680324A1555508DF8A6E21397DB51C5624443189AA1182C977B20443C8"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.003639548643328605,
+      "state_hash": "38279AE3A0C3CB5CF29F0EEEFE035FDFA6E2BB09B2A203E1C325F1D54328D3B1"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "A_AZIMUTH_OVERSHOOT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0035826866508720245,
+      "state_hash": "3C1F3D8DA4944EBAEF9694B20966696BF789ED1EA7576D5035A98F7D6398B9E7"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.002196825728118079,
+      "state_hash": "41B42044D9D4673C734B5EB3684C385C3C492F7E13E71F29F4C7DED079466B75"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.004741946664635455,
+      "state_hash": "429E931E6EC400214CD83E4EB0A25244F248D981C2D543AB20C9D8B7944ADB82"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 2.2620818332041992e-05,
+      "state_hash": "436770296954F0555CD4EC50CA1E95F19CC89900FFCADA5571932679F801EE62"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "45B398E33DAEA959CDBC0948EF677A228E5E7DD6006A87C6CD3D80D47743DBD9"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "4637B7E0722369A6465BB1881B459678F3F20124BC456E9EB9F3BCFCA38B11C1"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.17230559450614324,
+      "state_hash": "475B3179777C027E4C2CAA5BEA56971BA8E8364EBB3EB32553E5E953396BF75D"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "49DEF79F9840BD2C54887901C2A5FB715B019C6E7AACC5BBD4DC0F75DF818B0F"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.00011470139923286382,
+      "state_hash": "4C7E700A512FAB6435AA67E0820DBD30BEEB8AA7C6804DF690484CC22913A4DC"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.14350878467205597,
+      "state_hash": "4CB5CFD0B2205155B4682B72384FFAB60F5711C4F8DF2A1AC8DEB99E18668327"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.003570377295103677,
+      "state_hash": "4D73BE4AF65EA2BDF7D157CF5EE52C6A4E7BE4597C638EA4A02E141B90A89841"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "4EF28D38CA70CBE8B176F76BB5DF9B325E1BA5337EC1AEB7C8B23E9D863D0A7F"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.019470998530397354,
+      "state_hash": "4F4AF9C2683506A0BAC4D6EE81C301556BE7779477A89F24C8BE785922873143"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "50C376A36E5259DEBC88B3E75A7A1D9EBEBFAEBD1D7DD17DEC05FDB63C290BC7"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 3.0173238505515343e-05,
+      "state_hash": "513ED173B194A4093D029A8744210D7149ACB34A015F489A12E366246F71CA4F"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0018972620855677302,
+      "state_hash": "515B3AA120D59D9456A9CEAA425948A326B784D5D4C78BDA29C4B61119F76E3C"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.1,
+        "magnitude_norm": 0.2,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.10__d36",
+      "oracle_damage_delta": 3.7090721293098206e-05,
+      "state_hash": "52B0B38EB7C845857AC546DFA04A969CE9F4B466DB69BCC8E3485D7C12E00B84"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "54520E9F19F59EF519B2F85D6AFABAA9350A9803533C1C7D69B6ABC05BD3A54B"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "5505FF627CE18B6E85F81A3EA1F5EAD4B30F2D676064521024E445CC85117605"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "555A40EBB6FB2B6F73CE4432080484B6F404C0160F3BA9D7A870DFB12E5F1C16"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "557FFF554A235D6796EA645D7C764201F61894E85B8BE1EB65F0CBA39D487950"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.0085680731027038,
+      "state_hash": "5B72661C794F8AC2AA6D2307CB2868E3D515FFFABDAD6A7B8FEB206B65FAF3A4"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "5DA1926D9EB44BCA9FFF486897E631E5D895202E57B37EFC366D465EFB899BF0"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "5E6AAD2F9151F4AB81A9A1F0B1FC58351EFE14AD768870FFAD3B2B3598A88C3C"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 6.175150313425526e-06,
+      "state_hash": "6085CDA9322DAAC4FC5BE4D85A40C7CB6C652317384EE1C126961CD98AFEE7A3"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.004655188983975989,
+      "state_hash": "61DB5506053B782C4CB62D444B0B68ECADC6AD0CF94324066E33BA10DE8CCA22"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "62B550D92874F6A0AF634EF5C800E90F0654AF5C1F8970FB4B2EB4C9FC0EA114"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "63306E2194C0766031A8089BBE088EDD64C1B6163C61BA508A5434077F46A567"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "654ABF145CD76621E890683E6111EDD5D468F290CC1E0782E54F0BF85165DBE6"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "67F89459B70069711F2AB5ACE01B4AB9ED63B9355DC572063ED6E4EDC1A87C02"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.009004457430867085,
+      "state_hash": "6B6279B835C5CFF729DF14AADB59D1220C485DFEB312931258CEB28493C5EBFF"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "6D3E8DA4956456E96ACCC697666600AA86A319CDA388D95156E192F3ADA38B04"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "6EA695CAD1DB71A5CD6EFB5893440BC9CD930CBA46F7016B91B54BF9074BAF9A"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.1,
+        "magnitude_norm": 0.2,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.10__d36",
+      "oracle_damage_delta": 5.000928671172744e-09,
+      "state_hash": "6F6B64AF305CDB24DDA988BB73A61E3B39B14665FE64C8DC0CFCD44AB6378D5E"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "6F806AE376189FAE2A74D372F2016A3F1D93D93905F705AFC874D04454D62169"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "7202E14A47EC86D6D18EDC957914293EA18E291EB2213701C2552CE6F0152DF6"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.18744988874226043,
+      "state_hash": "720F854FDDB09F7A72899FB000AA095C62CEFE0AF86868234794450515C4C003"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.07456665885668812,
+      "state_hash": "7289D2107903F45AAC765BC063929825B8C50ABFA7228A0BECDC25D41BD65FD4"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "729330D3870862D56A8D2BDE27E189E3FACFB7169E6EDCA5156A0EDDE71847DB"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 5.097450424262906e-05,
+      "state_hash": "72A7D89AB852116C73156990B4E6100E525C9A3FAA6E91F36BB0C01AF976FA8F"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "72D1A61B14AD114D803FE3399B742EA2D63434ADEF86C8A8BA4124E3FF3D5BE5"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.36402918402160367,
+      "state_hash": "73A55771C679016527FE7AEA7D3AED2242712FFC54B4A3E09D969536505917C1"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.029426905582731644,
+      "state_hash": "73E98AB3CDA82A7C280B388D71B0DF26EED0D262BDCC06D5F7D248872B83632A"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 4.511772812132442e-06,
+      "state_hash": "7491E143AD8985A2AB5D47C6169DF2E8B4BE0E430ADB0E6341C989B477AA9748"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.007327809102077865,
+      "state_hash": "7680106DB8104247C243D8DD9967182CF70C76B755EB4DCC6A6845ABB6ADF36B"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "7687129F4820DB03E4FE2CAF176709CF159B62FBDEFE663FA7AE74DE0FCA93B6"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 3.446669946116643e-07,
+      "state_hash": "770AC44C61722E68BDB0556C00343B635DB786707281754F24CC5433CD071783"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.003049221903113186,
+      "state_hash": "77890BDEA3F17BF49F93264021395600BF71BF02C9B4553F42AE3F5B7DAB51CE"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "79AEBFF7D9F5DAA0625AA3A669E0371CBA8F704C8AE6DCA5232924CE1E536D05"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 5.555798783030141e-06,
+      "state_hash": "7B179A9FE20C5283CB6B534B7B7EACC769B92615BE8DB2D19FCB02AE00BEF418"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0016719937506345373,
+      "state_hash": "7DFEC31A4D1A99559E570F15FF2137F61F8B4FD66EEBF202AB2143C4BE34D8C0"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.005912386787542356,
+      "state_hash": "7F2B4DC5D5659859580845AA08FFA5CAFEEBB0981660D211F33183FBC53F7F69"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0035808395069008014,
+      "state_hash": "80A52182AD7895A809DD65E2EEB82ED68EB37421488AD36412C7CA22BA709A60"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "lateral_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.14258746377624476,
+      "state_hash": "81546918E6FD73C42E777D762DC4F7D2272D1EBEFE0D32C1D7666A0154AE7202"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "8154F52038933AC91CDDF57076A40D72DB916DF55B1D01A60562B206E3D3BBE5"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "VP_AZ_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 7.531813950301114e-09,
+      "state_hash": "846173CD39CDCB317290FD5B634D2E84489049A58309352D6D782B2F6C2A7A4E"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "8877EA21265D2D5E16125ABFA28931C470D0997B325918C691D9617DC4BB5DD6"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "A_AZIMUTH_OVERSHOOT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 7.038599592135153e-05,
+      "state_hash": "8BB5C1C6B4A944B344C0F54B7EC4D4567593B04E2EC5CE258478C05123181BAC"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "8C0053D83F92ADA0603682FDC1C6BC20B1FD91A8F79737D26805A7EBB2BAB475"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 2.574504176511283e-08,
+      "state_hash": "8C5BCB4007AFA5E4FF9C2601D53F52D8EFB657242D8A53AF7CFE14405545627D"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "8E9A245165C1FCF8EC8E39641875B44683314DBD4B1775737966FE998B5721D2"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.04344934900603359,
+      "state_hash": "903F8007DD92B5DFA5CB0147FD2D7F3B21B20D79FC17638D3201A0F83C083707"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 2.9449013036031424e-05,
+      "state_hash": "90BAFE2ED1B4081A67F723DE13346C7498EE347FD54BB10919DFE16E4780B948"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 2.2910997210523476e-07,
+      "state_hash": "91996A070B3C926C03EE939C0CF9C6394ABB55DAD6637B255FCEACB7C3154999"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 9.438432886321735e-05,
+      "state_hash": "91A8237E99CE5A5AECD1388F7CF3212ECD7173617A02CDB2944C45AF2BED42A8"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "923311FF67D04769ACC05A7FEA793382161410566E9B2D5E3A5C71031AC102B9"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 1.235956115230863e-09,
+      "state_hash": "92BA1E31A2BABA41EB58A1AB2D4EDADE0A25C3488F9B22F623E883AF6B23C3AE"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.016628443352953992,
+      "state_hash": "93F59A7A8CBCAE145236859992205B45C6C546E1BAC1E686B4F6A8AAEEDDEE7A"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 2.20964104047372e-06,
+      "state_hash": "9559C88B28F84AF40F19651885183FB8C6FB2EAEA7C0AD19180ED1C424F82636"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "98DFFDB870B95D45D4DB2277BA5F8DBFB08F52A05E630078CD73A9E9EC363A24"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.09562292225711144,
+      "state_hash": "9A2A353591BD92F06E2E294B0CE5682114E3009B68D82FEEBDF2D1C7D3B10FCB"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0003179330216116494,
+      "state_hash": "9CFB48A6A78D7C4010ECE24D698F414E4CF0CDD2C37B4D33204F08ED0FEDB1E7"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.0067695873727133815,
+      "state_hash": "9DF3D67AF685C182A5DEB0BE05E79EEE7A643B674F1A5D281D1222AAC7DAC1AF"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "9ED6B4CD845D78C65243F300782D2366DCECF29506A0FC18B6F523231F019A1A"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 1.682454354590135e-05,
+      "state_hash": "A25697A0AAE450E9E020EB5BD206FF72855349AE36CA9B9477DF8AA48F85AAF7"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "A3E0CD3FD830061D9FC3E77E9FD41961FDC93D27DAC709CB1348F16912B97F3A"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "A_AZIMUTH_OVERSHOOT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.00841541836121873,
+      "state_hash": "A7AE5E8407AB67015AFC77F1824629E6741BDD68CB09239393F014DEC93C00F1"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "A80957DF1964452F31CB98025C50988EE6E8E3682E769772C7086D0F77D7949A"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "A9BE9322C57B04B033E78B3A66EA48946C7B9C97107C22B79DC8A01D76E4DA3A"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0548393183475574,
+      "state_hash": "A9F729BC6BB5190A0064219A08161ABC87E20D85C17DE9BE8F9CBDCA799D1DD3"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.009217913696393354,
+      "state_hash": "A9FB8773067F66E2033C9FA29C116AE210AC75C73724399A9ACA9D181FC5A6DD"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 5.555430879733425e-05,
+      "state_hash": "AC0EBBDA4F0B1CFBF270BAFD4252E75B2D5372B20E21860E6CC71A24D929ACEF"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "AEBC3BC436729AEC0E38FAB045BBDB599CE34A36E8A9A12F24652A5346ED3FC5"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 4.8393757735576415e-06,
+      "state_hash": "AFA641D43D2B26224885FE07923393BC7CC6656A86AA4E201DAAB1BE2D0F7B94"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.004317993272142995,
+      "state_hash": "B0F4D658402BD334A738A7671F27F41F7073A2C74395D491D9DF5958D511CEC5"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0014230508427460764,
+      "state_hash": "B1F676FFA8B300CCD8C2EEB1C28A9969CFEA2921570720F0622A9DC16E760A12"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 24,
+        "duration_norm": 0.6666666666666666,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d24",
+      "oracle_damage_delta": 0.0025845996091365953,
+      "state_hash": "B24FE491AED8231E801B6EF11941C3A9958495C2243076D39AA0CEE2B7DD6CEE"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "B370FFBEE11A015D1412B96F7EDC64F0D651E3B9587CC34845959C1ACF6B4DDC"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "B4D1D3C485A2F67D4DAAD0B6360CFEFBB01A9AEE51BF377ABF3E8D21BD21FD1A"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 12,
+        "duration_norm": 0.3333333333333333,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": -1
+      },
+      "failure_type": "A_AZIMUTH_OVERSHOOT",
+      "family": "lateral_left",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.50__d12",
+      "oracle_damage_delta": 0.0459915305812193,
+      "state_hash": "B53B07A667001BC811C1BDDCF5FE7C05244C72C6E3D82506D1B38810B193862C"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0015809388210750175,
+      "state_hash": "B565524F7496D51F51FB331CAC364768161FC899DE4DF1E713BBC98DD2BACC46"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0019837220954097567,
+      "state_hash": "B5CEA474301909B8B73D89FBDC1615E9A96532335F59F42E5D8637390D49A1A1"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "B624D7AFB07C2F428ED6EFEF024E450EB576EC3526B2E3BE27E525DD9970CD9E"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.05206056438942763,
+      "state_hash": "B738AFCF92F80E5D42B33475EE3D1BD1CD4CD5D4774311255B77CD3F82892B07"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "BB9EAD63766AE1B2087F472C60837AC8520C5E0ADA85E59266862E08E0C695EF"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.06477582373809887,
+      "state_hash": "BD0A5F8815A6A3A96A0441355C6C94A1C7E31694E058C88F4AC96461EF898604"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 5.3123837456592327e-05,
+      "state_hash": "BD7E8ACC55EE7EF420C8BA515DF927D689A169AC0369865ADC4F95D6F552AE00"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "BE1CFDC86540D58A0AC0AEF61F25448B4361DD3B8124A717F84E68FFCABD5222"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "C0796A344BBE03D835DE51D1D0546E34537501693535708A41C84948406FBF59"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "C52F62D960EE94D7B29150A531EC4EFC40A2300B9BF85A45E0F09142987EA377"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "C5E7D0C43F86C5A8BF8D0006509751EA74479D3979553260BC8C5BC004C1AB13"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 4.250636365110694e-08,
+      "state_hash": "C7B9387505633BB9220DEBAE9F5E12123D8F08926BBD67ACAE2098B539475447"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "C9288CDA8FA11A849FD40B3C241043D75BE0FF089163DE6B99681E1AD93D0E64"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0013655292335776892,
+      "state_hash": "CB2F8495EE7E8106AB4FB785E3761C9C0E7EC48DED1AB2F10011F51C5D3C2061"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 1.1156822721236637e-07,
+      "state_hash": "D0A790AC0AFBDD3BD65931A09044FE68E444EA01580AB39582527C4A024376FD"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.04394606355052888,
+      "state_hash": "D2B4CF1BAE7F13D45AD3A88C1220CE49F37C1A8B968092AB0859604D0F7CA2A4"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_left",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.001745241321754576,
+      "state_hash": "D65AD89102428B276BF45F7C3039F0898859E5083DD6101B66C4920164078C06"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 9.269851479087876e-06,
+      "state_hash": "D6CD31D49DBAB63174532623C6272962B81FA0167FC656962663DE641B4B6F89"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "A_AZIMUTH_OVERSHOOT",
+      "family": "lateral_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.00012098098933210899,
+      "state_hash": "DAC1E530EBDF1A529D7D64001AF250E0C5DE208E92AF02CC979F7F7EB0778E6E"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "DB648F86DF055C37A146178F9B8EF931DC3DBC79EE583FE72C8576844981DB4A"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.01851823025962951,
+      "state_hash": "DB83EFD94FFD5D2813BD7825354272C6405036A1C0C987452ECAC87A502FA670"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.00542555058606331,
+      "state_hash": "DC1306E0A39AAA9F1B8DBE9938A8D10C9ABC492E8C53492A94B0EB343BCE9E2E"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 7.19187482567385e-07,
+      "state_hash": "DC4B8029C2B90140DAFD1696C083C6EBBD0D036A73409DEA772053BE8E5EC8CE"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "DE281137DBA250CD6DCFCAA5A6E780070DD723705D5F2FB0E044D9C0E187B3D8"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_right",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "DE6CA9E8B5B9FF5C2E7AA177596EE5DD02CBEAC96B0C5C75CFFC7EB5CCBE9F6C"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.005172287090212113,
+      "state_hash": "DE78BA8D8B322A5D3DC118139DA004DFEBA1ED1107490CFFE9343E228DAC0000"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.0026385069666544636,
+      "state_hash": "DEC10FF24552ABAC2DADE885BDABB34FE67F32F0408D761BD1819116E6EB9A1E"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "DF7FF0C4FC0D30B68D40EDC35111D75EE9517ADC73F8DAA7B976DDBC72722579"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.003816912310562026,
+      "state_hash": "EBA2FED62CB51D10C24DA1453600A75759FD23A93DC832D6A7BB253AF2120C29"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_left",
+      "oracle_candidate_id": "VP_AZ_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.01001726549020443,
+      "state_hash": "ED09C0D255F2DA5E1FCD04E403F0F2CD7E9CAC73D121C50FE3E7ACE7297CFE2E"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "ED41EC7BA3BB782F441B0FD95664135F4A27241A44DB27F3E958FEB53C48F19F"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "ED91E276CAC4BBB2CAEAE1918BD54A679727C4836C1F5D7F4403F47AF80B9E29"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "F09B27CF185504F38CBABE59922A0F8287EDB8C747D0A5BA5AF8D2C44571AE7B"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "F1060AC8FD894DAC5D9EA83B0B76DF47128AE6AFD9C66C364BF54982A3716AA8"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": -1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "lateral_left",
+      "oracle_candidate_id": "VP_EL_NEG_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.00038848212532915927,
+      "state_hash": "F1D2086F5DC4D71360E899FA48B8DC2096AA41D77A826F5D383144605FEA27DF"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "F1D89E947FCEC5B6E49DA46E82180897C1280561B1C5E25EA1DDFA91CE415972"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_low",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "F4EAAE8A7FAD85BEEE0AF90A7FB564D4DE6B42FD48BCE8343F55BBE313C43701"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.003804347134498065,
+      "state_hash": "F64E781749A468FFC1BC21BBEFE55F63C01D1CFB141B543B530FB8118204B46E"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "lateral_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "F7244AA412A3CAD444D0321B0AA0F0ED5F8BA1FA01BD9F5472DD465A5939A62B"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "lateral_right",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 2.4255741850720547e-05,
+      "state_hash": "F84E232158DFDA3EEF087CCB840E4CE107E7F0D02179B5730FC21DA156E826C9"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "crossing_left",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "F9358ECC64CB3D8C7CB93EF9C3620B9CEC47E48C26115BC433B977E2D78E7620"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_low",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.024274105742838614,
+      "state_hash": "FA6D47BE4BC02561CA3E0A512AB748328769E94C662979CADDEF26BD30705324"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.0003697735065216756,
+      "state_hash": "FA8EC72B5A657898F73FC772AAFA73C39D7524F346047F67B32E60DC91965240"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.006227951294960343,
+      "state_hash": "FB378EB05011872849D1982BBA6D8AAC9BF722479A12EDD9B6183126D3D83397"
+    },
+    {
+      "action_parameters": null,
+      "failure_type": "I_PURE_BT_ALREADY_OPTIMAL",
+      "family": "vertical_high",
+      "oracle_candidate_id": "BT_DEFAULT",
+      "oracle_damage_delta": 0.0,
+      "state_hash": "FBEFCAA30DDBEFE4DDE15A1E5AA053EE7CB599F55E4A65518B9FE8F21FD1C9FC"
+    },
+    {
+      "action_parameters": {
+        "axis": "azimuth",
+        "axis_one_hot": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.5,
+        "magnitude_norm": 1.0,
+        "sign": 1
+      },
+      "failure_type": "B_ELEVATION_OVERSHOOT",
+      "family": "vertical_high",
+      "oracle_candidate_id": "VP_AZ_POS_SMALL__m0.50__d36",
+      "oracle_damage_delta": 0.0003754775847296665,
+      "state_hash": "FE46B89BB0EC66CAF2168ED59EC5E8ED5222881B02362C9E883D48761B394F05"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "lateral_left",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 0.002817029524343262,
+      "state_hash": "FE6EC3745BF0E857DA529DE3E3D42D354AD7BB905C192CD5B5F605FF876859DC"
+    },
+    {
+      "action_parameters": {
+        "axis": "elevation",
+        "axis_one_hot": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "duration_frames": 36,
+        "duration_norm": 1.0,
+        "magnitude_deg": 0.25,
+        "magnitude_norm": 0.5,
+        "sign": 1
+      },
+      "failure_type": "G_SURFACE_AUTHORITY_LIMIT",
+      "family": "crossing_right",
+      "oracle_candidate_id": "VP_EL_POS_SMALL__m0.25__d36",
+      "oracle_damage_delta": 3.3457410941739596e-06,
+      "state_hash": "FE838F0D142D7FCB3EA974A3F76815E14AFB21297DC2823C010DD1B70035CB52"
+    }
+  ],
+  "states": 186,
+  "summaries": {
+    "A_AZIMUTH_OVERSHOOT": {
+      "duration_distribution": {
+        "12": 1,
+        "36": 6
+      },
+      "families": {
+        "crossing_right": 1,
+        "lateral_left": 2,
+        "lateral_right": 3,
+        "vertical_high": 1
+      },
+      "magnitude_distribution": {
+        "0.25": 6,
+        "0.5": 1
+      },
+      "oracle_action_distribution": {
+        "VP_EL_NEG_SMALL__m0.25__d36": 1,
+        "VP_EL_NEG_SMALL__m0.50__d12": 1,
+        "VP_EL_POS_SMALL__m0.25__d36": 5
+      },
+      "oracle_mean": 0.013745410959816311,
+      "oracle_median": 0.00841541836121873,
+      "oracle_positive_ratio_epsilon_1e_6": 1.0,
+      "state_ratio": 0.03763440860215054,
+      "states": 7
+    },
+    "B_ELEVATION_OVERSHOOT": {
+      "duration_distribution": {
+        "36": 21
+      },
+      "families": {
+        "lateral_left": 2,
+        "lateral_right": 1,
+        "vertical_high": 13,
+        "vertical_low": 5
+      },
+      "magnitude_distribution": {
+        "0.25": 15,
+        "0.5": 6
+      },
+      "oracle_action_distribution": {
+        "VP_AZ_POS_SMALL__m0.25__d36": 4,
+        "VP_AZ_POS_SMALL__m0.50__d36": 5,
+        "VP_EL_NEG_SMALL__m0.25__d36": 2,
+        "VP_EL_POS_SMALL__m0.25__d36": 9,
+        "VP_EL_POS_SMALL__m0.50__d36": 1
+      },
+      "oracle_mean": 0.055596747993861474,
+      "oracle_median": 0.019470998530397354,
+      "oracle_positive_ratio_epsilon_1e_6": 1.0,
+      "state_ratio": 0.11290322580645161,
+      "states": 21
+    },
+    "C_LOS_ANGULAR_RATE_HIGH": {
+      "duration_distribution": {},
+      "families": {},
+      "magnitude_distribution": {},
+      "oracle_action_distribution": {},
+      "oracle_mean": null,
+      "oracle_median": null,
+      "oracle_positive_ratio_epsilon_1e_6": null,
+      "state_ratio": 0.0,
+      "states": 0
+    },
+    "D_RANGE_TOO_CLOSE": {
+      "duration_distribution": {},
+      "families": {},
+      "magnitude_distribution": {},
+      "oracle_action_distribution": {},
+      "oracle_mean": null,
+      "oracle_median": null,
+      "oracle_positive_ratio_epsilon_1e_6": null,
+      "state_ratio": 0.0,
+      "states": 0
+    },
+    "E_RANGE_TOO_FAR": {
+      "duration_distribution": {},
+      "families": {},
+      "magnitude_distribution": {},
+      "oracle_action_distribution": {},
+      "oracle_mean": null,
+      "oracle_median": null,
+      "oracle_positive_ratio_epsilon_1e_6": null,
+      "state_ratio": 0.0,
+      "states": 0
+    },
+    "F_CLOSING_TOO_HIGH": {
+      "duration_distribution": {},
+      "families": {},
+      "magnitude_distribution": {},
+      "oracle_action_distribution": {},
+      "oracle_mean": null,
+      "oracle_median": null,
+      "oracle_positive_ratio_epsilon_1e_6": null,
+      "state_ratio": 0.0,
+      "states": 0
+    },
+    "G_SURFACE_AUTHORITY_LIMIT": {
+      "duration_distribution": {
+        "24": 1,
+        "36": 64
+      },
+      "families": {
+        "crossing_left": 6,
+        "crossing_right": 9,
+        "lateral_left": 4,
+        "lateral_right": 17,
+        "vertical_high": 21,
+        "vertical_low": 8
+      },
+      "magnitude_distribution": {
+        "0.1": 1,
+        "0.25": 54,
+        "0.5": 10
+      },
+      "oracle_action_distribution": {
+        "VP_AZ_NEG_SMALL__m0.25__d36": 2,
+        "VP_AZ_POS_SMALL__m0.10__d36": 1,
+        "VP_AZ_POS_SMALL__m0.25__d36": 6,
+        "VP_AZ_POS_SMALL__m0.50__d36": 8,
+        "VP_EL_NEG_SMALL__m0.25__d36": 15,
+        "VP_EL_POS_SMALL__m0.25__d24": 1,
+        "VP_EL_POS_SMALL__m0.25__d36": 30,
+        "VP_EL_POS_SMALL__m0.50__d36": 2
+      },
+      "oracle_mean": 0.01565938456085269,
+      "oracle_median": 0.0035808395069008014,
+      "oracle_positive_ratio_epsilon_1e_6": 1.0,
+      "state_ratio": 0.34946236559139787,
+      "states": 65
+    },
+    "H_CROSSING_LEAD_SHORTFALL": {
+      "duration_distribution": {},
+      "families": {},
+      "magnitude_distribution": {},
+      "oracle_action_distribution": {},
+      "oracle_mean": null,
+      "oracle_median": null,
+      "oracle_positive_ratio_epsilon_1e_6": null,
+      "state_ratio": 0.0,
+      "states": 0
+    },
+    "I_PURE_BT_ALREADY_OPTIMAL": {
+      "duration_distribution": {
+        "36": 12
+      },
+      "families": {
+        "crossing_left": 20,
+        "crossing_right": 16,
+        "lateral_left": 18,
+        "lateral_right": 5,
+        "vertical_high": 21,
+        "vertical_low": 13
+      },
+      "magnitude_distribution": {
+        "0.1": 2,
+        "0.25": 9,
+        "0.5": 1
+      },
+      "oracle_action_distribution": {
+        "BT_DEFAULT": 81,
+        "VP_AZ_NEG_SMALL__m0.25__d36": 1,
+        "VP_AZ_POS_SMALL__m0.10__d36": 2,
+        "VP_AZ_POS_SMALL__m0.25__d36": 3,
+        "VP_AZ_POS_SMALL__m0.50__d36": 1,
+        "VP_EL_NEG_SMALL__m0.25__d36": 1,
+        "VP_EL_POS_SMALL__m0.25__d36": 4
+      },
+      "oracle_mean": 1.721934861961965e-08,
+      "oracle_median": 0.0,
+      "oracle_positive_ratio_epsilon_1e_6": 0.0,
+      "state_ratio": 0.5,
+      "states": 93
+    },
+    "J_ENERGY_ALTITUDE_SAFETY": {
+      "duration_distribution": {},
+      "families": {},
+      "magnitude_distribution": {},
+      "oracle_action_distribution": {},
+      "oracle_mean": null,
+      "oracle_median": null,
+      "oracle_positive_ratio_epsilon_1e_6": null,
+      "state_ratio": 0.0,
+      "states": 0
+    }
+  }
+}
