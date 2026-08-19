@@ -96,6 +96,21 @@
     "startup_padding": "repeat_first_zero_delta",
     "runtime_forbidden": ["health", "Damage", "hidden FDM truth", "offline labels"]
   },
+  "pure_bt_decision_events": {
+    "status": "DISCOVERY_COLLECTED",
+    "unique_events": 2038,
+    "fights": 23,
+    "raw_frames": 16482,
+    "geometry_families": 11,
+    "opponents": ["autopilot"],
+    "ownship_crashes": 0,
+    "target_crashes": 0,
+    "diagnostic_taxonomy_is_label": false,
+    "primary_label": "PENDING_PREFIX_REPLAY_PAIRED_DAMAGE",
+    "events_sha256": "D63406BF2654631226D69620D1D16FEF143FBCAFC77C4AB96C1C1A1A045A4B7B",
+    "summary": "automation/evidence/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1/summary.json",
+    "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1"
+  },
   "promotion": {
     "submission_freeze_allowed": false,
     "held_out_opened": false,

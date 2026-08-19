@@ -36,6 +36,8 @@ def test_v4_manifest_freezes_phase0_contract() -> None:
     assert manifest["promotion"]["submission_freeze_allowed"] is False
     assert manifest["promotion"]["held_out_opened"] is False
     assert manifest["promotion"]["ppo_allowed"] is False
+    assert manifest["pure_bt_decision_events"]["unique_events"] >= 300
+    assert manifest["pure_bt_decision_events"]["diagnostic_taxonomy_is_label"] is False
 
 
 def test_v4_hashes_match_frozen_contract() -> None:
