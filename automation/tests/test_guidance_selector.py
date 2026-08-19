@@ -16,6 +16,8 @@ from dogfight.ai.guidance_selector import (
     GUIDANCE_SELECTOR_FEATURES,
     GUIDANCE_SELECTOR_OBSERVATION_SIZE,
     FixedGuidanceSelector,
+    FixedCompositeGuidanceSelector,
+    FixedRateAwareGuidanceSelector,
     GuidanceRuntimeConfig,
     GuidanceSelectorActionProvider,
     GuidanceSetpoint,
@@ -272,6 +274,60 @@ class GuidanceProviderTests(unittest.TestCase):
         self.assertFalse(np.array_equal(result.action[:3], provider.bt_provider.action[:3]))
         self.assertEqual(result.action[3], provider.bt_provider.action[3])
         self.assertEqual(provider.telemetry()["nonzero_intervention_frames"], 1)
+        snapshot = provider.telemetry()["first_nondefault_selector_snapshot"]
+        self.assertEqual(snapshot["selected_action"], "VP_AZ_POS_SMALL")
+        self.assertEqual(len(snapshot["observation"]), 45)
+        self.assertEqual(len(snapshot["ownship_server_state"]), 7)
+        self.assertEqual(len(snapshot["target_server_state"]), 7)
+        self.assertEqual(
+            provider.telemetry()["selector_decision_trace"][0]["selected_action"],
+            "VP_AZ_POS_SMALL",
+        )
+        self.assertEqual(
+            len(provider.telemetry()["selector_decision_trace"][0]["ownship_server_state"]),
+            7,
+        )
+
+    def test_shadow_nondefault_predicts_but_returns_exact_bt(self):
+        provider = GuidanceSelectorActionProvider(
+            FakeBT(),
+            FixedGuidanceSelector("VP_AZ_POS_SMALL"),
+            runtime_config=GuidanceRuntimeConfig(
+                confidence_threshold=0.65,
+                shadow_mode=True,
+            ),
+        )
+        provider.gate = FakeGate(True)
+        result = provider.compute_action(context())
+        self.assertTrue(np.array_equal(result.action, provider.bt_provider.action))
+        self.assertEqual(result.info["selected_action"], "VP_AZ_POS_SMALL")
+        self.assertTrue(result.info["shadow_command_exact_bt"])
+        telemetry = provider.telemetry()
+        self.assertTrue(telemetry["shadow_mode"])
+        self.assertEqual(telemetry["nonzero_intervention_frames"], 0)
+        self.assertEqual(
+            telemetry["first_nondefault_selector_snapshot"]["selected_action"],
+            "VP_AZ_POS_SMALL",
+        )
+
+    def test_composite_guidance_applies_both_named_angular_corrections(self):
+        provider = self.provider(FixedCompositeGuidanceSelector("VP_AZ_POS_EL_NEG_SMALL"))
+        result = provider.compute_action(context())
+        self.assertEqual(result.info["selected_action"], "VP_AZ_POS_EL_NEG_SMALL")
+        base = result.info["base_guidance"]
+        corrected = result.info["corrected_guidance"]
+        self.assertAlmostEqual(corrected["local_azimuth_deg"] - base["local_azimuth_deg"], 0.5)
+        self.assertAlmostEqual(corrected["local_elevation_deg"] - base["local_elevation_deg"], -0.5)
+        self.assertEqual(result.action[3], provider.bt_provider.action[3])
+
+    def test_rate_aware_az_primitive_reduces_current_signed_error(self):
+        provider = self.provider(FixedRateAwareGuidanceSelector("REDUCE_AZ_ERROR"))
+        result = provider.compute_action(context())
+        self.assertEqual(result.info["selected_action"], "REDUCE_AZ_ERROR")
+        base = result.info["base_guidance"]
+        corrected = result.info["corrected_guidance"]
+        self.assertLess(corrected["local_azimuth_deg"] - base["local_azimuth_deg"], 0.0)
+        self.assertEqual(result.action[3], provider.bt_provider.action[3])
 
     def test_exception_falls_back_to_exact_bt(self):
         provider = self.provider(FailingSelector())

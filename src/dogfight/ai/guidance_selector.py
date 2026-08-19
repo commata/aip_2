@@ -128,6 +128,7 @@ class GuidanceRuntimeConfig:
     confidence_threshold: float = 0.65
     inference_timeout_s: float = 0.1667
     sim_hz: int = 60
+    shadow_mode: bool = False
 
     def validate(self) -> None:
         if self.selector_action_repeat_frames <= 0:
@@ -168,6 +169,46 @@ class FixedGuidanceSelector:
         probabilities = np.zeros(len(GUIDANCE_ACTIONS), dtype=np.float32)
         probabilities[self.action_id] = 1.0
         return self.action_id, self.confidence, probabilities
+
+
+GUIDANCE_COMPOSITE_ACTIONS = (
+    "VP_AZ_POS_EL_POS_SMALL",
+    "VP_AZ_POS_EL_NEG_SMALL",
+    "VP_AZ_NEG_EL_POS_SMALL",
+    "VP_AZ_NEG_EL_NEG_SMALL",
+)
+
+
+class FixedCompositeGuidanceSelector(FixedGuidanceSelector):
+    """Diagnostic-only bounded two-axis selector for action-space oracle tests."""
+
+    def __init__(self, action: str, confidence: float = 1.0):
+        if action not in GUIDANCE_COMPOSITE_ACTIONS:
+            raise ValueError(f"unsupported composite Guidance action: {action}")
+        az_sign = 1 if "AZ_POS" in action else -1
+        el_sign = 1 if "EL_POS" in action else -1
+        super().__init__("VP_AZ_POS_SMALL" if az_sign > 0 else "VP_AZ_NEG_SMALL", confidence)
+        self.action_name = action
+        self.axis_signs = (az_sign, el_sign)
+
+
+GUIDANCE_RATE_AWARE_ACTIONS = (
+    "REDUCE_AZ_ERROR",
+    "REDUCE_EL_ERROR",
+    "DAMP_AZ_RATE",
+    "DAMP_EL_RATE",
+)
+
+
+class FixedRateAwareGuidanceSelector(FixedGuidanceSelector):
+    """Diagnostic primitive whose bounded sign follows current server geometry."""
+
+    def __init__(self, action: str, confidence: float = 1.0):
+        if action not in GUIDANCE_RATE_AWARE_ACTIONS:
+            raise ValueError(f"unsupported rate-aware Guidance action: {action}")
+        super().__init__("VP_AZ_POS_SMALL" if "AZ" in action else "VP_EL_POS_SMALL", confidence)
+        self.action_name = action
+        self.dynamic_primitive = action
 
 
 class NumpyMLPGuidanceSelector:
@@ -573,6 +614,9 @@ class GuidanceSelectorActionProvider(ActionProvider):
     ):
         self.bt_provider = bt_provider
         self.selector = selector
+        self.observation_contract = getattr(
+            selector, "observation_contract", GUIDANCE_SELECTOR_CONTRACT_VERSION
+        )
         self.action_config = _coerce_config(action_config, GuidanceActionConfig)
         self.controller_config = _coerce_config(controller_config, GuidanceControllerConfig)
         self.runtime_config = _coerce_config(runtime_config, GuidanceRuntimeConfig)
@@ -608,6 +652,8 @@ class GuidanceSelectorActionProvider(ActionProvider):
         self._applied_abs_sum = np.zeros(3, dtype=np.float64)
         self._throttle_violation_steps = 0
         self._first_selector_snapshot: dict = {}
+        self._first_nondefault_selector_snapshot: dict = {}
+        self._selector_decision_trace: list[dict] = []
         self._last_frame: dict = {}
 
     def _fallback(
@@ -679,22 +725,41 @@ class GuidanceSelectorActionProvider(ActionProvider):
 
         try:
             base = _vp_local_setpoint(bt_result, context.ownship_state)
-            observation = build_guidance_observation(
-                context.observation,
-                context.ownship_state,
-                context.target_state,
-                bt_action,
-                base,
-                sim_time_s=float(context.info.get("sim_time_s", 0.0)),
-                previous_action_id=self._current_action_id,
-                action_hold_frames=self._action_hold_frames,
-                gate_elapsed_frames=self._gate_elapsed_frames,
-                gate_active=True,
-                minimum_action_hold_frames=self.runtime_config.minimum_action_hold_frames,
-                maximum_active_frames=self.runtime_config.maximum_active_frames,
-                recent_authority_ratio=self._recent_authority_ratio,
-                safety_config=self.safety_config,
-            )
+            observation_arguments = {
+                "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
+                "previous_action_id": self._current_action_id,
+                "action_hold_frames": self._action_hold_frames,
+                "gate_elapsed_frames": self._gate_elapsed_frames,
+                "gate_active": True,
+                "minimum_action_hold_frames": self.runtime_config.minimum_action_hold_frames,
+                "maximum_active_frames": self.runtime_config.maximum_active_frames,
+                "recent_authority_ratio": self._recent_authority_ratio,
+                "safety_config": self.safety_config,
+            }
+            if self.observation_contract == GUIDANCE_SELECTOR_CONTRACT_VERSION:
+                observation = build_guidance_observation(
+                    context.observation,
+                    context.ownship_state,
+                    context.target_state,
+                    bt_action,
+                    base,
+                    **observation_arguments,
+                )
+            else:
+                from dogfight.ai.guidance_advantage import (
+                    GUIDANCE_SERVER_CONTRACT_VERSION,
+                    build_server_guidance_observation,
+                )
+
+                if self.observation_contract != GUIDANCE_SERVER_CONTRACT_VERSION:
+                    raise ValueError(f"unsupported Guidance observation contract: {self.observation_contract}")
+                observation = build_server_guidance_observation(
+                    context.ownship_state,
+                    context.target_state,
+                    bt_action,
+                    base,
+                    **observation_arguments,
+                )
         except Exception as exc:
             return self._fallback(f"observation_{type(exc).__name__}", bt_action, gate_info)
 
@@ -738,11 +803,53 @@ class GuidanceSelectorActionProvider(ActionProvider):
                     "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
                     "observation": observation.tolist(),
                     "selected_action_id": int(action_id),
-                    "selected_action": GUIDANCE_ACTIONS[action_id],
+                    "selected_action": getattr(
+                        self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+                    ),
                     "confidence": float(confidence),
                     "base_guidance": asdict(base),
                     "gate": dict(gate_info),
                     "bt_action": bt_action.tolist(),
+                    "selector_diagnostics": getattr(self.selector, "last_prediction", None),
+                }
+            if len(self._selector_decision_trace) < 512:
+                self._selector_decision_trace.append(
+                    {
+                        "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
+                        "observation": observation.tolist(),
+                        "selected_action_id": int(action_id),
+                        "selected_action": getattr(
+                            self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+                        ),
+                        "confidence": float(confidence),
+                        "selector_diagnostics": getattr(self.selector, "last_prediction", None),
+                        "ownship_server_state": np.asarray(
+                            context.ownship_state, dtype=np.float64
+                        )[:7].tolist(),
+                        "target_server_state": np.asarray(
+                            context.target_state, dtype=np.float64
+                        )[:7].tolist(),
+                    }
+                )
+            if action_id != 0 and not self._first_nondefault_selector_snapshot:
+                self._first_nondefault_selector_snapshot = {
+                    "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
+                    "observation": observation.tolist(),
+                    "selected_action_id": int(action_id),
+                    "selected_action": getattr(
+                        self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+                    ),
+                    "confidence": float(confidence),
+                    "selector_diagnostics": getattr(self.selector, "last_prediction", None),
+                    "base_guidance": asdict(base),
+                    "gate": dict(gate_info),
+                    "bt_action": bt_action.tolist(),
+                    "ownship_server_state": np.asarray(
+                        context.ownship_state, dtype=np.float64
+                    )[:7].tolist(),
+                    "target_server_state": np.asarray(
+                        context.target_state, dtype=np.float64
+                    )[:7].tolist(),
                 }
 
         action_id = self._current_action_id
@@ -757,7 +864,63 @@ class GuidanceSelectorActionProvider(ActionProvider):
                 count_action=False,
             )
 
-        corrected = compose_guidance_setpoint(base, action_id, self.action_config)
+        if self.runtime_config.shadow_mode:
+            frame = {
+                "mode": "guidance_selector_shadow",
+                "gate": gate_info,
+                "observation_contract": self.observation_contract,
+                "observation": observation.tolist(),
+                "selected_action_id": action_id,
+                "selected_action": getattr(
+                    self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+                ),
+                "selector_refreshed": refresh,
+                "selector_confidence": float(confidence),
+                "selector_probabilities": probabilities.tolist() if probabilities is not None else None,
+                "selector_diagnostics": getattr(self.selector, "last_prediction", None),
+                "bt_action": bt_action.tolist(),
+                "final_action": bt_action.tolist(),
+                "throttle_bt_only": True,
+                "shadow_command_exact_bt": True,
+            }
+            self._last_frame = frame
+            return ActionResult(bt_action.copy(), "bt_guidance_selector_shadow", 1.0, frame)
+
+        axis_signs = getattr(self.selector, "axis_signs", None)
+        dynamic_primitive = getattr(self.selector, "dynamic_primitive", None)
+        if dynamic_primitive is not None:
+            geometry = aim_residual_geometry(context.ownship_state, context.target_state)
+            error_by_primitive = {
+                "REDUCE_AZ_ERROR": ("azimuth", geometry["aim_azimuth_deg"]),
+                "REDUCE_EL_ERROR": ("elevation", geometry["aim_elevation_deg"]),
+                "DAMP_AZ_RATE": ("azimuth", geometry["los_azimuth_rate_deg_s"]),
+                "DAMP_EL_RATE": ("elevation", geometry["los_elevation_rate_deg_s"]),
+            }
+            axis, error = error_by_primitive[dynamic_primitive]
+            correction = -float(np.sign(error)) * self.action_config.angular_offset_deg
+            corrected = GuidanceSetpoint(
+                local_azimuth_deg=float(
+                    base.local_azimuth_deg + (correction if axis == "azimuth" else 0.0)
+                ),
+                local_elevation_deg=float(
+                    base.local_elevation_deg + (correction if axis == "elevation" else 0.0)
+                ),
+                distance_m=base.distance_m,
+                target_speed_m_s=base.target_speed_m_s,
+            )
+        elif axis_signs is None:
+            corrected = compose_guidance_setpoint(base, action_id, self.action_config)
+        else:
+            corrected = GuidanceSetpoint(
+                local_azimuth_deg=float(
+                    base.local_azimuth_deg + axis_signs[0] * self.action_config.angular_offset_deg
+                ),
+                local_elevation_deg=float(
+                    base.local_elevation_deg + axis_signs[1] * self.action_config.angular_offset_deg
+                ),
+                distance_m=base.distance_m,
+                target_speed_m_s=base.target_speed_m_s,
+            )
         final, controller = guidance_to_surface_action(
             bt_action,
             base,
@@ -785,10 +948,12 @@ class GuidanceSelectorActionProvider(ActionProvider):
         frame = {
             "mode": "guidance_selector",
             "gate": gate_info,
-            "observation_contract": GUIDANCE_SELECTOR_CONTRACT_VERSION,
+            "observation_contract": self.observation_contract,
             "observation": observation.tolist(),
             "selected_action_id": action_id,
-            "selected_action": GUIDANCE_ACTIONS[action_id],
+            "selected_action": getattr(
+                self.selector, "action_name", GUIDANCE_ACTIONS[action_id]
+            ),
             "selector_refreshed": refresh,
             "selector_confidence": float(confidence),
             "selector_probabilities": probabilities.tolist() if probabilities is not None else None,
@@ -809,11 +974,12 @@ class GuidanceSelectorActionProvider(ActionProvider):
         return {
             **self.gate.telemetry(),
             "mode": "guidance_selector",
-            "observation_contract": GUIDANCE_SELECTOR_CONTRACT_VERSION,
-            "observation_size": GUIDANCE_SELECTOR_OBSERVATION_SIZE,
+            "observation_contract": self.observation_contract,
+            "observation_size": 42 if self.observation_contract != GUIDANCE_SELECTOR_CONTRACT_VERSION else GUIDANCE_SELECTOR_OBSERVATION_SIZE,
             "action_config": asdict(self.action_config),
             "controller_config": asdict(self.controller_config),
             "runtime_config": asdict(self.runtime_config),
+            "shadow_mode": self.runtime_config.shadow_mode,
             "selector_inference_calls": self._selector_calls,
             "selector_inference_latency_ms_p50": float(np.percentile(latency, 50)) if latency.size else 0.0,
             "selector_inference_latency_ms_p95": float(np.percentile(latency, 95)) if latency.size else 0.0,
@@ -846,6 +1012,10 @@ class GuidanceSelectorActionProvider(ActionProvider):
             "throttle_violation_steps": self._throttle_violation_steps,
             "fallback_counts": dict(self._fallback_counts),
             "first_selector_snapshot": dict(self._first_selector_snapshot),
+            "first_nondefault_selector_snapshot": dict(
+                self._first_nondefault_selector_snapshot
+            ),
+            "selector_decision_trace": list(self._selector_decision_trace),
             "last_frame": dict(self._last_frame),
         }
 
