@@ -216,4 +216,3 @@ def _validate_phases(phases: list[dict[str, Any]]) -> None:
                 abs_tol=1e-9,
             ):
                 raise ValueError("Guidance phase_config mismatch")
-

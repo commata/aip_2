@@ -406,6 +406,15 @@ Pure fallback SHA256:
 
 - DLL `{PURE_DLL_SHA}`
 - XML `{PURE_XML_SHA}`
+
+## 최종 검증
+
+- 정규 회귀: `191 passed, 26 subtests passed`
+- Guidance 집중 검증: `29 passed`
+- compileall, config/model load, checksum, JSON/CSV 검증: 통과
+- 변경 파일 1 MiB 초과 및 credential pattern: 없음
+
+정규 범위 밖의 수동 `test_ias.py`와 외부 `MyTrainEnv/logs` fixture 의존 web log viewer test는 별도 실패했으며, 두 파일은 이 branch diff에 포함되지 않는다.
 """,
         encoding="utf-8",
     )

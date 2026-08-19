@@ -44,4 +44,3 @@ Pure BT는 전술, 안전, 기본 guidance, 매 frame control, throttle을 유�
 - held-out: `8901~8906`
 
 held-out 결과를 본 뒤 observation, action library, magnitude, Gate, reward, confidence threshold를 변경하지 않는다. Counterfactual 신호가 부족해도 filtered BC 또는 rule-distilled safe selector로 loadable artifact를 만들지만 성능 승격은 강제하지 않는다.
-

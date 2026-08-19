@@ -19,4 +19,3 @@ Pure BT DLL은 VP 조회는 제공하지만 외부 setpoint 주입 API를 제공
 Throttle은 모든 action에서 exact Pure BT다. Gate OFF, 낮은 confidence, invalid shape/action/probability, nonfinite, exception, timeout, controller 오류에서는 해당 frame을 exact Pure BT로 fallback한다.
 
 Observation `guidance_selector_v1`은 Tactical16 전체, signed aim/LOS-rate/range/closing/target ATA/phase, BT action/VP/target-speed, controller headroom/saturation/authority, previous action/hold/Gate/safety context를 포함하는 45D float32다.
-
