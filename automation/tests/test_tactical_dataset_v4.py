@@ -6,6 +6,7 @@ import pytest
 from automation.build_tactical_dataset_v4 import (
     grouped_split,
     initial_state_from_provider_telemetry,
+    scenario_case_id,
     state_from_payload,
     validate_group_assignment,
 )
@@ -87,3 +88,8 @@ def test_initial_state_loader_requires_exact_prefix_observable() -> None:
     )
     assert initial is not None
     assert initial[0][6] == 240
+
+
+def test_scenario_identity_is_case_not_geometry_family() -> None:
+    assert scenario_case_id("fight_lateral_left_vm1_s72001") == "lateral_left_vm1"
+    assert scenario_case_id("fight_reval_crossing_right_p_s73008") == "reval_crossing_right_p"

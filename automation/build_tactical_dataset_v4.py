@@ -21,6 +21,10 @@ from dogfight.ai.tactical_modes import (
     champion_vp_to_local_setpoint,
 )
 from dogfight.ai.temporal_observation import (
+    LONG_TEMPORAL_FEATURES,
+    LONG_TEMPORAL_HISTORY_LAGS,
+    LONG_TEMPORAL_SERVER_CONTRACT_VERSION,
+    LongTemporalServerObservationBuilder,
     TEMPORAL_FEATURES,
     TemporalServerObservationBuilder,
 )
@@ -34,6 +38,12 @@ EXPECTED_OPTIONS = {
     for mode in TACTICAL_MODES_T1[1:]
     for duration in TACTICAL_HOLD_FRAMES
 }
+
+
+def scenario_case_id(fight_id: str) -> str:
+    if not fight_id.startswith("fight_") or "_s" not in fight_id:
+        raise ValueError(f"invalid v4 fight identity: {fight_id}")
+    return fight_id[len("fight_") :].rsplit("_s", 1)[0]
 
 
 def sha256(path: Path) -> str:
@@ -88,16 +98,22 @@ def temporal_observation_at_decision(
     decision_frame: int,
     prefix_snapshot: dict[str, Any],
     initial_state: tuple[np.ndarray, np.ndarray] | None = None,
+    long_temporal: bool = False,
 ) -> np.ndarray:
     if decision_frame < 0 or decision_frame >= len(frames):
         raise ValueError("decision frame must provide same-frame BT")
     if decision_frame == 0 and initial_state is None:
         raise ValueError("frame-zero decision requires exact post-reset state")
-    builder = TemporalServerObservationBuilder()
+    builder = (
+        LongTemporalServerObservationBuilder()
+        if long_temporal
+        else TemporalServerObservationBuilder()
+    )
     current_context: tuple[np.ndarray, np.ndarray] | None = None
     # For events before frame 30 the builder's frozen repeat-first contract
     # pads unavailable history and therefore produces zero deltas for it.
-    first_frame = max(0 if initial_state is not None else 1, decision_frame - 30)
+    max_lag = max(LONG_TEMPORAL_HISTORY_LAGS) if long_temporal else 30
+    first_frame = max(0 if initial_state is not None else 1, decision_frame - max_lag)
     for frame in range(first_frame, decision_frame + 1):
         # Telemetry stores the post-step state for frame k. The action info in
         # row k+1 was computed from that state, so this reconstructs selector
@@ -150,7 +166,8 @@ def _baseline_run(root: Path, event_id: str) -> Path:
 
 
 def records_from_oracle_root(
-    root: Path, *, exclusions: list[dict[str, Any]] | None = None
+    root: Path, *, exclusions: list[dict[str, Any]] | None = None,
+    long_temporal: bool = False,
 ) -> list[dict[str, Any]]:
     pairs = json.loads((root / "pairs.json").read_text(encoding="utf-8"))
     by_event: dict[str, list[dict[str, Any]]] = {}
@@ -170,7 +187,8 @@ def records_from_oracle_root(
         initial_state = initial_state_from_provider_telemetry(
             result["ownship_provider_telemetry"]
         )
-        if decision_frame <= 30 and initial_state is None:
+        required_history = max(LONG_TEMPORAL_HISTORY_LAGS) if long_temporal else 30
+        if decision_frame <= required_history and initial_state is None:
             if exclusions is not None:
                 exclusions.append(
                     {
@@ -185,12 +203,15 @@ def records_from_oracle_root(
             decision_frame,
             prefix,
             initial_state=initial_state,
+            long_temporal=long_temporal,
         )
+        fight_id = options[0]["fight_id"]
         common = {
             "event_id": event_id,
-            "fight_id": options[0]["fight_id"],
-            "trajectory_id": options[0]["fight_id"],
-            "scenario_id": options[0]["scenario_id"],
+            "fight_id": fight_id,
+            "trajectory_id": fight_id,
+            "scenario_id": scenario_case_id(fight_id),
+            "geometry": options[0]["scenario_id"],
             "opponent_id": options[0]["opponent_id"],
             "seed": int(options[0]["seed"]),
             "event_type": options[0]["event_type"],
@@ -267,6 +288,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build temporal Tactical dataset v4")
     parser.add_argument("--oracle-root", type=Path, action="append", required=True)
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--temporal-contract", choices=("v4", "long120"), default="v4")
     return parser.parse_args()
 
 
@@ -278,8 +300,13 @@ def main() -> None:
     records: list[dict[str, Any]] = []
     exclusions: list[dict[str, Any]] = []
     source_roots = [path.resolve() for path in args.oracle_root]
+    long_temporal = args.temporal_contract == "long120"
     for root in source_roots:
-        records.extend(records_from_oracle_root(root, exclusions=exclusions))
+        records.extend(
+            records_from_oracle_root(
+                root, exclusions=exclusions, long_temporal=long_temporal
+            )
+        )
     event_ids = [row["event_id"] for row in records if row["mode"] == "BT_DEFAULT"]
     if len(event_ids) != len(set(event_ids)):
         raise ValueError("duplicate event identity across Tactical dataset sources")
@@ -297,10 +324,16 @@ def main() -> None:
         for split in ("train", "validation", "test")
     }
     metadata = {
-        "schema_version": "temporal_tactical_dataset_v4.v1",
-        "observation_contract": "guidance_selector_server_temporal_v4",
-        "observation_size": len(TEMPORAL_FEATURES),
-        "features": list(TEMPORAL_FEATURES),
+        "schema_version": "temporal_tactical_dataset_v4.v2",
+        "observation_contract": (
+            LONG_TEMPORAL_SERVER_CONTRACT_VERSION
+            if long_temporal
+            else "guidance_selector_server_temporal_v4"
+        ),
+        "observation_size": len(
+            LONG_TEMPORAL_FEATURES if long_temporal else TEMPORAL_FEATURES
+        ),
+        "features": list(LONG_TEMPORAL_FEATURES if long_temporal else TEMPORAL_FEATURES),
         "candidate_modes": list(TACTICAL_MODES_T1),
         "candidate_hold_frames": [0, *TACTICAL_HOLD_FRAMES],
         "unique_events": len(event_ids),
@@ -308,6 +341,8 @@ def main() -> None:
         "clean_nondefault_pairs": len(records) - len(event_ids),
         "split_unit": ["fight", "trajectory", "event", "scenario", "seed-group"],
         "split_event_counts": split_counts,
+        "scenario_count": len({row["scenario_id"] for row in records}),
+        "geometry_families": sorted({row["geometry"] for row in records}),
         "epsilon": EPSILON,
         "large_regression_threshold": LARGE_REGRESSION_THRESHOLD,
         "primary_label": "prefix-replay paired terminal Damage advantage",
