@@ -67,6 +67,14 @@ def test_health_changes_do_not_change_server_observation():
     assert np.array_equal(first, second)
 
 
+def test_server_observation_does_not_require_health_slot():
+    own = state()[: StateIndex.HEALTH]
+    target = state(n=1000.0, e=100.0, yaw=180.0)[: StateIndex.HEALTH]
+    vector = observation(own, target)
+    assert vector.shape == (42,)
+    assert np.all(np.isfinite(vector))
+
+
 def test_primary_action_library_removes_semantic_mismatch_actions():
     assert GUIDANCE_ADVANTAGE_ACTIONS == (
         "BT_DEFAULT",
