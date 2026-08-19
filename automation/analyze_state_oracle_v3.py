@@ -141,14 +141,26 @@ def _load_experiment(root: Path) -> tuple[list[dict[str, Any]], dict[str, dict[s
     return pairs, scenarios
 
 
-def rebuild_rows(v2_root: Path = V2_ROOT) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def rebuild_rows(
+    v2_root: Path = V2_ROOT,
+    additional_experiments: Iterable[Path] = (),
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     observed_rows: list[dict[str, Any]] = []
     state_payloads: dict[str, dict[str, Any]] = {}
     state_sources: dict[str, list[dict[str, Any]]] = defaultdict(list)
     duplicate_values: dict[tuple[str, str], list[float]] = defaultdict(list)
 
-    for experiment in EXPECTED_V2_EXPERIMENTS:
-        root = v2_root / experiment
+    experiment_roots = [
+        (experiment, v2_root / experiment) for experiment in EXPECTED_V2_EXPERIMENTS
+    ]
+    experiment_roots.extend(
+        (Path(root).resolve().name, Path(root).resolve()) for root in additional_experiments
+    )
+    seen_names: set[str] = set()
+    for experiment, root in experiment_roots:
+        if experiment in seen_names:
+            raise ValueError(f"duplicate experiment name: {experiment}")
+        seen_names.add(experiment)
         pairs, scenarios = _load_experiment(root)
         for pair in pairs:
             case_id = str(pair["case_id"])
@@ -423,6 +435,7 @@ def write_outputs(
     analysis: dict[str, Any],
     output: Path,
     report_path: Path,
+    source_experiments: Iterable[str] = EXPECTED_V2_EXPERIMENTS,
 ) -> None:
     output.mkdir(parents=True, exist_ok=True)
     states_path = output / "state_matrix_v3.json"
@@ -459,7 +472,7 @@ def write_outputs(
     analysis_path.write_text(json.dumps(analysis, indent=2, sort_keys=True), encoding="utf-8")
     manifest = {
         "schema_version": "counterfactual_bootstrap_v3.manifest.v1",
-        "source_experiments": list(EXPECTED_V2_EXPERIMENTS),
+        "source_experiments": list(source_experiments),
         "unique_states": len(states),
         "observed_nondefault_pairs": len(rows),
         "dataset_rows_including_default": len(dataset_rows),
@@ -512,14 +525,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--v2-root", type=Path, default=V2_ROOT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument(
+        "--additional-experiment",
+        action="append",
+        type=Path,
+        default=[],
+        help="Additional evaluator root containing pairs.json and runs/*/scenario.json",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    states, rows = rebuild_rows(args.v2_root.resolve())
+    additional = [path.resolve() for path in args.additional_experiment]
+    states, rows = rebuild_rows(args.v2_root.resolve(), additional)
     analysis = analyze_oracle(states, rows)
-    write_outputs(states, rows, analysis, args.output.resolve(), args.report.resolve())
+    source_experiments = [*EXPECTED_V2_EXPERIMENTS, *(path.name for path in additional)]
+    write_outputs(
+        states,
+        rows,
+        analysis,
+        args.output.resolve(),
+        args.report.resolve(),
+        source_experiments,
+    )
     print(json.dumps({key: analysis[key] for key in ("unique_states", "observed_nondefault_state_action_pairs", "oracle", "best_static_min_30_states", "oracle_mean_gap_over_static_on_shared_states", "feasibility")}, indent=2, sort_keys=True))
 
 
