@@ -6,13 +6,21 @@ import numpy as np
 
 from GeoMathUtil import GeometryInfo
 from dogfight.ai.action_provider import ActionProvider, ActionResult
+from dogfight.ai.guidance_advantage import build_server_guidance_observation
+from dogfight.ai.guidance_selector import GuidanceSetpoint
 from dogfight.envs.observation import (
     TACTICAL16_HEALTH_CONSTANT_ONE,
     build_observation,
 )
 from dogfight.sim.state_schema import StateIndex
 from dogfight.unreal.policies import ProviderCommandPolicy, plane_info_to_state
-from dogfight.unreal.protocol import PlaneInfo, Rotation3D, Vector3D
+from dogfight.unreal.protocol import (
+    PlaneInfo,
+    Rotation3D,
+    Vector3D,
+    pack_plane_info,
+    unpack_plane_info,
+)
 
 
 class _UnusedProvider(ActionProvider):
@@ -106,6 +114,50 @@ class SubmissionObservationParityTests(unittest.TestCase):
         self.assertEqual(self.policy._sim_time_s(15000), 100.0)
         self.assertEqual(self.policy._sim_time_s(18000), 150.0)
         self.assertEqual(self.policy._sim_time_s(21000), 200.0)
+
+    def test_server_guidance_observation_is_packet_replay_identical(self) -> None:
+        own_packet = _plane(
+            index=120,
+            plane_id=1,
+            position=(0.0, 0.0, 5000.0),
+            rotation=(2.0, -1.0, 359.0),
+            velocity=(230.0, 2.0, 0.0),
+        )
+        target_packet = _plane(
+            index=120,
+            plane_id=2,
+            position=(750.0, 30.0, 5040.0),
+            rotation=(-1.0, 2.0, 4.0),
+            velocity=(215.0, -3.0, 0.0),
+        )
+        replay_own = unpack_plane_info(pack_plane_info(own_packet))
+        replay_target = unpack_plane_info(pack_plane_info(target_packet))
+        bt_action = np.asarray([0.1, -0.2, 0.05, 0.9], dtype=np.float32)
+        base = GuidanceSetpoint(1.0, -0.5, 800.0, 230.0)
+        kwargs = dict(
+            sim_time_s=2.0,
+            previous_action_id=0,
+            action_hold_frames=0,
+            gate_elapsed_frames=1,
+            gate_active=True,
+            minimum_action_hold_frames=6,
+            maximum_active_frames=36,
+        )
+        live = build_server_guidance_observation(
+            plane_info_to_state(own_packet),
+            plane_info_to_state(target_packet),
+            bt_action,
+            base,
+            **kwargs,
+        )
+        replay = build_server_guidance_observation(
+            plane_info_to_state(replay_own),
+            plane_info_to_state(replay_target),
+            bt_action,
+            base,
+            **kwargs,
+        )
+        self.assertEqual(live.tobytes(), replay.tobytes())
 
     def test_tactical16_wez_switches_on_official_phase_boundaries(self) -> None:
         own = plane_info_to_state(
