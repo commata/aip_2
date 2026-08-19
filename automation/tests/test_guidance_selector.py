@@ -273,6 +273,24 @@ class GuidanceProviderTests(unittest.TestCase):
         self.assertEqual(result.action[3], provider.bt_provider.action[3])
         self.assertEqual(provider.telemetry()["nonzero_intervention_frames"], 1)
 
+    def test_shadow_nondefault_predicts_but_returns_exact_bt(self):
+        provider = GuidanceSelectorActionProvider(
+            FakeBT(),
+            FixedGuidanceSelector("VP_AZ_POS_SMALL"),
+            runtime_config=GuidanceRuntimeConfig(
+                confidence_threshold=0.65,
+                shadow_mode=True,
+            ),
+        )
+        provider.gate = FakeGate(True)
+        result = provider.compute_action(context())
+        self.assertTrue(np.array_equal(result.action, provider.bt_provider.action))
+        self.assertEqual(result.info["selected_action"], "VP_AZ_POS_SMALL")
+        self.assertTrue(result.info["shadow_command_exact_bt"])
+        telemetry = provider.telemetry()
+        self.assertTrue(telemetry["shadow_mode"])
+        self.assertEqual(telemetry["nonzero_intervention_frames"], 0)
+
     def test_exception_falls_back_to_exact_bt(self):
         provider = self.provider(FailingSelector())
         result = provider.compute_action(context())

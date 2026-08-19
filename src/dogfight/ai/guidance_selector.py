@@ -128,6 +128,7 @@ class GuidanceRuntimeConfig:
     confidence_threshold: float = 0.65
     inference_timeout_s: float = 0.1667
     sim_hz: int = 60
+    shadow_mode: bool = False
 
     def validate(self) -> None:
         if self.selector_action_repeat_frames <= 0:
@@ -779,6 +780,26 @@ class GuidanceSelectorActionProvider(ActionProvider):
                 count_action=False,
             )
 
+        if self.runtime_config.shadow_mode:
+            frame = {
+                "mode": "guidance_selector_shadow",
+                "gate": gate_info,
+                "observation_contract": self.observation_contract,
+                "observation": observation.tolist(),
+                "selected_action_id": action_id,
+                "selected_action": GUIDANCE_ACTIONS[action_id],
+                "selector_refreshed": refresh,
+                "selector_confidence": float(confidence),
+                "selector_probabilities": probabilities.tolist() if probabilities is not None else None,
+                "selector_diagnostics": getattr(self.selector, "last_prediction", None),
+                "bt_action": bt_action.tolist(),
+                "final_action": bt_action.tolist(),
+                "throttle_bt_only": True,
+                "shadow_command_exact_bt": True,
+            }
+            self._last_frame = frame
+            return ActionResult(bt_action.copy(), "bt_guidance_selector_shadow", 1.0, frame)
+
         corrected = compose_guidance_setpoint(base, action_id, self.action_config)
         final, controller = guidance_to_surface_action(
             bt_action,
@@ -836,6 +857,7 @@ class GuidanceSelectorActionProvider(ActionProvider):
             "action_config": asdict(self.action_config),
             "controller_config": asdict(self.controller_config),
             "runtime_config": asdict(self.runtime_config),
+            "shadow_mode": self.runtime_config.shadow_mode,
             "selector_inference_calls": self._selector_calls,
             "selector_inference_latency_ms_p50": float(np.percentile(latency, 50)) if latency.size else 0.0,
             "selector_inference_latency_ms_p95": float(np.percentile(latency, 95)) if latency.size else 0.0,

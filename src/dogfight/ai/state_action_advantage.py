@@ -175,9 +175,19 @@ class NumpyStateActionAdvantageSelector:
         ]
         probabilities = np.zeros(len(GUIDANCE_ACTIONS), dtype=np.float32)
         if not eligible:
+            self.last_prediction = {
+                "selected_action": "BT_DEFAULT",
+                "threshold": dict(self.threshold),
+                "actions": scored,
+            }
             probabilities[0] = 1.0
             return 0, 1.0, probabilities
         selected = max(eligible, key=lambda row: row["conservative_score"])
+        self.last_prediction = {
+            "selected_action": selected["action"],
+            "threshold": dict(self.threshold),
+            "actions": scored,
+        }
         action_id = GUIDANCE_ACTION_TO_ID[selected["action"]]
         probabilities[action_id] = float(selected["positive_probability"])
         probabilities[0] = 1.0 - probabilities[action_id]
