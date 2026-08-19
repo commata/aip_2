@@ -248,6 +248,38 @@ def mirror_guidance_action(action: str | int, axis: str) -> int:
     return GUIDANCE_ACTION_TO_ID[pairs.get(name, name)]
 
 
+def mirror_guidance_observation(observation, axis: str) -> np.ndarray:
+    """Mirror a normalized Guidance observation without changing its contract."""
+    mirrored = validate_guidance_observation(observation).copy()
+    if axis == "lateral":
+        signed_indexes = (0, 2, 7, 11, 16, 18, 24, 26, 28)
+    elif axis == "vertical":
+        signed_indexes = (1, 8, 12, 17, 19, 25, 29)
+    else:
+        raise ValueError("mirror axis must be 'lateral' or 'vertical'")
+    mirrored[list(signed_indexes)] *= -1.0
+    previous_id = int(np.clip(np.rint((mirrored[40] + 1.0) * 4.0), 0, 8))
+    mirrored[40] = normalize(float(mirror_guidance_action(previous_id, axis)), 0.0, 8.0)
+    return mirrored
+
+
+def canonicalize_guidance_observation(
+    observation,
+    *,
+    lateral_sign: int = 1,
+    vertical_sign: int = 1,
+) -> np.ndarray:
+    """Map left/down mirror states to the positive canonical quadrant."""
+    if lateral_sign not in (-1, 1) or vertical_sign not in (-1, 1):
+        raise ValueError("canonical mirror signs must be -1 or +1")
+    canonical = validate_guidance_observation(observation).copy()
+    if lateral_sign < 0:
+        canonical = mirror_guidance_observation(canonical, "lateral")
+    if vertical_sign < 0:
+        canonical = mirror_guidance_observation(canonical, "vertical")
+    return canonical
+
+
 def guidance_action_delta(
     action: str | int,
     config: GuidanceActionConfig | None = None,

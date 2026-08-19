@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from time import sleep
 
 import numpy as np
 
@@ -20,10 +21,12 @@ from dogfight.ai.guidance_selector import (
     GuidanceSetpoint,
     NumpyMLPGuidanceSelector,
     build_guidance_observation,
+    canonicalize_guidance_observation,
     compose_guidance_setpoint,
     guidance_action_delta,
     guidance_to_surface_action,
     mirror_guidance_action,
+    mirror_guidance_observation,
 )
 from dogfight.sim.state_schema import StateIndex
 
@@ -69,6 +72,19 @@ class FailingSelector:
         raise RuntimeError("expected")
 
 
+class InvalidProbabilitySelector:
+    def predict(self, observation):
+        return 1, 0.9, np.ones(8, dtype=np.float32)
+
+
+class SlowSelector:
+    def predict(self, observation):
+        sleep(0.002)
+        probabilities = np.zeros(9, dtype=np.float32)
+        probabilities[1] = 1.0
+        return 1, 1.0, probabilities
+
+
 def state(n=0.0, e=0.0, altitude=5000.0, yaw=0.0, speed=230.0):
     value = np.zeros(46, dtype=np.float64)
     value[StateIndex.N] = n
@@ -91,6 +107,10 @@ def context():
         observation=np.zeros(16, dtype=np.float32),
         info={"sim_time_s": 10.0},
     )
+
+
+def normalize_for_action(action_id: int) -> float:
+    return (float(action_id) - 4.0) / 4.0
 
 
 class GuidanceActionLibraryTests(unittest.TestCase):
@@ -142,6 +162,26 @@ class GuidanceActionLibraryTests(unittest.TestCase):
                     action_id,
                 )
 
+    def test_observation_double_mirror_and_canonical_round_trip(self):
+        observation = np.linspace(-0.9, 0.9, 45, dtype=np.float32)
+        observation[40] = normalize_for_action(3)
+        for axis in ("lateral", "vertical"):
+            self.assertTrue(
+                np.array_equal(
+                    mirror_guidance_observation(
+                        mirror_guidance_observation(observation, axis), axis
+                    ),
+                    observation,
+                )
+            )
+        canonical = canonicalize_guidance_observation(
+            observation, lateral_sign=-1, vertical_sign=-1
+        )
+        world = mirror_guidance_observation(
+            mirror_guidance_observation(canonical, "vertical"), "lateral"
+        )
+        self.assertTrue(np.array_equal(world, observation))
+
 
 class GuidanceObservationTests(unittest.TestCase):
     def test_observation_contract_is_finite_and_ordered(self):
@@ -165,6 +205,30 @@ class GuidanceObservationTests(unittest.TestCase):
         self.assertEqual(observation.shape, (45,))
         self.assertTrue(np.all(np.isfinite(observation)))
         self.assertTrue(np.all(np.abs(observation) <= 1.0))
+
+    def test_training_and_runtime_builder_are_exactly_identical(self):
+        kwargs = dict(
+            sim_time_s=12.0,
+            previous_action_id=2,
+            action_hold_frames=7,
+            gate_elapsed_frames=11,
+            gate_active=True,
+            minimum_action_hold_frames=18,
+            maximum_active_frames=90,
+        )
+        args = (
+            np.linspace(-1.0, 1.0, 16, dtype=np.float32),
+            state(),
+            state(n=900.0, e=-150.0, yaw=170.0, speed=220.0),
+            np.array([0.1, -0.2, 0.3, 0.8], dtype=np.float32),
+            GuidanceSetpoint(2.0, -1.0, 950.0, 230.0),
+        )
+        self.assertTrue(
+            np.array_equal(
+                build_guidance_observation(*args, **kwargs),
+                build_guidance_observation(*args, **kwargs),
+            )
+        )
 
 
 class GuidanceProviderTests(unittest.TestCase):
@@ -213,6 +277,26 @@ class GuidanceProviderTests(unittest.TestCase):
         self.assertTrue(np.array_equal(second.action, provider.bt_provider.action))
         self.assertEqual(provider.telemetry()["selector_inference_calls"], 1)
 
+    def test_invalid_probability_shape_falls_back(self):
+        provider = self.provider(InvalidProbabilitySelector())
+        result = provider.compute_action(context())
+        self.assertTrue(np.array_equal(result.action, provider.bt_provider.action))
+        self.assertEqual(provider.telemetry()["fallback_counts"]["invalid_probabilities"], 1)
+
+    def test_timeout_falls_back_to_exact_bt(self):
+        provider = GuidanceSelectorActionProvider(
+            FakeBT(),
+            SlowSelector(),
+            runtime_config=GuidanceRuntimeConfig(
+                confidence_threshold=0.65,
+                inference_timeout_s=0.0001,
+            ),
+        )
+        provider.gate = FakeGate(True)
+        result = provider.compute_action(context())
+        self.assertTrue(np.array_equal(result.action, provider.bt_provider.action))
+        self.assertEqual(provider.telemetry()["fallback_counts"]["inference_timeout"], 1)
+
 
 class GuidanceBundleTests(unittest.TestCase):
     def test_numpy_bundle_load_and_hash_contract(self):
@@ -249,4 +333,3 @@ class GuidanceBundleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
