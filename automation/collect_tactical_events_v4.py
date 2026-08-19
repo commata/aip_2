@@ -163,6 +163,8 @@ def run_case(
     dll: Path,
     xml: Path,
     episode_frames: int,
+    target_backend: str = "autopilot",
+    target_bt_dll: Path | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     run_root = output / "runs" / case["case_id"]
     run_root.mkdir(parents=True, exist_ok=False)
@@ -178,7 +180,7 @@ def run_case(
         "--ownship-backend",
         "prefix_tactical",
         "--target-backend",
-        "autopilot",
+        target_backend,
         "--ownship-bt-dll",
         str(dll),
         "--bt-rule-xml",
@@ -207,6 +209,10 @@ def run_case(
         "--telemetry-jsonl",
         str(telemetry_path),
     ]
+    if target_backend == "bt":
+        if target_bt_dll is None:
+            raise ValueError("target BT backend requires a target DLL")
+        command.extend(["--target-bt-dll", str(target_bt_dll)])
     env = os.environ.copy()
     env["PYTHONPATH"] = os.pathsep.join((str(ROOT / "src"), str(ROOT)))
     completed = subprocess.run(
@@ -243,6 +249,9 @@ def parse_args() -> argparse.Namespace:
         "--suite-kind", choices=("discovery", "revalidation"), default="discovery"
     )
     parser.add_argument("--episode-frames", type=int, default=720)
+    parser.add_argument("--target-backend", choices=("autopilot", "bt"), default="autopilot")
+    parser.add_argument("--target-bt-dll", type=Path)
+    parser.add_argument("--opponent-id", default="autopilot")
     return parser.parse_args()
 
 
@@ -260,6 +269,8 @@ def main() -> None:
         if args.suite_kind == "discovery"
         else build_revalidation_cases()
     )
+    for case in cases:
+        case["opponent"] = args.opponent_id
     (output / "suite.json").write_text(
         json.dumps({"cases": cases}, indent=2, sort_keys=True), encoding="utf-8"
     )
@@ -273,6 +284,8 @@ def main() -> None:
             dll=dll,
             xml=xml,
             episode_frames=args.episode_frames,
+            target_backend=args.target_backend,
+            target_bt_dll=args.target_bt_dll.resolve() if args.target_bt_dll else None,
         )
         fight_id = f"fight_{case['case_id']}_s{case['seed']}"
         events = extract_decision_events(

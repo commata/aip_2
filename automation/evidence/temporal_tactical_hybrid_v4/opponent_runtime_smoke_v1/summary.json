@@ -1,0 +1,19 @@
+{
+  "contract": "temporal_tactical_opponent_runtime_smoke_v4",
+  "champion_self_play": {
+    "episode_frames": 120,
+    "invalid_actions": 0,
+    "ownship_crash": false,
+    "seed": 75002,
+    "status": "RUNNABLE",
+    "target_backend": "bt",
+    "target_crash": false,
+    "target_dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "throttle_violations": 0
+  },
+  "repository_aip_base_target": {
+    "reason": "AIP_BASE_target.dll requires a Rule_forTraining tree contract that is incompatible with the currently active XML (DECO_AltitudeCheck is not recognized)",
+    "status": "NOT_RUNNABLE_WITH_CURRENT_XML_CONTRACT"
+  },
+  "scope": "load-and-command smoke only; this is not performance evidence"
+}

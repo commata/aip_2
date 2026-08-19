@@ -129,6 +129,8 @@ def run_rollout(
     mode: str,
     hold_frames: int,
     episode_frames: int,
+    target_backend: str = "autopilot",
+    target_bt_dll: Path | None = None,
 ) -> dict[str, Any]:
     run_root = output / "runs" / label
     run_root.mkdir(parents=True, exist_ok=False)
@@ -140,7 +142,7 @@ def run_rollout(
         "--ownship-backend",
         "prefix_tactical",
         "--target-backend",
-        "autopilot",
+        target_backend,
         "--ownship-bt-dll",
         str(dll),
         "--bt-rule-xml",
@@ -169,6 +171,10 @@ def run_rollout(
         "--telemetry-jsonl",
         str(telemetry_path),
     ]
+    if target_backend == "bt":
+        if target_bt_dll is None:
+            raise ValueError("target BT backend requires a target DLL")
+        command.extend(["--target-bt-dll", str(target_bt_dll)])
     env = os.environ.copy()
     env["PYTHONPATH"] = os.pathsep.join((str(ROOT / "src"), str(ROOT)))
     completed = subprocess.run(
@@ -418,6 +424,8 @@ def parse_args() -> argparse.Namespace:
         default="DISCOVERY",
     )
     parser.add_argument("--post-event-frames", type=int, default=720)
+    parser.add_argument("--target-backend", choices=("autopilot", "bt"), default="autopilot")
+    parser.add_argument("--target-bt-dll", type=Path)
     return parser.parse_args()
 
 
@@ -468,6 +476,8 @@ def main() -> None:
             mode="BT_DEFAULT",
             hold_frames=0,
             episode_frames=episode_frames,
+            target_backend=args.target_backend,
+            target_bt_dll=args.target_bt_dll.resolve() if args.target_bt_dll else None,
         )
         for option in options:
             candidate = run_rollout(
@@ -481,6 +491,8 @@ def main() -> None:
                 mode=option["mode"],
                 hold_frames=option["hold_frames"],
                 episode_frames=episode_frames,
+                target_backend=args.target_backend,
+                target_bt_dll=args.target_bt_dll.resolve() if args.target_bt_dll else None,
             )
             records.append(paired_record(event, option, baseline, candidate))
         progress = {
