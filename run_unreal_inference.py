@@ -17,12 +17,18 @@ if str(SRC) not in sys.path:
 from dogfight.ai.bt_action_provider import BTActionProvider
 from dogfight.ai.bt_rule_manager import activate_rule_xml
 from dogfight.ai.hybrid_action_provider import ResidualInferenceActionProvider
+from dogfight.ai.guidance_selector import (
+    GuidanceSelectorActionProvider,
+    NumpyMLPGuidanceSelector,
+)
 from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
 from dogfight.submission import (
+    load_guidance_submission_config,
     load_bundle_observation_contract,
     load_submission_config,
+    submission_config_mode,
 )
 from dogfight.unreal import AIType, ProviderCommandPolicy, UnrealAIPilotUDPClient
 
@@ -31,10 +37,10 @@ from dogfight.unreal import AIType, ProviderCommandPolicy, UnrealAIPilotUDPClien
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run RL/BT/Hybrid inference and communicate with the Unreal AI server over UDP.")
-    parser.add_argument("--mode", choices=["rl", "bt", "hybrid"], help="Inference backend to use.")
+    parser.add_argument("--mode", choices=["rl", "bt", "hybrid", "guidance"], help="Inference backend to use.")
     parser.add_argument(
         "--submission-config",
-        help="Single-source submission JSON. When set, mode is forced to hybrid residual.",
+        help="Single-source residual or Guidance Selector submission JSON.",
     )
     parser.add_argument("--server-ip", default="192.168.10.115", help="Unreal server IP address.")
     parser.add_argument("--server-port", type=int, default=9999, help="Unreal server UDP port.")
@@ -137,10 +143,27 @@ def build_action_provider(args):
         raise ValueError("--bundle-dir is required for rl and hybrid modes")
 
     submission = getattr(args, "_submission_config", None)
-    if args.mode == "hybrid" and submission is None:
+    if args.mode in {"hybrid", "guidance"} and submission is None:
         raise ValueError(
-            "--submission-config is required for hybrid mode; legacy throttle/blend "
-            "hybrid is not a submission-safe residual path"
+            "--submission-config is required for hybrid and guidance modes"
+        )
+
+    if args.mode == "guidance":
+        selector = NumpyMLPGuidanceSelector(submission.bundle_path)
+        bt_provider = BTActionProvider(
+            dll_name=args.bt_dll,
+            enable_turn_throttle_optimization=False,
+        )
+        return GuidanceSelectorActionProvider(
+            bt_provider,
+            selector,
+            action_config=submission.action_config,
+            controller_config=submission.controller_config,
+            runtime_config=submission.runtime_config,
+            rear120_config=submission.rear120_config,
+            aim_config=submission.aim_config,
+            offensive_config=submission.offensive_config,
+            safety_config=submission.safety_config,
         )
 
     rl_provider = RLActionProvider(
@@ -185,19 +208,27 @@ def build_action_provider(args):
 
 def resolve_runtime_contract(args):
     if args.submission_config:
-        submission = load_submission_config(args.submission_config)
+        mode = submission_config_mode(args.submission_config)
+        if mode == "guidance_selector":
+            submission = load_guidance_submission_config(args.submission_config)
+            args.mode = "guidance"
+            args.observation_mode = "tactical16"
+            args.action_repeat = submission.runtime_config.selector_action_repeat_frames
+        else:
+            submission = load_submission_config(args.submission_config)
+            args.mode = "hybrid"
+            args.observation_mode = submission.observation_mode
+            args.action_repeat = submission.rl_action_repeat
         args._submission_config = submission
-        args.mode = "hybrid"
         args.bundle_dir = str(submission.bundle_path)
         args.policy_id = submission.policy_id
-        args.observation_mode = submission.observation_mode
         args.bt_dll = str(submission.bt_dll_path)
         args.bt_rule_xml = str(submission.bt_xml_path)
         args.bt_rule_alias = list(
             submission.raw.get("bt", {}).get("rule_aliases", [])
         )
-        args.residual_scale = submission.residual_scale
-        args.action_repeat = submission.rl_action_repeat
+        if mode != "guidance_selector":
+            args.residual_scale = submission.residual_scale
         force_side = submission.raw.get("force_side", {})
         args.ownship_force_side = int(force_side.get("ownship", 1))
         args.target_force_side = int(force_side.get("target", 2))
@@ -206,8 +237,8 @@ def resolve_runtime_contract(args):
     args._submission_config = None
     if args.mode is None:
         raise ValueError("--mode or --submission-config is required")
-    if args.mode == "hybrid":
-        raise ValueError("hybrid mode requires --submission-config")
+    if args.mode in {"hybrid", "guidance"}:
+        raise ValueError("hybrid and guidance modes require --submission-config")
     if args.mode == "rl":
         if args.bundle_dir is None:
             raise ValueError("--bundle-dir is required for rl mode")
@@ -249,7 +280,7 @@ def main():
             ownship_force_side=args.ownship_force_side,
             target_force_side=args.target_force_side,
             action_repeat=(
-                1 if args.mode == "hybrid" else args.action_repeat
+                1 if args.mode in {"hybrid", "guidance"} else args.action_repeat
             ),
             debug_action_repeat=args.debug_action_repeat,
             wez_config=submission.wez_config if submission else None,
