@@ -21,3 +21,13 @@ Pure fallback은 DLL `4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795B
 - BC/PPO/scale/long/held-out/proxy/200초: 모두 미실행
 
 제출 시점까지 새 Hybrid 근거가 추가되지 않으면 검증되지 않은 RL 대신 이 Pure BT fallback을 사용한다. 최종 Target과 실제 server 근거가 없으므로 `FINAL_CONFIRMED`는 사용하지 않는다.
+
+## 종료 검증
+
+- automation: `153 passed, 26 subtests passed`
+- core: `9 passed`
+- compileall / manifest 30개 parse / `git diff --check`: PASS
+- compact evidence SHA256: 5/5 일치
+- secret scan / tracked 10MB 초과 파일: 0 / 0
+- held-out seed 실행 record: 0 (Ray 로그 파일명의 우연한 64진수 부분 문자열은 제외)
+- state-conditioned checkpoint/bundle: `N/A_NOT_CREATED`

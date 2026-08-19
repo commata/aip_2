@@ -164,6 +164,18 @@
     "bundle": null,
     "checkpoint": null
   },
+  "final_validation": {
+    "automation_tests": "153 passed, 26 subtests passed",
+    "core_tests": "9 passed",
+    "compileall": "PASS",
+    "manifest_json_count": 30,
+    "compact_evidence_checksums_verified": 5,
+    "secret_scan_hits": 0,
+    "tracked_files_over_10mb": 0,
+    "heldout_seed_execution_records": 0,
+    "hybrid_checkpoint_or_bundle": "N/A_NOT_CREATED",
+    "git_diff_check": "PASS"
+  },
   "external_status": {"target_bt":"TARGET_BT_PENDING","server":"SERVER_BLOCKED"},
   "automatic_merge": false
 }
