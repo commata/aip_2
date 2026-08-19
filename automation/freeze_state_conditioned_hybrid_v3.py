@@ -66,6 +66,9 @@ def promotion_prerequisites(
     )
     gates = {
         "offline_gate": bool(model_metadata.get("offline_gate_passed")),
+        "runtime_ood_abstention": (
+            model_metadata.get("runtime_ood_support", {}).get("fallback") == "BT_DEFAULT"
+        ),
         "independent_model_seeds_gte_2": positive_seed_count >= 2,
         "shadow_gate": bool(evaluations["shadow"].get("gate_passed")),
         "micro_gate": bool(evaluations["micro"].get("gate_passed")),
@@ -217,6 +220,7 @@ def main() -> None:
             "parameterization": ["axis one-hot", "sign", "magnitude_norm", "duration_norm"],
             "runtime_candidates": model_metadata["runtime_candidates"],
             "runtime_threshold": model_metadata["runtime_threshold"],
+            "runtime_ood_support": model_metadata["runtime_ood_support"],
             "bt_default": "byte-exact Pure BT action",
             "throttle": "exact BT-only",
         },
