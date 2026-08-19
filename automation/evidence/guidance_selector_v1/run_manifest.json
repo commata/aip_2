@@ -1,0 +1,36 @@
+{
+  "actual_timeout_runs": 0,
+  "base_main_sha": "f0e79b743d7d03870cc485075daa08f4bcd57db6",
+  "bc_seeds": [
+    8701,
+    8702,
+    8703
+  ],
+  "branch": "codex/guidance-selector-submission-hybrid",
+  "configured_max_seconds": 200,
+  "counterfactual_rollouts": 900,
+  "counterfactual_states": 100,
+  "development_seeds": [
+    8801,
+    8802,
+    8803,
+    8804,
+    8805,
+    8806
+  ],
+  "head_before_freeze": "c51aa95bc210af2944101861f2ad95cde493fbd1",
+  "held_out_opened_after_selection": true,
+  "held_out_seeds": [
+    8901,
+    8902,
+    8903,
+    8904,
+    8905,
+    8906
+  ],
+  "issue": 19,
+  "natural_terminal_runs": 36,
+  "run_count": 36,
+  "schema_version": "guidance_selector_evidence.v1",
+  "server_status": "SERVER_BLOCKED"
+}

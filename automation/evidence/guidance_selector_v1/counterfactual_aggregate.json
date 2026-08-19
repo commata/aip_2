@@ -1,0 +1,33 @@
+{
+  "status": "COMPLETED",
+  "unique_states": 100,
+  "actions_per_state": 9,
+  "rollouts": 900,
+  "horizon_s": 2.0,
+  "phase_coverage": [1],
+  "clean_nondefault_pairs": 800,
+  "contaminated_pairs": 0,
+  "clean_damage_delta_mean": 0.0003915173673078488,
+  "clean_damage_delta_median": 0.0,
+  "clean_damage_delta_min": -0.27270096131657473,
+  "clean_damage_delta_max": 0.34149041625659216,
+  "positive_pairs": 97,
+  "positive_ratio": 0.12125,
+  "meaningful_positive_pairs": 54,
+  "large_regressions": 44,
+  "nondefault_labels": 18,
+  "ownship_crashes": 0,
+  "target_crashes": 0,
+  "process_errors": 0,
+  "throttle_violations": 0,
+  "maximum_latency_ms": 0.1243999577127397,
+  "wall_seconds": 845.6521583000431,
+  "protected_f16_init_restored_exactly": true,
+  "raw_artifacts": {
+    "root": "artifacts/evaluations/guidance_selector/counterfactual_v1_20260819",
+    "aggregate_sha256": "DFBC301471ACA4FB1A2194FE08EB224C4B6B114F17F389C59219CF2EA7079A9A",
+    "dataset_sha256": "291E93BCA7D8F329C3E9A7D1B48A2BB1E289535940C6720107895B583A52D5C0",
+    "records_sha256": "79612EA4D45EB593CA5831A5F3F2407984EDBD21C30986739333440252FCF3C3",
+    "episode_records_csv_sha256": "51C3FF9F95029277263BFA9031E5DD6BD3A4E27912CB8332B67ACF8ACEE5944A"
+  }
+}

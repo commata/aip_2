@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import json
 from pathlib import Path
 import sys
@@ -28,14 +29,32 @@ from dogfight.ai.hybrid_action_provider import (
     SafetyVetoConfig,
     ShotWindowGateConfig,
 )
+from dogfight.ai.guidance_selector import (
+    GUIDANCE_ACTIONS,
+    FixedGuidanceSelector,
+    GuidanceRuntimeConfig,
+    GuidanceSelectorActionProvider,
+    NumpyMLPGuidanceSelector,
+)
 from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
 
 
+@contextmanager
+def preserve_runtime_file(path: Path):
+    """Restore simulator-mutated runtime input exactly after every local run."""
+    original = path.read_bytes() if path.exists() else None
+    try:
+        yield
+    finally:
+        if original is not None and path.read_bytes() != original:
+            path.write_bytes(original)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run local dogfight simulation between two inference backends.")
-    backend_choices = ["rl", "bt", "hybrid", "residual_hybrid", "counterfactual_pulse", "fixed", "autopilot"]
+    backend_choices = ["rl", "bt", "hybrid", "residual_hybrid", "counterfactual_pulse", "guidance_selector", "fixed", "autopilot"]
     parser.add_argument("--ownship-backend", choices=backend_choices, required=True)
     parser.add_argument("--target-backend", choices=backend_choices, required=True)
     parser.add_argument("--ownship-bundle-dir")
@@ -99,6 +118,15 @@ def parse_args():
     parser.add_argument("--counterfactual-pulse-magnitude", type=float, default=0.5)
     parser.add_argument("--counterfactual-pulse-frames", type=int, default=6)
     parser.add_argument("--counterfactual-pulse-start-offset-frames", type=int, default=0)
+    parser.add_argument(
+        "--guidance-fixed-action",
+        choices=GUIDANCE_ACTIONS,
+        help="Use one deterministic Guidance action instead of loading a selector bundle.",
+    )
+    parser.add_argument("--guidance-confidence-threshold", type=float, default=0.65)
+    parser.add_argument("--guidance-minimum-hold-frames", type=int, default=18)
+    parser.add_argument("--guidance-maximum-active-frames", type=int, default=90)
+    parser.add_argument("--guidance-cooldown-frames", type=int, default=30)
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
         "--bt-turn-throttle-mode",
@@ -152,7 +180,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0, guidance_fixed_action: str | None = None, guidance_confidence_threshold: float = 0.65, guidance_minimum_hold_frames: int = 18, guidance_maximum_active_frames: int = 90, guidance_cooldown_frames: int = 30):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -239,6 +267,34 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             safety_veto=safety_veto,
             composition_mode=residual_composition,
         )
+    if backend == "guidance_selector":
+        if guidance_fixed_action:
+            selector = FixedGuidanceSelector(guidance_fixed_action)
+        elif bundle_dir:
+            selector = NumpyMLPGuidanceSelector(bundle_dir)
+        else:
+            raise ValueError(
+                f"--{side}-bundle-dir or --guidance-fixed-action is required "
+                "when backend=guidance_selector"
+            )
+        return GuidanceSelectorActionProvider(
+            BTActionProvider(
+                dll_name=bt_dll,
+                enable_turn_throttle_optimization=bt_turn_throttle_mode == "optimized",
+            ),
+            selector,
+            runtime_config=GuidanceRuntimeConfig(
+                selector_action_repeat_frames=rl_action_repeat,
+                minimum_action_hold_frames=guidance_minimum_hold_frames,
+                maximum_active_frames=guidance_maximum_active_frames,
+                cooldown_frames=guidance_cooldown_frames,
+                confidence_threshold=guidance_confidence_threshold,
+            ),
+            rear120_config=rear120_gate,
+            aim_config=aim_gate,
+            offensive_config=offensive_gate,
+            safety_config=safety_veto,
+        )
     raise ValueError(f"Unsupported backend: {backend}")
 
 
@@ -258,6 +314,9 @@ def _json_default(value):
 
 def main():
     args = parse_args()
+    if "guidance_selector" in (args.ownship_backend, args.target_backend):
+        if args.observation_mode != "tactical16" or args.observation_module:
+            raise ValueError("guidance_selector local runtime requires builtin tactical16")
     observation_hook = load_observation_hook(args.observation_module) if args.observation_module else None
     offensive_gate = OffensiveGateConfig(
         min_range_m=args.offensive_min_range_m,
@@ -325,6 +384,11 @@ def main():
         counterfactual_pulse_magnitude=args.counterfactual_pulse_magnitude,
         counterfactual_pulse_frames=args.counterfactual_pulse_frames,
         counterfactual_pulse_start_offset_frames=args.counterfactual_pulse_start_offset_frames,
+        guidance_fixed_action=args.guidance_fixed_action,
+        guidance_confidence_threshold=args.guidance_confidence_threshold,
+        guidance_minimum_hold_frames=args.guidance_minimum_hold_frames,
+        guidance_maximum_active_frames=args.guidance_maximum_active_frames,
+        guidance_cooldown_frames=args.guidance_cooldown_frames,
     )
     target_provider = build_provider(
         side="target",
@@ -350,9 +414,14 @@ def main():
         counterfactual_pulse_magnitude=args.counterfactual_pulse_magnitude,
         counterfactual_pulse_frames=args.counterfactual_pulse_frames,
         counterfactual_pulse_start_offset_frames=args.counterfactual_pulse_start_offset_frames,
+        guidance_fixed_action=args.guidance_fixed_action,
+        guidance_confidence_threshold=args.guidance_confidence_threshold,
+        guidance_minimum_hold_frames=args.guidance_minimum_hold_frames,
+        guidance_maximum_active_frames=args.guidance_maximum_active_frames,
+        guidance_cooldown_frames=args.guidance_cooldown_frames,
     )
 
-    with activate_rule_xml(
+    with preserve_runtime_file(ROOT / "aircraft" / "f16" / "f16_init.xml"), activate_rule_xml(
         args.bt_rule_xml,
         ROOT,
         aliases=args.bt_rule_alias,

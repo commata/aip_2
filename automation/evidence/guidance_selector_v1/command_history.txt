@@ -1,0 +1,7 @@
+python automation/evaluate_guidance_counterfactual.py
+python automation/train_guidance_selector_bc.py
+python automation/build_guidance_rule_distilled.py
+python automation/evaluate_guidance_development.py --include-rule-distilled
+python automation/evaluate_guidance_200s.py
+python automation/verify_guidance_200s.py
+python automation/freeze_guidance_submission.py
