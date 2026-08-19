@@ -534,6 +534,7 @@ class GuidanceSelectorActionProvider(ActionProvider):
         self._requested_abs_sum = np.zeros(3, dtype=np.float64)
         self._applied_abs_sum = np.zeros(3, dtype=np.float64)
         self._throttle_violation_steps = 0
+        self._first_selector_snapshot: dict = {}
         self._last_frame: dict = {}
 
     def _fallback(
@@ -652,6 +653,17 @@ class GuidanceSelectorActionProvider(ActionProvider):
                 action_id = 0
             self._current_action_id = action_id
             self._action_hold_frames = 0
+            if not self._first_selector_snapshot:
+                self._first_selector_snapshot = {
+                    "sim_time_s": float(context.info.get("sim_time_s", 0.0)),
+                    "observation": observation.tolist(),
+                    "selected_action_id": int(action_id),
+                    "selected_action": GUIDANCE_ACTIONS[action_id],
+                    "confidence": float(confidence),
+                    "base_guidance": asdict(base),
+                    "gate": dict(gate_info),
+                    "bt_action": bt_action.tolist(),
+                }
 
         action_id = self._current_action_id
         self._action_hold_frames += 1
@@ -738,6 +750,7 @@ class GuidanceSelectorActionProvider(ActionProvider):
             "applied_guidance_surface_abs_sum": self._applied_abs_sum.tolist(),
             "throttle_violation_steps": self._throttle_violation_steps,
             "fallback_counts": dict(self._fallback_counts),
+            "first_selector_snapshot": dict(self._first_selector_snapshot),
             "last_frame": dict(self._last_frame),
         }
 
