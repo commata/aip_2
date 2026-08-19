@@ -27,6 +27,12 @@ def test_v4_manifest_freezes_phase0_contract() -> None:
     ]
     assert manifest["tactical_action_space"]["throttle"] == "EXACT_PURE_BT_ONLY"
     assert manifest["counterfactual"]["causal_truth"] == "PREFIX_REPLAY"
+    assert "RESTART_STATE_CAUSAL_INVALID" in manifest["counterfactual"]["restart_state_use"]
+    assert manifest["noise_floor"] == {
+        "status": "DETERMINISTIC_REPEAT_NOISE_ZERO",
+        "epsilon": 1e-9,
+        "large_regression_threshold": 1e-6,
+    }
     assert manifest["promotion"]["submission_freeze_allowed"] is False
     assert manifest["promotion"]["held_out_opened"] is False
     assert manifest["promotion"]["ppo_allowed"] is False

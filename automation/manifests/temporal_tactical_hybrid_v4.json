@@ -69,7 +69,11 @@
   },
   "counterfactual": {
     "causal_truth": "PREFIX_REPLAY",
-    "restart_state_use": "AUDIT_ONLY_UNTIL_PARITY_PROVEN",
+    "restart_state_use": "RESTART_STATE_CAUSAL_INVALID; NEVER_USE_FOR_LABELS",
+    "fidelity_evidence": "automation/evidence/temporal_tactical_hybrid_v4/prefix_fidelity_vertical_high_s71001_v1/evaluation.json",
+    "raw_fidelity_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/prefix_fidelity_vertical_high_s71001_v1",
+    "prefix_replay_parity": "PASSED_180_FRAMES_EXACT",
+    "bt_default_override_parity": "PASSED_180_FRAMES_EXACT",
     "horizons_seconds": [1, 2, 4, 8, 12, "terminal"],
     "required_prefix_fields": [
       "frame",
@@ -82,9 +86,9 @@
     ]
   },
   "noise_floor": {
-    "status": "PENDING_MEASUREMENT",
-    "epsilon": null,
-    "large_regression_threshold": null
+    "status": "DETERMINISTIC_REPEAT_NOISE_ZERO",
+    "epsilon": 1e-09,
+    "large_regression_threshold": 1e-06
   },
   "temporal_observation": {
     "contract": "guidance_selector_server_temporal_v4",

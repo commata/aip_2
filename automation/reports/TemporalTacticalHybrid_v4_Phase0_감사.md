@@ -44,6 +44,10 @@ T1은 `BT_DEFAULT`, server-visible state 기반 Pure pursuit, velocity-extrapola
 
 v3의 reconstructed 7D restart는 body velocity, angular rate, surface/engine state를 보존하지 않는다. v4에서는 이를 causal truth로 사용하지 않는다. 동일 initial scenario/seed를 frame N 직전까지 Pure BT로 재생하는 prefix replay만 causal label 생성에 사용한다. 먼저 Pure A/B와 `BT_DEFAULT` override parity를 검증하고, reconstructed restart는 원 continuation과의 fidelity audit 결과만 기록한다.
 
+실제 `vertical_high`, seed 71001, decision frame 60 감사에서 Pure A/B와 `BT_DEFAULT` override는 180 frame 전체 position/attitude/speed/action/VP/Damage가 exact parity였다. Pure repeat Damage range는 0이므로 초기 meaningful epsilon을 `1e-9`, large regression threshold를 `1e-6`으로 동결했다.
+
+같은 decision state를 7D position/attitude/speed로 다시 시작한 trajectory는 원 continuation과 59 aligned frame 안에 ownship position 49.4219m, attitude 11.529°, speed 40.435m/s, BT action 1.22506, BT VP 50.6757m까지 벌어졌다. 따라서 상태는 `RESTART_STATE_CAUSAL_INVALID`이며 reconstructed restart를 v4 causal label 생성에 사용하지 않는다.
+
 ## 현재 상태
 
 - `IN_PROGRESS`
