@@ -141,6 +141,11 @@ def parse_args():
     parser.add_argument("--guidance-minimum-hold-frames", type=int, default=18)
     parser.add_argument("--guidance-maximum-active-frames", type=int, default=90)
     parser.add_argument("--guidance-cooldown-frames", type=int, default=30)
+    parser.add_argument(
+        "--guidance-shadow-mode",
+        action="store_true",
+        help="Run selector and telemetry while returning exact Pure BT commands.",
+    )
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
         "--bt-turn-throttle-mode",
@@ -194,7 +199,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0, guidance_fixed_action: str | None = None, guidance_action_config: GuidanceActionConfig | None = None, guidance_controller_config: GuidanceControllerConfig | None = None, guidance_confidence_threshold: float = 0.65, guidance_minimum_hold_frames: int = 18, guidance_maximum_active_frames: int = 90, guidance_cooldown_frames: int = 30):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0, guidance_fixed_action: str | None = None, guidance_action_config: GuidanceActionConfig | None = None, guidance_controller_config: GuidanceControllerConfig | None = None, guidance_confidence_threshold: float = 0.65, guidance_minimum_hold_frames: int = 18, guidance_maximum_active_frames: int = 90, guidance_cooldown_frames: int = 30, guidance_shadow_mode: bool = False):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -305,6 +310,7 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
                 maximum_active_frames=guidance_maximum_active_frames,
                 cooldown_frames=guidance_cooldown_frames,
                 confidence_threshold=guidance_confidence_threshold,
+                shadow_mode=guidance_shadow_mode,
             ),
             rear120_config=rear120_gate,
             aim_config=aim_gate,
@@ -418,6 +424,7 @@ def main():
         guidance_minimum_hold_frames=args.guidance_minimum_hold_frames,
         guidance_maximum_active_frames=args.guidance_maximum_active_frames,
         guidance_cooldown_frames=args.guidance_cooldown_frames,
+        guidance_shadow_mode=args.guidance_shadow_mode,
     )
     target_provider = build_provider(
         side="target",
@@ -450,6 +457,7 @@ def main():
         guidance_minimum_hold_frames=args.guidance_minimum_hold_frames,
         guidance_maximum_active_frames=args.guidance_maximum_active_frames,
         guidance_cooldown_frames=args.guidance_cooldown_frames,
+        guidance_shadow_mode=args.guidance_shadow_mode,
     )
 
     with preserve_runtime_file(ROOT / "aircraft" / "f16" / "f16_init.xml"), activate_rule_xml(
