@@ -282,7 +282,11 @@ def paired_case(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Paired evaluation for Temporal Tactical v4")
-    parser.add_argument("--stage", choices=("MICRO", "SHORT_DEVELOPMENT", "OFFICIAL_DEVELOPMENT"), required=True)
+    parser.add_argument(
+        "--stage",
+        choices=("MICRO", "SHORT_DEVELOPMENT", "OFFICIAL_DEVELOPMENT", "HELD_OUT"),
+        required=True,
+    )
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--pure-bt-dll", type=Path, required=True)
     parser.add_argument("--pure-bt-xml", type=Path, required=True)
@@ -342,6 +346,7 @@ def main() -> None:
         "MICRO": "SHADOW_GATE_PASSED",
         "SHORT_DEVELOPMENT": "MICRO_GATE_PASSED",
         "OFFICIAL_DEVELOPMENT": "SHORT_DEVELOPMENT_GATE_PASSED",
+        "HELD_OUT": "OFFICIAL_DEVELOPMENT_GATE_PASSED",
     }[args.stage]
     prior = json.loads(args.prior_summary.resolve().read_text(encoding="utf-8"))
     if prior.get("decision") != expected_prior:

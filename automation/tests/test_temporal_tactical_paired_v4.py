@@ -54,3 +54,12 @@ def test_opponent_expansion_creates_distinct_paired_cases() -> None:
         ("c1", "pastel"),
         ("c2", "pastel"),
     }
+
+
+def test_heldout_uses_final_paired_damage_gates() -> None:
+    rows = [_row(0.01) for _ in range(7)] + [_row(-0.001) for _ in range(3)]
+    summary = summarize_pairs(rows, stage="HELD_OUT", minimum_clean_pairs=10)
+    assert summary["gate"]["damage_mean_positive"] is True
+    assert summary["gate"]["damage_median_positive"] is True
+    assert summary["gate"]["positive_pair_ratio_at_least_60pct"] is True
+    assert summary["decision"] == "HELD_OUT_GATE_PASSED"
