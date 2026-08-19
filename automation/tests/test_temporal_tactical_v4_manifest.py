@@ -38,6 +38,9 @@ def test_v4_manifest_freezes_phase0_contract() -> None:
     assert manifest["promotion"]["ppo_allowed"] is False
     assert manifest["pure_bt_decision_events"]["unique_events"] >= 300
     assert manifest["pure_bt_decision_events"]["diagnostic_taxonomy_is_label"] is False
+    assert manifest["tactical_oracle"]["status"] == "DISCOVERY_POSITIVE_REVALIDATION_REQUIRED"
+    assert manifest["tactical_oracle"]["independent_revalidation_target_events"] >= 36
+    assert manifest["tactical_oracle"]["risk_head_required"] is True
 
 
 def test_v4_hashes_match_frozen_contract() -> None:

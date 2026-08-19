@@ -111,6 +111,20 @@
     "summary": "automation/evidence/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1/summary.json",
     "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1"
   },
+  "tactical_oracle": {
+    "status": "DISCOVERY_POSITIVE_REVALIDATION_REQUIRED",
+    "action_space_level": "T1",
+    "discovery_events": 12,
+    "clean_pairs": 108,
+    "oracle_nondefault_coverage": 0.6666666666666666,
+    "oracle_intervention_mean": 0.005152164147738593,
+    "overall_policy_value": 0.0034347760984923953,
+    "positive_geometry_count": 7,
+    "large_regression_pairs": 50,
+    "risk_head_required": true,
+    "independent_revalidation_target_events": 36,
+    "summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_v2/summary.json"
+  },
   "promotion": {
     "submission_freeze_allowed": false,
     "held_out_opened": false,
