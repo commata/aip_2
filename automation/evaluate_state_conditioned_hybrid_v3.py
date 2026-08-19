@@ -13,8 +13,6 @@ import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PURE_DLL = Path("C:/Users/shy66/Downloads/aip_final_0815/aip_final_0815/AIP_DCS_GDCC_0815.dll")
-PURE_XML = Path("C:/Users/shy66/Downloads/aip_final_0815/aip_final_0815/Rule_DCS_GDCC_0815.xml")
 GEOMETRIES = (
     "lateral_left",
     "lateral_right",
@@ -77,7 +75,13 @@ def materialize_scenario(case: dict[str, Any], path: Path) -> None:
 
 
 def _command(
-    case: dict[str, Any], scenario: Path, result: Path, *, bundle: Path | None
+    case: dict[str, Any],
+    scenario: Path,
+    result: Path,
+    *,
+    bundle: Path | None,
+    pure_dll: Path,
+    pure_xml: Path,
 ) -> list[str]:
     stage = case["stage"]
     max_seconds = 8 if stage in {"shadow", "micro"} else 30
@@ -86,8 +90,8 @@ def _command(
         str(ROOT / "run_local_dogfight.py"),
         "--ownship-backend", "bt" if bundle is None else "guidance_selector",
         "--target-backend", "autopilot" if case["opponent"] == "autopilot" else "bt",
-        "--ownship-bt-dll", str(PURE_DLL),
-        "--bt-rule-xml", str(PURE_XML),
+        "--ownship-bt-dll", str(pure_dll),
+        "--bt-rule-xml", str(pure_xml),
         "--bt-rule-alias", "Rule_DCS_GDCC_0815.xml",
         "--bt-rule-alias-only",
         "--bt-turn-throttle-mode", "raw",
@@ -99,7 +103,7 @@ def _command(
         "--result-json", str(result),
     ]
     if case["opponent"] == "bt_0815":
-        command.extend(["--target-bt-dll", str(PURE_DLL)])
+        command.extend(["--target-bt-dll", str(pure_dll)])
     if bundle is not None:
         command.extend(
             [
@@ -118,7 +122,13 @@ def _command(
 
 
 def run_case(
-    case: dict[str, Any], output: Path, *, bundle: Path | None, timeout_s: float = 120.0
+    case: dict[str, Any],
+    output: Path,
+    *,
+    bundle: Path | None,
+    pure_dll: Path,
+    pure_xml: Path,
+    timeout_s: float = 120.0,
 ) -> dict[str, Any]:
     controller = "pure" if bundle is None else ("shadow" if case["stage"] == "shadow" else "hybrid")
     case_root = output / "runs" / case["case_id"]
@@ -130,7 +140,14 @@ def run_case(
         return json.loads(result_path.read_text(encoding="utf-8"))
     started = perf_counter()
     completed = subprocess.run(
-        _command(case, scenario, result_path, bundle=bundle),
+        _command(
+            case,
+            scenario,
+            result_path,
+            bundle=bundle,
+            pure_dll=pure_dll,
+            pure_xml=pure_xml,
+        ),
         cwd=ROOT,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -269,16 +286,32 @@ def summarize(records: list[dict[str, Any]], stage: str) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate State-Conditioned Hybrid v3")
     parser.add_argument("--bundle", type=Path, required=True)
+    parser.add_argument("--pure-bt-dll", type=Path, required=True)
+    parser.add_argument("--pure-bt-xml", type=Path, required=True)
     parser.add_argument("--stage", choices=tuple(STAGE_VARIANTS), required=True)
     parser.add_argument("--output-root", type=Path)
     args = parser.parse_args()
     output = (args.output_root or ROOT / "artifacts/evaluations/state_conditioned_hybrid_v3" / args.stage).resolve()
     bundle = args.bundle.resolve()
+    pure_dll = args.pure_bt_dll.resolve()
+    pure_xml = args.pure_bt_xml.resolve()
     records = []
     cases = evaluation_cases(args.stage)
     for index, case in enumerate(cases, start=1):
         for controller_bundle, controller in ((None, "pure"), (bundle, "shadow" if args.stage == "shadow" else "hybrid")):
-            records.append(compact(case, controller, run_case(case, output, bundle=controller_bundle)))
+            records.append(
+                compact(
+                    case,
+                    controller,
+                    run_case(
+                        case,
+                        output,
+                        bundle=controller_bundle,
+                        pure_dll=pure_dll,
+                        pure_xml=pure_xml,
+                    ),
+                )
+            )
         progress = {"completed_pairs": index, "total_pairs": len(cases)}
         (output / "progress.json").write_text(json.dumps(progress, indent=2), encoding="utf-8")
         print(json.dumps(progress), flush=True)

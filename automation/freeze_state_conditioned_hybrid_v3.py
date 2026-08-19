@@ -33,8 +33,6 @@ from dogfight.envs.observation import OFFICIAL_DAMAGE_PHASES
 from dogfight.submission.guidance_config import load_guidance_submission_config
 
 
-PURE_DLL = Path("C:/Users/shy66/Downloads/aip_final_0815/aip_final_0815/AIP_DCS_GDCC_0815.dll")
-PURE_XML = Path("C:/Users/shy66/Downloads/aip_final_0815/aip_final_0815/Rule_DCS_GDCC_0815.xml")
 PURE_DLL_SHA = "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9"
 PURE_XML_SHA = "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
 SUBMISSION_NAME = "state_conditioned_hybrid_v3"
@@ -186,9 +184,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Freeze promoted State-Conditioned Hybrid v3")
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--dataset-manifest", type=Path, required=True)
+    parser.add_argument("--pure-bt-dll", type=Path, required=True)
+    parser.add_argument("--pure-bt-xml", type=Path, required=True)
     for stage in ("shadow", "micro", "development", "heldout"):
         parser.add_argument(f"--{stage}-aggregate", type=Path, required=True)
     args = parser.parse_args()
+    pure_dll = args.pure_bt_dll.resolve()
+    pure_xml = args.pure_bt_xml.resolve()
     model_dir = args.model_dir.resolve()
     model_metadata = json.loads((model_dir / "metadata.json").read_text(encoding="utf-8"))
     evaluations = {
@@ -198,7 +200,7 @@ def main() -> None:
     gates = promotion_prerequisites(model_metadata, evaluations)
     if not gates["all_passed"]:
         raise RuntimeError(f"refusing to freeze unpromoted v3 candidate: {gates}")
-    if sha256(PURE_DLL) != PURE_DLL_SHA or sha256(PURE_XML) != PURE_XML_SHA:
+    if sha256(pure_dll) != PURE_DLL_SHA or sha256(pure_xml) != PURE_XML_SHA:
         raise RuntimeError("Pure BT Champion hash mismatch")
 
     bundle = SUBMISSION_ROOT / "bundle"
@@ -207,8 +209,8 @@ def main() -> None:
     bt.mkdir(parents=True, exist_ok=True)
     shutil.copy2(model_dir / "model.npz", bundle / "model.npz")
     shutil.copy2(model_dir / "metadata.json", bundle / "metadata.json")
-    shutil.copy2(PURE_DLL, bt / "AIP_DCS_GDCC_0815.dll")
-    shutil.copy2(PURE_XML, bt / "Rule_DCS_GDCC_0815.xml")
+    shutil.copy2(pure_dll, bt / "AIP_DCS_GDCC_0815.dll")
+    shutil.copy2(pure_xml, bt / "Rule_DCS_GDCC_0815.xml")
     model_sha = sha256(bundle / "model.npz")
     if model_sha != model_metadata["model_sha256"]:
         raise RuntimeError("copied model hash mismatch")
