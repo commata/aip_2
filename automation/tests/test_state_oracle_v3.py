@@ -43,6 +43,16 @@ def test_state_hash_is_canonical_and_sensitive_to_elapsed_state():
     assert first != changed
 
 
+def test_state_hash_ignores_cosmetic_scenario_name():
+    first_scenario = scenario()
+    second_scenario = scenario()
+    first_scenario["name"] = "display_a"
+    second_scenario["name"] = "display_b"
+    first, _ = canonical_state_hash(first_scenario, [0.0] * 42, 1.0)
+    second, _ = canonical_state_hash(second_scenario, [0.0] * 42, 1.0)
+    assert first == second
+
+
 def test_action_encoding_is_factorized_not_categorical():
     encoded = encode_action("VP_AZ_NEG_SMALL", 0.25, 18)
     assert encoded["axis_one_hot"] == [0.0, 1.0, 0.0]

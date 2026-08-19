@@ -101,7 +101,9 @@ def canonical_state_hash(
     scenario: dict[str, Any], server_observation: Iterable[float], sim_time_s: float
 ) -> tuple[str, dict[str, Any]]:
     payload = {
-        "scenario": scenario,
+        # Evaluator display names are provenance, not physical state. Excluding
+        # them prevents renamed replicas from inflating the independent-state count.
+        "scenario_env_config": scenario["env_config"],
         "sim_time_s": round(float(sim_time_s), 9),
         "server_observation": [round(float(value), 8) for value in server_observation],
     }
