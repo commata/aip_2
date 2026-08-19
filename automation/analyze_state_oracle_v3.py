@@ -340,7 +340,13 @@ def analyze_oracle(states: list[dict[str, Any]], rows: list[dict[str, Any]]) -> 
         )
     eligible_static = [row for row in static if row["coverage_states"] >= 30]
     best_static = max(eligible_static, key=lambda row: (row["mean"], row["coverage_states"]))
-    best_static_states = {row["state_hash"] for row in by_candidate[best_static["candidate_id"]]}
+    majority_static = [row for row in static if row["coverage_ratio"] >= 0.5]
+    best_majority_static = max(
+        majority_static, key=lambda row: (row["mean"], row["coverage_states"])
+    )
+    best_static_states = {
+        row["state_hash"] for row in by_candidate[best_majority_static["candidate_id"]]
+    }
     oracle_shared = [
         row["oracle_damage_delta"] for row in oracle_rows if row["state_hash"] in best_static_states
     ]
@@ -366,7 +372,7 @@ def analyze_oracle(states: list[dict[str, Any]], rows: list[dict[str, Any]]) -> 
     oracle_metrics["coverage_ratio"] = len(oracle_values) / len(states)
     oracle_metrics["default_optimal_ratio"] = default_optimal / len(states)
     family_count = sum(count > 0 for count in family_positive.values())
-    shared_gap = float(oracle_shared_metrics["mean"] - best_static["mean"])
+    shared_gap = float(oracle_shared_metrics["mean"] - best_majority_static["mean"])
     feasible = (
         oracle_metrics["mean"] > 0.0
         and oracle_metrics["median"] > 0.0
@@ -396,6 +402,7 @@ def analyze_oracle(states: list[dict[str, Any]], rows: list[dict[str, Any]]) -> 
         "oracle": oracle_metrics,
         "oracle_rows": oracle_rows,
         "best_static_min_30_states": best_static,
+        "best_static_majority_coverage": best_majority_static,
         "oracle_on_best_static_states": oracle_shared_metrics,
         "oracle_mean_gap_over_static_on_shared_states": shared_gap,
         "geometry_rule_in_sample_diagnostic": {
@@ -514,9 +521,10 @@ def write_outputs(
         "",
         "## Best Static 비교",
         "",
-        f"- candidate: `{static['candidate_id']}`",
-        f"- coverage: {static['coverage_states']}/{len(states)} ({static['coverage_ratio']:.2%})",
-        f"- ΔDamage mean/median/positive: {static['mean']:.9f} / {static['median']:.9f} / {static['positive_ratio']:.2%}",
+        f"- 30-state minimum candidate: `{static['candidate_id']}` (coverage {static['coverage_ratio']:.2%})",
+        f"- majority-coverage candidate: `{analysis['best_static_majority_coverage']['candidate_id']}`",
+        f"- majority coverage: {analysis['best_static_majority_coverage']['coverage_states']}/{len(states)} ({analysis['best_static_majority_coverage']['coverage_ratio']:.2%})",
+        f"- majority-static ΔDamage mean/median/positive: {analysis['best_static_majority_coverage']['mean']:.9f} / {analysis['best_static_majority_coverage']['median']:.9f} / {analysis['best_static_majority_coverage']['positive_ratio']:.2%}",
         f"- 같은 state에서 Oracle mean gap: {analysis['oracle_mean_gap_over_static_on_shared_states']:.9f}",
         "",
         "## 해석 주의",
