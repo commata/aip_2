@@ -148,6 +148,7 @@ def run_one(
     dll: Path,
     xml: Path,
     episode_frames: int,
+    opponent: dict[str, Any],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     run.mkdir(parents=True)
     scenario_path = run / "scenario.json"
@@ -160,7 +161,7 @@ def run_one(
         "--ownship-backend",
         backend,
         "--target-backend",
-        "autopilot",
+        str(opponent["backend"]),
         "--ownship-bt-dll",
         str(dll),
         "--bt-rule-xml",
@@ -196,6 +197,10 @@ def run_one(
         )
     else:
         command.extend(["--ownship-bundle-dir", str(bundle)])
+    if opponent["backend"] == "bt":
+        command.extend(["--target-bt-dll", str(opponent["dll"])])
+        if opponent.get("xml"):
+            command.extend(["--target-bt-rule-xml", str(opponent["xml"])])
     env = os.environ.copy()
     env["PYTHONPATH"] = os.pathsep.join((str(ROOT / "src"), str(ROOT)))
     completed = subprocess.run(
@@ -215,9 +220,11 @@ def run_one(
 
 
 def paired_case(
-    case: dict[str, Any], *, output: Path, bundle: Path, dll: Path, xml: Path, episode_frames: int
+    case: dict[str, Any], *, output: Path, bundle: Path, dll: Path, xml: Path,
+    episode_frames: int, opponent: dict[str, Any]
 ) -> dict[str, Any]:
-    root = output / "runs" / case["case_id"]
+    evaluation_id = f"{case['case_id']}__vs_{opponent['id']}"
+    root = output / "runs" / evaluation_id
     pure_result, pure_frames = run_one(
         label="pure",
         backend="prefix_tactical",
@@ -228,6 +235,7 @@ def paired_case(
         dll=dll,
         xml=xml,
         episode_frames=episode_frames,
+        opponent=opponent,
     )
     hybrid_result, hybrid_frames = run_one(
         label="hybrid",
@@ -239,6 +247,7 @@ def paired_case(
         dll=dll,
         xml=xml,
         episode_frames=episode_frames,
+        opponent=opponent,
     )
     pure = outcome(pure_result, pure_frames)
     hybrid = outcome(hybrid_result, hybrid_frames)
@@ -246,8 +255,9 @@ def paired_case(
     contaminated = bool(pure["target_crash"] or hybrid["target_crash"])
     return {
         "case_id": case["case_id"],
+        "evaluation_id": evaluation_id,
         "geometry": case["geometry"],
-        "opponent": case["opponent"],
+        "opponent": opponent["id"],
         "seed": case["seed"],
         "clean": not contaminated,
         "target_crash_contaminated": contaminated,
@@ -281,7 +291,49 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--pair-count", type=int, required=True)
     parser.add_argument("--episode-frames", type=int, required=True)
+    parser.add_argument(
+        "--opponent-config",
+        type=Path,
+        help="Optional JSON list of opponent specs: id/backend and BT dll/xml paths.",
+    )
     return parser.parse_args()
+
+
+def load_opponents(path: Path | None) -> list[dict[str, Any]]:
+    if path is None:
+        return [{"id": "autopilot", "backend": "autopilot"}]
+    payload = json.loads(path.resolve().read_text(encoding="utf-8"))
+    values = payload.get("opponents", payload) if isinstance(payload, dict) else payload
+    if not isinstance(values, list) or not values:
+        raise ValueError("opponent config must contain a non-empty list")
+    opponents = []
+    for raw in values:
+        row = dict(raw)
+        if row.get("backend") not in ("autopilot", "bt") or not row.get("id"):
+            raise ValueError("each opponent requires id and backend=autopilot|bt")
+        if row["backend"] == "bt":
+            if not row.get("dll"):
+                raise ValueError("BT opponent requires dll")
+            row["dll"] = str(Path(row["dll"]).resolve())
+            if row.get("xml"):
+                row["xml"] = str(Path(row["xml"]).resolve())
+        opponents.append(row)
+    ids = [row["id"] for row in opponents]
+    if len(ids) != len(set(ids)):
+        raise ValueError("opponent ids must be unique")
+    return opponents
+
+
+def expand_cases(
+    cases: list[dict[str, Any]], opponents: list[dict[str, Any]]
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    expanded = [(case, opponent) for opponent in opponents for case in cases]
+    return sorted(
+        expanded,
+        key=lambda item: hashlib.sha256(
+            f"{item[0]['geometry']}|{item[0]['case_id']}|{item[1]['id']}".encode()
+        ).hexdigest(),
+    )
 
 
 def main() -> None:
@@ -308,15 +360,13 @@ def main() -> None:
     for suite_path in args.suite:
         cases.extend(json.loads(suite_path.resolve().read_text(encoding="utf-8"))["cases"])
     unique = {case["case_id"]: case for case in cases}
-    ordered = sorted(
-        unique.values(),
-        key=lambda row: hashlib.sha256(f"{row['geometry']}|{row['case_id']}".encode()).hexdigest(),
-    )
+    opponents = load_opponents(args.opponent_config)
+    ordered = expand_cases(list(unique.values()), opponents)
     if len(ordered) < args.pair_count:
         raise ValueError("insufficient unique scenarios for requested paired evaluation")
     output.mkdir(parents=True)
     rows = []
-    for index, case in enumerate(ordered[: args.pair_count], start=1):
+    for index, (case, opponent) in enumerate(ordered[: args.pair_count], start=1):
         rows.append(
             paired_case(
                 case,
@@ -325,6 +375,7 @@ def main() -> None:
                 dll=dll,
                 xml=xml,
                 episode_frames=args.episode_frames,
+                opponent=opponent,
             )
         )
         print(json.dumps({"completed": index, "total": args.pair_count}), flush=True)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from automation.evaluate_temporal_tactical_paired_v4 import summarize_pairs
+from automation.evaluate_temporal_tactical_paired_v4 import expand_cases, summarize_pairs
 
 
 def _row(delta: float, *, intervention: int = 1) -> dict:
@@ -35,3 +35,22 @@ def test_development_requires_positive_median_and_pair_ratio() -> None:
     assert summary["gate"]["positive_pair_ratio_at_least_60pct"] is True
     assert summary["gate"]["opponent_coverage_at_least_3"] is False
     assert summary["gate"]["phase1_2_3_flight_coverage"] is False
+
+
+def test_opponent_expansion_creates_distinct_paired_cases() -> None:
+    cases = [
+        {"case_id": "c1", "geometry": "left"},
+        {"case_id": "c2", "geometry": "right"},
+    ]
+    opponents = [
+        {"id": "autopilot", "backend": "autopilot"},
+        {"id": "pastel", "backend": "bt", "dll": "pastel.dll"},
+    ]
+    expanded = expand_cases(cases, opponents)
+    assert len(expanded) == 4
+    assert {(case["case_id"], opponent["id"]) for case, opponent in expanded} == {
+        ("c1", "autopilot"),
+        ("c2", "autopilot"),
+        ("c1", "pastel"),
+        ("c2", "pastel"),
+    }
