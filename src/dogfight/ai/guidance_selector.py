@@ -94,19 +94,29 @@ class GuidanceActionConfig:
 
 @dataclass(frozen=True)
 class GuidanceControllerConfig:
+    kind: str = "fixed_action_v1"
     roll_per_angular_action: float = 0.04
     pitch_per_angular_action: float = 0.04
     yaw_per_angular_action: float = 0.02
     pitch_per_range_action: float = 0.01
     pitch_per_speed_action: float = 0.02
     maximum_surface_correction: float = 0.08
+    roll_per_azimuth_degree: float = 0.08
+    pitch_per_elevation_degree: float = 0.08
+    yaw_per_azimuth_degree: float = 0.04
+    los_rate_damping_per_deg_s: float = 0.001
+    minimum_dynamic_pressure_scale: float = 0.5
 
     def validate(self) -> None:
-        values = tuple(asdict(self).values())
+        if self.kind not in {"fixed_action_v1", "vp_error_pd_v2"}:
+            raise ValueError("unsupported Guidance controller kind")
+        values = tuple(value for key, value in asdict(self).items() if key != "kind")
         if any(not np.isfinite(value) or value < 0.0 for value in values):
             raise ValueError("Guidance controller gains must be finite and non-negative")
         if not 0.0 < self.maximum_surface_correction <= 0.15:
             raise ValueError("maximum surface correction must be in (0, 0.15]")
+        if not 0.0 < self.minimum_dynamic_pressure_scale <= 1.0:
+            raise ValueError("minimum dynamic-pressure scale must be in (0, 1]")
 
 
 @dataclass(frozen=True)
@@ -332,26 +342,87 @@ def guidance_to_surface_action(
     corrected: GuidanceSetpoint,
     action_config: GuidanceActionConfig | None = None,
     controller_config: GuidanceControllerConfig | None = None,
+    *,
+    ownship_state=None,
+    target_state=None,
 ) -> tuple[np.ndarray, dict]:
     bt = clip_action(bt_action)
     action_cfg = action_config or GuidanceActionConfig()
     control_cfg = controller_config or GuidanceControllerConfig()
     action_cfg.validate()
     control_cfg.validate()
-    az_units = (corrected.local_azimuth_deg - base.local_azimuth_deg) / action_cfg.angular_offset_deg
-    el_units = (corrected.local_elevation_deg - base.local_elevation_deg) / action_cfg.angular_offset_deg
+    az_delta_deg = corrected.local_azimuth_deg - base.local_azimuth_deg
+    el_delta_deg = corrected.local_elevation_deg - base.local_elevation_deg
     range_units = (corrected.distance_m - base.distance_m) / action_cfg.range_offset_m
     speed_units = (corrected.target_speed_m_s - base.target_speed_m_s) / action_cfg.target_speed_offset_m_s
-    requested = np.array(
-        [
-            control_cfg.roll_per_angular_action * az_units,
-            control_cfg.pitch_per_angular_action * el_units
-            - control_cfg.pitch_per_range_action * range_units
-            - control_cfg.pitch_per_speed_action * speed_units,
-            control_cfg.yaw_per_angular_action * az_units,
-        ],
-        dtype=np.float32,
-    )
+    controller_diagnostics: dict[str, float | str] = {"kind": control_cfg.kind}
+    if control_cfg.kind == "fixed_action_v1":
+        az_units = az_delta_deg / action_cfg.angular_offset_deg
+        el_units = el_delta_deg / action_cfg.angular_offset_deg
+        requested = np.array(
+            [
+                control_cfg.roll_per_angular_action * az_units,
+                control_cfg.pitch_per_angular_action * el_units
+                - control_cfg.pitch_per_range_action * range_units
+                - control_cfg.pitch_per_speed_action * speed_units,
+                control_cfg.yaw_per_angular_action * az_units,
+            ],
+            dtype=np.float32,
+        )
+        controller_diagnostics.update(
+            {"azimuth_error_deg": az_delta_deg, "elevation_error_deg": el_delta_deg}
+        )
+    else:
+        if ownship_state is None or target_state is None:
+            raise ValueError("vp_error_pd_v2 requires ownship and target state")
+        own = np.asarray(ownship_state, dtype=np.float64)
+        target = np.asarray(target_state, dtype=np.float64)
+        geometry = aim_residual_geometry(own, target)
+
+        def damped(error: float, rate: float, gain: float) -> float:
+            if abs(error) <= 1e-12:
+                return 0.0
+            sign = float(np.sign(error))
+            moving_with_error = max(0.0, sign * rate)
+            magnitude = max(
+                0.0,
+                gain * abs(error)
+                - control_cfg.los_rate_damping_per_deg_s * moving_with_error,
+            )
+            return sign * magnitude
+
+        az_rate = float(geometry["los_azimuth_rate_deg_s"])
+        el_rate = float(geometry["los_elevation_rate_deg_s"])
+        speed = max(1.0, float(own[StateIndex.KCAS]))
+        altitude = max(0.0, float(own[StateIndex.ALT]))
+        dynamic_pressure_proxy = (speed / 220.0) ** 2 * np.exp(-altitude / 20000.0)
+        dynamic_scale = float(
+            np.clip(
+                0.75 / max(dynamic_pressure_proxy, 1e-6),
+                control_cfg.minimum_dynamic_pressure_scale,
+                1.0,
+            )
+        )
+        requested = dynamic_scale * np.array(
+            [
+                damped(az_delta_deg, az_rate, control_cfg.roll_per_azimuth_degree),
+                damped(el_delta_deg, el_rate, control_cfg.pitch_per_elevation_degree),
+                damped(az_delta_deg, az_rate, control_cfg.yaw_per_azimuth_degree),
+            ],
+            dtype=np.float32,
+        )
+        controller_diagnostics.update(
+            {
+                "azimuth_error_deg": float(az_delta_deg),
+                "elevation_error_deg": float(el_delta_deg),
+                "los_azimuth_rate_deg_s": az_rate,
+                "los_elevation_rate_deg_s": el_rate,
+                "dynamic_pressure_proxy": float(dynamic_pressure_proxy),
+                "dynamic_pressure_scale": dynamic_scale,
+                "ownship_roll_deg": float(own[StateIndex.ROLL]),
+                "ownship_pitch_deg": float(own[StateIndex.PITCH]),
+            }
+        )
     requested = np.clip(
         requested,
         -control_cfg.maximum_surface_correction,
@@ -368,6 +439,7 @@ def guidance_to_surface_action(
     nonzero = np.abs(requested) > 1e-12
     ratio[nonzero] = np.abs(applied[nonzero]) / np.abs(requested[nonzero])
     return final, {
+        **controller_diagnostics,
         "requested_surface_correction": requested.tolist(),
         "applied_surface_correction": (final[:3] - bt[:3]).tolist(),
         "applied_to_requested_ratio": ratio.tolist(),
@@ -684,6 +756,8 @@ class GuidanceSelectorActionProvider(ActionProvider):
             corrected,
             self.action_config,
             self.controller_config,
+            ownship_state=context.ownship_state,
+            target_state=context.target_state,
         )
         if final.shape != (4,) or not np.all(np.isfinite(final)):
             return self._fallback("controller_invalid", bt_action, gate_info)
