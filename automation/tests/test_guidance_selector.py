@@ -17,6 +17,7 @@ from dogfight.ai.guidance_selector import (
     GUIDANCE_SELECTOR_OBSERVATION_SIZE,
     FixedGuidanceSelector,
     FixedCompositeGuidanceSelector,
+    FixedRateAwareGuidanceSelector,
     GuidanceRuntimeConfig,
     GuidanceSelectorActionProvider,
     GuidanceSetpoint,
@@ -317,6 +318,15 @@ class GuidanceProviderTests(unittest.TestCase):
         corrected = result.info["corrected_guidance"]
         self.assertAlmostEqual(corrected["local_azimuth_deg"] - base["local_azimuth_deg"], 0.5)
         self.assertAlmostEqual(corrected["local_elevation_deg"] - base["local_elevation_deg"], -0.5)
+        self.assertEqual(result.action[3], provider.bt_provider.action[3])
+
+    def test_rate_aware_az_primitive_reduces_current_signed_error(self):
+        provider = self.provider(FixedRateAwareGuidanceSelector("REDUCE_AZ_ERROR"))
+        result = provider.compute_action(context())
+        self.assertEqual(result.info["selected_action"], "REDUCE_AZ_ERROR")
+        base = result.info["base_guidance"]
+        corrected = result.info["corrected_guidance"]
+        self.assertLess(corrected["local_azimuth_deg"] - base["local_azimuth_deg"], 0.0)
         self.assertEqual(result.action[3], provider.bt_provider.action[3])
 
     def test_exception_falls_back_to_exact_bt(self):

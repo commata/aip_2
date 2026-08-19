@@ -32,7 +32,9 @@ from dogfight.ai.hybrid_action_provider import (
 from dogfight.ai.guidance_selector import (
     GUIDANCE_ACTIONS,
     GUIDANCE_COMPOSITE_ACTIONS,
+    GUIDANCE_RATE_AWARE_ACTIONS,
     FixedCompositeGuidanceSelector,
+    FixedRateAwareGuidanceSelector,
     FixedGuidanceSelector,
     GuidanceActionConfig,
     GuidanceControllerConfig,
@@ -125,7 +127,7 @@ def parse_args():
     parser.add_argument("--counterfactual-pulse-start-offset-frames", type=int, default=0)
     parser.add_argument(
         "--guidance-fixed-action",
-        choices=(*GUIDANCE_ACTIONS, *GUIDANCE_COMPOSITE_ACTIONS),
+        choices=(*GUIDANCE_ACTIONS, *GUIDANCE_COMPOSITE_ACTIONS, *GUIDANCE_RATE_AWARE_ACTIONS),
         help="Use one deterministic Guidance action instead of loading a selector bundle.",
     )
     parser.add_argument("--guidance-confidence-threshold", type=float, default=0.65)
@@ -290,11 +292,12 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
         )
     if backend == "guidance_selector":
         if guidance_fixed_action:
-            selector = (
-                FixedCompositeGuidanceSelector(guidance_fixed_action)
-                if guidance_fixed_action in GUIDANCE_COMPOSITE_ACTIONS
-                else FixedGuidanceSelector(guidance_fixed_action)
-            )
+            if guidance_fixed_action in GUIDANCE_COMPOSITE_ACTIONS:
+                selector = FixedCompositeGuidanceSelector(guidance_fixed_action)
+            elif guidance_fixed_action in GUIDANCE_RATE_AWARE_ACTIONS:
+                selector = FixedRateAwareGuidanceSelector(guidance_fixed_action)
+            else:
+                selector = FixedGuidanceSelector(guidance_fixed_action)
         elif bundle_dir:
             selector = load_guidance_selector_bundle(bundle_dir)
         else:

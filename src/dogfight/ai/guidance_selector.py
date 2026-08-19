@@ -192,6 +192,25 @@ class FixedCompositeGuidanceSelector(FixedGuidanceSelector):
         self.axis_signs = (az_sign, el_sign)
 
 
+GUIDANCE_RATE_AWARE_ACTIONS = (
+    "REDUCE_AZ_ERROR",
+    "REDUCE_EL_ERROR",
+    "DAMP_AZ_RATE",
+    "DAMP_EL_RATE",
+)
+
+
+class FixedRateAwareGuidanceSelector(FixedGuidanceSelector):
+    """Diagnostic primitive whose bounded sign follows current server geometry."""
+
+    def __init__(self, action: str, confidence: float = 1.0):
+        if action not in GUIDANCE_RATE_AWARE_ACTIONS:
+            raise ValueError(f"unsupported rate-aware Guidance action: {action}")
+        super().__init__("VP_AZ_POS_SMALL" if "AZ" in action else "VP_EL_POS_SMALL", confidence)
+        self.action_name = action
+        self.dynamic_primitive = action
+
+
 class NumpyMLPGuidanceSelector:
     """Small categorical model with an auditable, dependency-light bundle."""
 
@@ -868,7 +887,28 @@ class GuidanceSelectorActionProvider(ActionProvider):
             return ActionResult(bt_action.copy(), "bt_guidance_selector_shadow", 1.0, frame)
 
         axis_signs = getattr(self.selector, "axis_signs", None)
-        if axis_signs is None:
+        dynamic_primitive = getattr(self.selector, "dynamic_primitive", None)
+        if dynamic_primitive is not None:
+            geometry = aim_residual_geometry(context.ownship_state, context.target_state)
+            error_by_primitive = {
+                "REDUCE_AZ_ERROR": ("azimuth", geometry["aim_azimuth_deg"]),
+                "REDUCE_EL_ERROR": ("elevation", geometry["aim_elevation_deg"]),
+                "DAMP_AZ_RATE": ("azimuth", geometry["los_azimuth_rate_deg_s"]),
+                "DAMP_EL_RATE": ("elevation", geometry["los_elevation_rate_deg_s"]),
+            }
+            axis, error = error_by_primitive[dynamic_primitive]
+            correction = -float(np.sign(error)) * self.action_config.angular_offset_deg
+            corrected = GuidanceSetpoint(
+                local_azimuth_deg=float(
+                    base.local_azimuth_deg + (correction if axis == "azimuth" else 0.0)
+                ),
+                local_elevation_deg=float(
+                    base.local_elevation_deg + (correction if axis == "elevation" else 0.0)
+                ),
+                distance_m=base.distance_m,
+                target_speed_m_s=base.target_speed_m_s,
+            )
+        elif axis_signs is None:
             corrected = compose_guidance_setpoint(base, action_id, self.action_config)
         else:
             corrected = GuidanceSetpoint(

@@ -9,6 +9,7 @@ from automation.collect_counterfactual_v3 import (
     build_shadow_trace_cases,
     coarse_candidates,
     two_axis_candidates,
+    rate_aware_candidates,
     verify_pure_baseline,
 )
 
@@ -68,6 +69,15 @@ def test_two_axis_stage_names_every_actual_combined_effect():
         "VP_AZ_POS_EL_NEG_SMALL",
         "VP_AZ_NEG_EL_POS_SMALL",
         "VP_AZ_NEG_EL_NEG_SMALL",
+    }
+
+
+def test_rate_aware_stage_names_geometry_driven_effects():
+    assert {candidate["action"] for candidate in rate_aware_candidates()} == {
+        "REDUCE_AZ_ERROR",
+        "REDUCE_EL_ERROR",
+        "DAMP_AZ_RATE",
+        "DAMP_EL_RATE",
     }
 
 
