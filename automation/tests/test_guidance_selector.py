@@ -281,6 +281,10 @@ class GuidanceProviderTests(unittest.TestCase):
             provider.telemetry()["selector_decision_trace"][0]["selected_action"],
             "VP_AZ_POS_SMALL",
         )
+        self.assertEqual(
+            len(provider.telemetry()["selector_decision_trace"][0]["ownship_server_state"]),
+            7,
+        )
 
     def test_shadow_nondefault_predicts_but_returns_exact_bt(self):
         provider = GuidanceSelectorActionProvider(

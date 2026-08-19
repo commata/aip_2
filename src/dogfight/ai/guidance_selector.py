@@ -779,6 +779,12 @@ class GuidanceSelectorActionProvider(ActionProvider):
                         "selected_action": GUIDANCE_ACTIONS[action_id],
                         "confidence": float(confidence),
                         "selector_diagnostics": getattr(self.selector, "last_prediction", None),
+                        "ownship_server_state": np.asarray(
+                            context.ownship_state, dtype=np.float64
+                        )[:7].tolist(),
+                        "target_server_state": np.asarray(
+                            context.target_state, dtype=np.float64
+                        )[:7].tolist(),
                     }
                 )
             if action_id != 0 and not self._first_nondefault_selector_snapshot:

@@ -183,6 +183,63 @@ def build_evaluation_boundary_cases(
     return cases
 
 
+def build_shadow_trace_cases(
+    trace_root: Path, *, start_index: int = 0, limit: int | None = None
+) -> list[dict[str, Any]]:
+    """Turn server-safe Pure-BT shadow decision states into restartable scenarios."""
+    cases = []
+    seen = set()
+    for result_path in sorted((trace_root / "runs").glob("*/shadow.json")):
+        family = result_path.parent.name
+        for prefix in ("shadow_autopilot_", "micro_autopilot_"):
+            if family.startswith(prefix):
+                family = family[len(prefix) :].rsplit("_v", 1)[0]
+                break
+        payload = json.loads(result_path.read_text(encoding="utf-8"))
+        trace = payload["ownship_provider_telemetry"].get("selector_decision_trace", [])
+        for decision in trace:
+            own = [float(value) for value in decision["ownship_server_state"]]
+            target = [float(value) for value in decision["target_server_state"]]
+            key = tuple(round(value, 6) for value in (*own, *target))
+            if key in seen:
+                continue
+            seen.add(key)
+            index = start_index + len(cases)
+            cases.append(
+                {
+                    "case_id": f"v3_trace_{index + 1:04d}_{family}",
+                    "seed": 32001 + index,
+                    "family": family,
+                    "distance_band": "shadow_dynamic_trace",
+                    "closing_band": "trace_derived",
+                    "scenario": {
+                        "name": f"state_conditioned_v3_trace_{index + 1:04d}_{family}",
+                        "env_config": {
+                            "ownship": own,
+                            "target": target,
+                            "initial_scenario": {
+                                "mode": "default",
+                                "legacy_use_random_scenario": False,
+                            },
+                            "ownship_randomization": {"enabled": False},
+                            "target_randomization": {"enabled": False},
+                            "target_autopilot": {
+                                "heading_cmd": target[5],
+                                "altitude_cmd": -target[2],
+                                "speed_cmd": target[6],
+                            },
+                        },
+                    },
+                    "trace_sim_time_s": float(decision["sim_time_s"]),
+                }
+            )
+            if limit is not None and len(cases) >= limit:
+                return cases
+    if not cases:
+        raise ValueError(f"no selector decision trace states found under {trace_root}")
+    return cases
+
+
 def coarse_candidates() -> list[dict[str, Any]]:
     return [
         {
@@ -203,8 +260,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--states", type=int, default=120)
     parser.add_argument("--start-index", type=int, default=200)
     parser.add_argument(
-        "--profile", choices=("adaptive", "evaluation-boundary"), default="adaptive"
+        "--profile",
+        choices=("adaptive", "evaluation-boundary", "shadow-trace"),
+        default="adaptive",
     )
+    parser.add_argument("--trace-root", type=Path)
     parser.add_argument("--timeout-s", type=float, default=120.0)
     return parser.parse_args()
 
@@ -216,11 +276,16 @@ def main() -> None:
     verify_pure_baseline(pure_dll, pure_xml)
     output = args.output_root.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    cases = (
-        build_adaptive_cases(args.states, start_index=args.start_index)
-        if args.profile == "adaptive"
-        else build_evaluation_boundary_cases(args.states, start_index=args.start_index)
-    )
+    if args.profile == "adaptive":
+        cases = build_adaptive_cases(args.states, start_index=args.start_index)
+    elif args.profile == "evaluation-boundary":
+        cases = build_evaluation_boundary_cases(args.states, start_index=args.start_index)
+    else:
+        if args.trace_root is None:
+            raise ValueError("--trace-root is required for the shadow-trace profile")
+        cases = build_shadow_trace_cases(
+            args.trace_root.resolve(), start_index=args.start_index, limit=args.states
+        )
     candidates = [
         {
             "candidate_id": "PURE_BT",

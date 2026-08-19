@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 import pytest
 
 from automation.collect_counterfactual_v3 import (
     build_adaptive_cases,
     build_evaluation_boundary_cases,
+    build_shadow_trace_cases,
     coarse_candidates,
     verify_pure_baseline,
 )
@@ -56,3 +58,30 @@ def test_evaluation_boundary_cases_cover_clean_geometry_without_exact_state_reus
 def test_baseline_preflight_fails_before_rollout_for_missing_file(tmp_path):
     with pytest.raises(FileNotFoundError, match="Pure BT DLL"):
         verify_pure_baseline(tmp_path / "missing.dll", tmp_path / "missing.xml")
+
+
+def test_shadow_trace_cases_preserve_only_server_pose_and_speed(tmp_path):
+    run = tmp_path / "runs" / "shadow_autopilot_vertical_high_v01"
+    run.mkdir(parents=True)
+    payload = {
+        "ownship_provider_telemetry": {
+            "selector_decision_trace": [
+                {
+                    "sim_time_s": 1.5,
+                    "ownship_server_state": [0, 0, -5000, 0, 0, 1, 230],
+                    "target_server_state": [900, 0, -5300, 0, 0, 2, 225],
+                }
+            ]
+        }
+    }
+    (run / "shadow.json").write_text(json.dumps(payload), encoding="utf-8")
+    cases = build_shadow_trace_cases(tmp_path, start_index=700)
+    assert len(cases) == 1
+    case = cases[0]
+    assert case["family"] == "vertical_high"
+    assert case["scenario"]["env_config"]["ownship"] == [0.0, 0.0, -5000.0, 0.0, 0.0, 1.0, 230.0]
+    assert case["scenario"]["env_config"]["target_autopilot"] == {
+        "heading_cmd": 2.0,
+        "altitude_cmd": 5300.0,
+        "speed_cmd": 225.0,
+    }
