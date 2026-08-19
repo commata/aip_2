@@ -1,0 +1,19 @@
+{
+  "dataset_rows_including_default": 696,
+  "dataset_sha256": "041461498C7697FC986488FBAACC43B680F01CB3CEE93D29E9AF5EB6457630D1",
+  "feasibility": "ORACLE_UNDERSAMPLED",
+  "health_runtime_features": [],
+  "observation_contract": "guidance_selector_server_v2_reconstructed_from_v2_raw",
+  "observed_nondefault_pairs": 630,
+  "oracle_analysis_sha256": "A60DB88859EAB0B7B5BA987D2B77C31D05A754FC4BE33CA14D3E6644D97FBB83",
+  "schema_version": "counterfactual_bootstrap_v3.manifest.v1",
+  "source_experiments": [
+    "ablation_pilot_20260819",
+    "ablation_elpos_revalidation_20260819",
+    "ablation_elpos_near_revalidation_20260819",
+    "ablation_signed_near_revalidation_20260819",
+    "ablation_vertical_high_focus_20260819"
+  ],
+  "state_matrix_sha256": "0C241A4A98374232B15E4403113A643D25E261374D9109AF6FA093F083613932",
+  "unique_states": 66
+}
