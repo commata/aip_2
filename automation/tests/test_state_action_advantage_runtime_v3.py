@@ -33,6 +33,9 @@ def _bundle(path, *, gate_passed: bool = True):
         "model_0_positive_head.bias": np.asarray([8.0], dtype=np.float32),
         "model_0_regression_head.weight": np.zeros((1, hidden), dtype=np.float32),
         "model_0_regression_head.bias": np.asarray([-8.0], dtype=np.float32),
+        "support_examples": np.zeros((2, 42), dtype=np.float32),
+        "support_mean": np.zeros(42, dtype=np.float32),
+        "support_scale": np.ones(42, dtype=np.float32),
     }
     model_path = path / "model.npz"
     np.savez_compressed(model_path, **arrays)
@@ -54,6 +57,12 @@ def _bundle(path, *, gate_passed: bool = True):
             {"action": action, "magnitude_deg": 0.25, "duration_frames": 36}
             for action in GUIDANCE_ADVANTAGE_ACTIONS[1:]
         ],
+        "runtime_ood_support": {
+            "kind": "nearest_training_state_rms_z_v1",
+            "threshold": 0.5,
+            "training_states": 2,
+            "fallback": "BT_DEFAULT",
+        },
     }
     (path / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
 
@@ -85,3 +94,15 @@ def test_runtime_refuses_offline_gate_failure(tmp_path) -> None:
     _bundle(tmp_path, gate_passed=False)
     with pytest.raises(ValueError, match="offline policy gate"):
         NumpyStateActionAdvantageSelector(tmp_path)
+
+
+def test_runtime_abstains_to_exact_default_outside_training_support(tmp_path) -> None:
+    _bundle(tmp_path)
+    selector = NumpyStateActionAdvantageSelector(tmp_path)
+    action_id, confidence, probabilities = selector.predict(
+        np.full(42, 10.0, dtype=np.float32)
+    )
+    assert action_id == 0
+    assert confidence == 1.0
+    assert probabilities.tolist() == [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    assert selector.last_prediction["fallback_reason"] == "OOD_STATE"

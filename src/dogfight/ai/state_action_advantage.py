@@ -80,6 +80,22 @@ class NumpyStateActionAdvantageSelector:
         if not self.candidates or any(row["action"] not in GUIDANCE_ADVANTAGE_ACTIONS[1:] for row in self.candidates):
             raise ValueError("runtime candidates must be nondefault primary Guidance actions")
         arrays = np.load(weights_path, allow_pickle=False)
+        self.ood_support = dict(self.metadata.get("runtime_ood_support", {}))
+        self.support_examples = None
+        if self.ood_support:
+            if self.ood_support.get("kind") != "nearest_training_state_rms_z_v1":
+                raise ValueError("unsupported state-action OOD support contract")
+            self.support_examples = np.asarray(arrays["support_examples"], dtype=np.float32)
+            self.support_mean = np.asarray(arrays["support_mean"], dtype=np.float32)
+            self.support_scale = np.asarray(arrays["support_scale"], dtype=np.float32)
+            if (
+                self.support_examples.ndim != 2
+                or self.support_examples.shape[1] != 42
+                or self.support_mean.shape != (42,)
+                or self.support_scale.shape != (42,)
+                or np.any(self.support_scale <= 0.0)
+            ):
+                raise ValueError("invalid state-action OOD support arrays")
         self.models = []
         for index in range(int(self.metadata["ensemble_size"])):
             prefix = f"model_{index}_"
@@ -164,7 +180,27 @@ class NumpyStateActionAdvantageSelector:
             for index, candidate in enumerate(self.candidates)
         ]
 
+    def ood_distance(self, observation: Any) -> float:
+        state = validate_server_guidance_observation(observation)
+        if self.support_examples is None:
+            return 0.0
+        normalized = (self.support_examples - state) / self.support_scale
+        return float(np.sqrt(np.min(np.mean(normalized * normalized, axis=1))))
+
     def predict(self, observation: np.ndarray) -> tuple[int, float, np.ndarray]:
+        ood_distance = self.ood_distance(observation)
+        if self.ood_support and ood_distance > float(self.ood_support["threshold"]):
+            probabilities = np.zeros(len(GUIDANCE_ACTIONS), dtype=np.float32)
+            probabilities[0] = 1.0
+            self.last_prediction = {
+                "selected_action": "BT_DEFAULT",
+                "fallback_reason": "OOD_STATE",
+                "ood_distance": ood_distance,
+                "ood_threshold": float(self.ood_support["threshold"]),
+                "threshold": dict(self.threshold),
+                "actions": [],
+            }
+            return 0, 1.0, probabilities
         scored = self.score_actions(observation)
         eligible = [
             row
@@ -177,6 +213,7 @@ class NumpyStateActionAdvantageSelector:
         if not eligible:
             self.last_prediction = {
                 "selected_action": "BT_DEFAULT",
+                "ood_distance": ood_distance,
                 "threshold": dict(self.threshold),
                 "actions": scored,
             }

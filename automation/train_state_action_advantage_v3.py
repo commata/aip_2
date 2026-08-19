@@ -337,7 +337,11 @@ def prediction_diagnostics(
 
 def train_and_evaluate(
     rows: list[dict[str, Any]], *, folds: int, epochs: int, seeds: tuple[int, ...]
-) -> tuple[dict[str, Any], list[tuple[AdvantageNetwork, dict[str, np.ndarray]]]]:
+) -> tuple[
+    dict[str, Any],
+    list[tuple[AdvantageNetwork, dict[str, np.ndarray]]],
+    dict[str, np.ndarray],
+]:
     unique = unique_state_actions(rows)
     x = np.asarray([encode_factorized_input(row) for row in unique], dtype=np.float32)
     damage = np.asarray([row["damage_delta"] for row in unique], dtype=np.float32)
@@ -425,6 +429,27 @@ def train_and_evaluate(
         model, normalization, losses = fit_model(x, damage, seed=seed, epochs=epochs)
         final_models.append((model, normalization))
         training_losses[str(seed)] = {"initial": losses[0], "final": losses[-1]}
+    state_by_hash = {}
+    for row in unique:
+        state_by_hash.setdefault(
+            row["state_hash"], np.asarray(row["server_observation"], dtype=np.float32)
+        )
+    support_examples = np.stack(list(state_by_hash.values()))
+    support_mean = support_examples.mean(axis=0)
+    support_scale = np.maximum(support_examples.std(axis=0), 1e-3)
+    normalized_support = (support_examples - support_mean) / support_scale
+    squared = np.mean(
+        (normalized_support[:, None, :] - normalized_support[None, :, :]) ** 2,
+        axis=2,
+    )
+    np.fill_diagonal(squared, np.inf)
+    nearest_neighbor_rms = np.sqrt(np.min(squared, axis=1))
+    support_threshold = max(2.0, float(np.quantile(nearest_neighbor_rms, 0.99)) * 1.5)
+    state_support = {
+        "examples": support_examples.astype(np.float32),
+        "mean": support_mean.astype(np.float32),
+        "scale": support_scale.astype(np.float32),
+    }
     result = {
         "schema_version": "state_action_distributional_advantage_v3.v1",
         "unique_states": len({row["state_hash"] for row in unique}),
@@ -446,14 +471,25 @@ def train_and_evaluate(
         "seed_oof_policies_at_selected_threshold": seed_policies,
         "all_threshold_diagnostics": threshold_diagnostics,
         "training_losses": training_losses,
+        "runtime_ood_support": {
+            "kind": "nearest_training_state_rms_z_v1",
+            "threshold": support_threshold,
+            "training_states": len(support_examples),
+            "nearest_neighbor_rms_p50": float(np.quantile(nearest_neighbor_rms, 0.50)),
+            "nearest_neighbor_rms_p95": float(np.quantile(nearest_neighbor_rms, 0.95)),
+            "nearest_neighbor_rms_p99": float(np.quantile(nearest_neighbor_rms, 0.99)),
+            "scale_floor": 1e-3,
+            "fallback": "BT_DEFAULT",
+        },
     }
-    return result, final_models
+    return result, final_models, state_support
 
 
 def save_bundle(
     output: Path,
     models: list[tuple[AdvantageNetwork, dict[str, np.ndarray]]],
     result: dict[str, Any],
+    state_support: dict[str, np.ndarray],
 ) -> None:
     output.mkdir(parents=True, exist_ok=True)
     arrays: dict[str, np.ndarray] = {}
@@ -462,6 +498,9 @@ def save_bundle(
         arrays[f"model_{model_index}_input_scale"] = normalization["scale"]
         for name, value in model.state_dict().items():
             arrays[f"model_{model_index}_{name}"] = value.detach().numpy()
+    arrays["support_examples"] = state_support["examples"]
+    arrays["support_mean"] = state_support["mean"]
+    arrays["support_scale"] = state_support["scale"]
     model_path = output / "model.npz"
     np.savez_compressed(model_path, **arrays)
     metadata = dict(result)
@@ -503,11 +542,11 @@ def main() -> None:
         rows = [row for row in rows if row["source_experiment"] in included]
         if not rows:
             raise ValueError(f"no rows matched source experiments: {sorted(included)}")
-    result, models = train_and_evaluate(
+    result, models, state_support = train_and_evaluate(
         rows, folds=args.folds, epochs=args.epochs, seeds=ENSEMBLE_SEEDS
     )
     result["included_source_experiments"] = list(args.include_experiment) or ["all"]
-    save_bundle(args.output.resolve(), models, result)
+    save_bundle(args.output.resolve(), models, result, state_support)
     print(json.dumps(result["selected_oof_policy"], indent=2, sort_keys=True))
 
 
