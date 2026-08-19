@@ -131,6 +131,7 @@ def run_rollout(
     episode_frames: int,
     target_backend: str = "autopilot",
     target_bt_dll: Path | None = None,
+    target_bt_rule_xml: Path | None = None,
 ) -> dict[str, Any]:
     run_root = output / "runs" / label
     run_root.mkdir(parents=True, exist_ok=False)
@@ -175,6 +176,8 @@ def run_rollout(
         if target_bt_dll is None:
             raise ValueError("target BT backend requires a target DLL")
         command.extend(["--target-bt-dll", str(target_bt_dll)])
+        if target_bt_rule_xml is not None:
+            command.extend(["--target-bt-rule-xml", str(target_bt_rule_xml)])
     env = os.environ.copy()
     env["PYTHONPATH"] = os.pathsep.join((str(ROOT / "src"), str(ROOT)))
     completed = subprocess.run(
@@ -426,6 +429,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--post-event-frames", type=int, default=720)
     parser.add_argument("--target-backend", choices=("autopilot", "bt"), default="autopilot")
     parser.add_argument("--target-bt-dll", type=Path)
+    parser.add_argument("--target-bt-rule-xml", type=Path)
     return parser.parse_args()
 
 
@@ -478,6 +482,9 @@ def main() -> None:
             episode_frames=episode_frames,
             target_backend=args.target_backend,
             target_bt_dll=args.target_bt_dll.resolve() if args.target_bt_dll else None,
+            target_bt_rule_xml=(
+                args.target_bt_rule_xml.resolve() if args.target_bt_rule_xml else None
+            ),
         )
         for option in options:
             candidate = run_rollout(
@@ -493,6 +500,9 @@ def main() -> None:
                 episode_frames=episode_frames,
                 target_backend=args.target_backend,
                 target_bt_dll=args.target_bt_dll.resolve() if args.target_bt_dll else None,
+                target_bt_rule_xml=(
+                    args.target_bt_rule_xml.resolve() if args.target_bt_rule_xml else None
+                ),
             )
             records.append(paired_record(event, option, baseline, candidate))
         progress = {

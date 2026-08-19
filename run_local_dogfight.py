@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 import json
 from pathlib import Path
 import sys
@@ -76,6 +76,10 @@ def parse_args():
     parser.add_argument("--ownship-bt-dll", default="AIP_DCS_ownship.dll")
     parser.add_argument("--target-bt-dll", default="AIP_BASE_target.dll")
     parser.add_argument("--bt-rule-xml", help="Optional Rule.xml source to activate while the simulation runs.")
+    parser.add_argument(
+        "--target-bt-rule-xml",
+        help="Optional target-BT XML to activate as Rule_forTraining.xml while the simulation runs.",
+    )
     parser.add_argument(
         "--bt-rule-alias",
         action="append",
@@ -523,12 +527,34 @@ def main():
         tactical_cooldown_frames=args.tactical_cooldown_frames,
     )
 
-    with preserve_runtime_file(ROOT / "aircraft" / "f16" / "f16_init.xml"), activate_rule_xml(
-        args.bt_rule_xml,
-        ROOT,
-        aliases=args.bt_rule_alias,
-        include_default=not args.bt_rule_alias_only,
-    ):
+    with ExitStack() as runtime_stack:
+        runtime_stack.enter_context(
+            preserve_runtime_file(ROOT / "aircraft" / "f16" / "f16_init.xml")
+        )
+        runtime_stack.enter_context(
+            activate_rule_xml(
+                args.bt_rule_xml,
+                ROOT,
+                aliases=args.bt_rule_alias,
+                include_default=not args.bt_rule_alias_only,
+            )
+        )
+        if args.target_bt_rule_xml:
+            if args.target_backend != "bt":
+                raise ValueError("--target-bt-rule-xml requires --target-backend bt")
+            if not args.bt_rule_alias_only:
+                raise ValueError(
+                    "separate target BT XML requires --bt-rule-alias-only so the ownship XML "
+                    "does not also claim Rule_forTraining.xml"
+                )
+            runtime_stack.enter_context(
+                activate_rule_xml(
+                    args.target_bt_rule_xml,
+                    ROOT,
+                    aliases=(),
+                    include_default=True,
+                )
+            )
         env_config = {
                 "observation_mode": observation_hook["mode"] if observation_hook else args.observation_mode,
                 "observation_module": args.observation_module,
