@@ -32,6 +32,8 @@ from dogfight.ai.hybrid_action_provider import (
 from dogfight.ai.guidance_selector import (
     GUIDANCE_ACTIONS,
     FixedGuidanceSelector,
+    GuidanceActionConfig,
+    GuidanceControllerConfig,
     GuidanceRuntimeConfig,
     GuidanceSelectorActionProvider,
     NumpyMLPGuidanceSelector,
@@ -124,6 +126,17 @@ def parse_args():
         help="Use one deterministic Guidance action instead of loading a selector bundle.",
     )
     parser.add_argument("--guidance-confidence-threshold", type=float, default=0.65)
+    parser.add_argument("--guidance-angular-offset-deg", type=float, default=0.5)
+    parser.add_argument(
+        "--guidance-controller-kind",
+        choices=("fixed_action_v1", "vp_error_pd_v2"),
+        default="fixed_action_v1",
+    )
+    parser.add_argument("--guidance-maximum-surface-correction", type=float, default=0.08)
+    parser.add_argument("--guidance-roll-per-azimuth-degree", type=float, default=0.08)
+    parser.add_argument("--guidance-pitch-per-elevation-degree", type=float, default=0.08)
+    parser.add_argument("--guidance-yaw-per-azimuth-degree", type=float, default=0.04)
+    parser.add_argument("--guidance-los-rate-damping", type=float, default=0.001)
     parser.add_argument("--guidance-minimum-hold-frames", type=int, default=18)
     parser.add_argument("--guidance-maximum-active-frames", type=int, default=90)
     parser.add_argument("--guidance-cooldown-frames", type=int, default=30)
@@ -180,7 +193,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0, guidance_fixed_action: str | None = None, guidance_confidence_threshold: float = 0.65, guidance_minimum_hold_frames: int = 18, guidance_maximum_active_frames: int = 90, guidance_cooldown_frames: int = 30):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0, guidance_fixed_action: str | None = None, guidance_action_config: GuidanceActionConfig | None = None, guidance_controller_config: GuidanceControllerConfig | None = None, guidance_confidence_threshold: float = 0.65, guidance_minimum_hold_frames: int = 18, guidance_maximum_active_frames: int = 90, guidance_cooldown_frames: int = 30):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -283,6 +296,8 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
                 enable_turn_throttle_optimization=bt_turn_throttle_mode == "optimized",
             ),
             selector,
+            action_config=guidance_action_config,
+            controller_config=guidance_controller_config,
             runtime_config=GuidanceRuntimeConfig(
                 selector_action_repeat_frames=rl_action_repeat,
                 minimum_action_hold_frames=guidance_minimum_hold_frames,
@@ -359,6 +374,17 @@ def main():
         minimum_speed_m_s=args.safety_minimum_speed_m_s,
         maximum_closing_rate_m_s=args.safety_maximum_closing_rate_m_s,
     )
+    guidance_action_config = GuidanceActionConfig(
+        angular_offset_deg=args.guidance_angular_offset_deg,
+    )
+    guidance_controller_config = GuidanceControllerConfig(
+        kind=args.guidance_controller_kind,
+        maximum_surface_correction=args.guidance_maximum_surface_correction,
+        roll_per_azimuth_degree=args.guidance_roll_per_azimuth_degree,
+        pitch_per_elevation_degree=args.guidance_pitch_per_elevation_degree,
+        yaw_per_azimuth_degree=args.guidance_yaw_per_azimuth_degree,
+        los_rate_damping_per_deg_s=args.guidance_los_rate_damping,
+    )
 
     ownship_provider = build_provider(
         side="ownship",
@@ -385,6 +411,8 @@ def main():
         counterfactual_pulse_frames=args.counterfactual_pulse_frames,
         counterfactual_pulse_start_offset_frames=args.counterfactual_pulse_start_offset_frames,
         guidance_fixed_action=args.guidance_fixed_action,
+        guidance_action_config=guidance_action_config,
+        guidance_controller_config=guidance_controller_config,
         guidance_confidence_threshold=args.guidance_confidence_threshold,
         guidance_minimum_hold_frames=args.guidance_minimum_hold_frames,
         guidance_maximum_active_frames=args.guidance_maximum_active_frames,
@@ -415,6 +443,8 @@ def main():
         counterfactual_pulse_frames=args.counterfactual_pulse_frames,
         counterfactual_pulse_start_offset_frames=args.counterfactual_pulse_start_offset_frames,
         guidance_fixed_action=args.guidance_fixed_action,
+        guidance_action_config=guidance_action_config,
+        guidance_controller_config=guidance_controller_config,
         guidance_confidence_threshold=args.guidance_confidence_threshold,
         guidance_minimum_hold_frames=args.guidance_minimum_hold_frames,
         guidance_maximum_active_frames=args.guidance_maximum_active_frames,

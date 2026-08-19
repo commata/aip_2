@@ -1,0 +1,44 @@
+{
+  "schema_version": "guidance_advantage_v2_research.v1",
+  "issue": 22,
+  "branch": "codex/guidance-advantage-submission-hybrid-v2",
+  "base_main_sha": "7b8a05ea316378965c7d5786634edeffdb1dc059",
+  "status": "HARD_BLOCKED",
+  "hard_stop_condition": "D",
+  "promotion_status": "NOT_PROMOTED",
+  "pure_bt_dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+  "pure_bt_xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE",
+  "hybrid_v1_model_sha256": "FAD2BCB268D4669BD65DB89CE8F36832B1E8C4B646163897E9BBC2A6372FBB6C",
+  "controller_contract": "vp_error_pd_v2",
+  "observation_contract": "guidance_selector_server_v2",
+  "action_contract": "guidance_advantage_primary_v2",
+  "actual_simulator_rollouts": 813,
+  "causal_ablation_rollouts": 810,
+  "controller_smoke_rollouts": 3,
+  "clean_nondefault_pairs": 630,
+  "dataset": {
+    "status": "SKIPPED_CAUSAL_GATE_FAILED",
+    "unique_states": 0,
+    "rollouts": 0,
+    "sha256": null
+  },
+  "advantage_training": {
+    "status": "SKIPPED_CAUSAL_GATE_FAILED",
+    "model_seeds": [],
+    "epochs": 0,
+    "updates": 0
+  },
+  "ppo": {
+    "status": "NOT_RUN_FAILED_PRECONDITIONS",
+    "iterations": 0,
+    "environment_steps": 0,
+    "episodes": 0
+  },
+  "held_out": {
+    "status": "UNOPENED_NO_CANDIDATE",
+    "pairs": 0
+  },
+  "submission_bundle_v2": "NOT_CREATED_NOT_PROMOTED",
+  "server_status": "SERVER_BLOCKED",
+  "recommendation": "PURE_BT_FALLBACK_RECOMMENDED"
+}

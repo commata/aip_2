@@ -1,0 +1,38 @@
+{
+  "schema_version": "guidance_controller_v2.smoke.v1",
+  "controller_kind": "vp_error_pd_v2",
+  "scenario": "state_001_lateral_left",
+  "seed": 9601,
+  "angular_offset_deg": 0.25,
+  "duration_frames": 6,
+  "pure_bt_parity": {
+    "frames": 120,
+    "state_or_action_mismatches": 0,
+    "pure_target_health": 0.4102522447008221,
+    "bt_default_target_health": 0.4102522447008221,
+    "status": "EXACT_PURE_BT_FALLBACK_VERIFIED"
+  },
+  "signed_intervention": {
+    "action": "VP_AZ_POS_SMALL",
+    "intervention_frames": 6,
+    "requested_surface_correction_first": [
+      0.0193790551275015,
+      0.0,
+      0.00937905535101891
+    ],
+    "applied_surface_correction_first": [
+      0.0193790793418884,
+      0.0,
+      0.00471031665802002
+    ],
+    "target_health": 0.3933096512662817,
+    "paired_damage_delta": 0.01694259343454041,
+    "throttle_violations": 0,
+    "claim": "single-state controller smoke only; not promotion evidence"
+  },
+  "pure_bt": {
+    "dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+  },
+  "raw_artifact_root": "artifacts/evaluations/guidance_advantage_v2/controller_smoke_20260819"
+}
