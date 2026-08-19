@@ -1,0 +1,28 @@
+from __future__ import annotations
+
+from automation.collect_counterfactual_v3 import build_adaptive_cases, coarse_candidates
+
+
+def test_adaptive_cases_are_unique_balanced_and_deterministic():
+    first = build_adaptive_cases(120, start_index=200)
+    second = build_adaptive_cases(120, start_index=200)
+    assert first == second
+    assert len({case["case_id"] for case in first}) == 120
+    assert len({case["seed"] for case in first}) == 120
+    families = {case["family"] for case in first}
+    assert len(families) == 6
+    assert all(sum(case["family"] == family for case in first) == 20 for family in families)
+    assert all(not case["scenario"]["env_config"]["ownship_randomization"]["enabled"] for case in first)
+
+
+def test_coarse_stage_covers_every_primary_axis_and_sign_once():
+    candidates = coarse_candidates()
+    assert len(candidates) == 4
+    assert {candidate["action"] for candidate in candidates} == {
+        "VP_AZ_POS_SMALL",
+        "VP_AZ_NEG_SMALL",
+        "VP_EL_POS_SMALL",
+        "VP_EL_NEG_SMALL",
+    }
+    assert {candidate["magnitude_deg"] for candidate in candidates} == {0.25}
+    assert {candidate["duration_frames"] for candidate in candidates} == {36}
