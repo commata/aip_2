@@ -175,6 +175,7 @@ class ManeuverTelemetryLogger:
     def _state_payload(state: np.ndarray) -> dict[str, Any]:
         return {
             "position_ned_m": state[StateIndex.N : StateIndex.D + 1].tolist(),
+            "body_velocity_m_s": state[6:9].tolist(),
             "altitude_m": float(state[StateIndex.ALT]),
             "attitude_deg": state[StateIndex.ROLL : StateIndex.YAW + 1].tolist(),
             "speed_kcas": float(state[StateIndex.KCAS]),

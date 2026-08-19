@@ -26,6 +26,10 @@ def test_v4_manifest_freezes_phase0_contract() -> None:
         120,
     ]
     assert manifest["tactical_action_space"]["throttle"] == "EXACT_PURE_BT_ONLY"
+    assert manifest["temporal_observation"]["observation_size"] == 93
+    assert manifest["temporal_observation"]["history_frames"] == [0, 6, 12, 30]
+    assert manifest["temporal_observation"]["startup_padding"] == "repeat_first_zero_delta"
+    assert manifest["temporal_observation"]["packet_replay_parity"] == "BYTE_IDENTICAL"
     assert manifest["counterfactual"]["causal_truth"] == "PREFIX_REPLAY"
     assert "RESTART_STATE_CAUSAL_INVALID" in manifest["counterfactual"]["restart_state_use"]
     assert manifest["noise_floor"] == {
