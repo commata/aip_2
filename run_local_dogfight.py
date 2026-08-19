@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 import json
 from pathlib import Path
 import sys
@@ -43,6 +43,13 @@ from dogfight.ai.guidance_selector import (
     NumpyMLPGuidanceSelector,
 )
 from dogfight.ai.state_action_advantage import load_guidance_selector_bundle
+from dogfight.ai.prefix_replay import (
+    PrefixReplayIntervention,
+    PrefixReplayTacticalActionProvider,
+)
+from dogfight.ai.tactical_modes import TACTICAL_MODES
+from dogfight.ai.tactical_advantage import NumpyTemporalTacticalAdvantageSelector
+from dogfight.ai.temporal_tactical_provider import TemporalTacticalActionProvider
 from dogfight.ai.rllib_utils import build_inference_module_from_bundle
 from dogfight.ai.rl_action_provider import RLActionProvider
 from dogfight.ai.student_hooks import load_observation_hook
@@ -61,7 +68,7 @@ def preserve_runtime_file(path: Path):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run local dogfight simulation between two inference backends.")
-    backend_choices = ["rl", "bt", "hybrid", "residual_hybrid", "counterfactual_pulse", "guidance_selector", "fixed", "autopilot"]
+    backend_choices = ["rl", "bt", "hybrid", "residual_hybrid", "counterfactual_pulse", "guidance_selector", "prefix_tactical", "temporal_tactical", "fixed", "autopilot"]
     parser.add_argument("--ownship-backend", choices=backend_choices, required=True)
     parser.add_argument("--target-backend", choices=backend_choices, required=True)
     parser.add_argument("--ownship-bundle-dir")
@@ -69,6 +76,10 @@ def parse_args():
     parser.add_argument("--ownship-bt-dll", default="AIP_DCS_ownship.dll")
     parser.add_argument("--target-bt-dll", default="AIP_BASE_target.dll")
     parser.add_argument("--bt-rule-xml", help="Optional Rule.xml source to activate while the simulation runs.")
+    parser.add_argument(
+        "--target-bt-rule-xml",
+        help="Optional target-BT XML to activate as Rule_forTraining.xml while the simulation runs.",
+    )
     parser.add_argument(
         "--bt-rule-alias",
         action="append",
@@ -150,6 +161,16 @@ def parse_args():
         action="store_true",
         help="Run selector and telemetry while returning exact Pure BT commands.",
     )
+    parser.add_argument(
+        "--prefix-tactical-mode",
+        choices=TACTICAL_MODES,
+        default="BT_DEFAULT",
+        help="Tactical VP mode used only by the prefix_tactical backend.",
+    )
+    parser.add_argument("--prefix-start-frame", type=int, default=0)
+    parser.add_argument("--prefix-hold-frames", type=int, default=0)
+    parser.add_argument("--tactical-shadow-mode", action="store_true")
+    parser.add_argument("--tactical-cooldown-frames", type=int, default=30)
     parser.add_argument("--min-throttle-blend-speed", type=float, default=210.0, help="Preserve BT throttle below this speed when RL requests less power.")
     parser.add_argument(
         "--bt-turn-throttle-mode",
@@ -203,7 +224,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0, guidance_fixed_action: str | None = None, guidance_action_config: GuidanceActionConfig | None = None, guidance_controller_config: GuidanceControllerConfig | None = None, guidance_confidence_threshold: float = 0.65, guidance_minimum_hold_frames: int = 18, guidance_maximum_active_frames: int = 90, guidance_cooldown_frames: int = 30, guidance_shadow_mode: bool = False):
+def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str, policy_id: str, hybrid_mode: str, alpha: float, residual_scale: float, residual_gate: str, residual_composition: str, aim_gate: AimGateConfig, offensive_gate: OffensiveGateConfig, rear120_gate: Rear120GateConfig, shot_window_gate: ShotWindowGateConfig, safety_veto: SafetyVetoConfig, rl_action_repeat: int, min_throttle_blend_speed: float, bt_turn_throttle_mode: str, residual_axis_mask: str = "roll_pitch_yaw", counterfactual_pulse: str = "zero", counterfactual_pulse_magnitude: float = 0.5, counterfactual_pulse_frames: int = 6, counterfactual_pulse_start_offset_frames: int = 0, guidance_fixed_action: str | None = None, guidance_action_config: GuidanceActionConfig | None = None, guidance_controller_config: GuidanceControllerConfig | None = None, guidance_confidence_threshold: float = 0.65, guidance_minimum_hold_frames: int = 18, guidance_maximum_active_frames: int = 90, guidance_cooldown_frames: int = 30, guidance_shadow_mode: bool = False, prefix_tactical_mode: str = "BT_DEFAULT", prefix_start_frame: int = 0, prefix_hold_frames: int = 0, tactical_shadow_mode: bool = False, tactical_cooldown_frames: int = 30):
     if backend in ("fixed", "autopilot"):
         return None
     if backend == "bt":
@@ -326,6 +347,33 @@ def build_provider(side: str, backend: str, bundle_dir: str | None, bt_dll: str,
             offensive_config=offensive_gate,
             safety_config=safety_veto,
         )
+    if backend == "prefix_tactical":
+        return PrefixReplayTacticalActionProvider(
+            BTActionProvider(
+                dll_name=bt_dll,
+                enable_turn_throttle_optimization=False,
+            ),
+            PrefixReplayIntervention(
+                start_frame=prefix_start_frame,
+                hold_frames=prefix_hold_frames,
+                tactical_mode=prefix_tactical_mode,
+            ),
+        )
+    if backend == "temporal_tactical":
+        if not bundle_dir:
+            raise ValueError(
+                f"--{side}-bundle-dir is required when backend=temporal_tactical"
+            )
+        return TemporalTacticalActionProvider(
+            BTActionProvider(
+                dll_name=bt_dll,
+                enable_turn_throttle_optimization=bt_turn_throttle_mode == "optimized",
+            ),
+            NumpyTemporalTacticalAdvantageSelector(bundle_dir),
+            shadow_mode=tactical_shadow_mode,
+            cooldown_frames=tactical_cooldown_frames,
+            safety_config=safety_veto,
+        )
     raise ValueError(f"Unsupported backend: {backend}")
 
 
@@ -434,6 +482,11 @@ def main():
         guidance_maximum_active_frames=args.guidance_maximum_active_frames,
         guidance_cooldown_frames=args.guidance_cooldown_frames,
         guidance_shadow_mode=args.guidance_shadow_mode,
+        prefix_tactical_mode=args.prefix_tactical_mode,
+        prefix_start_frame=args.prefix_start_frame,
+        prefix_hold_frames=args.prefix_hold_frames,
+        tactical_shadow_mode=args.tactical_shadow_mode,
+        tactical_cooldown_frames=args.tactical_cooldown_frames,
     )
     target_provider = build_provider(
         side="target",
@@ -467,14 +520,41 @@ def main():
         guidance_maximum_active_frames=args.guidance_maximum_active_frames,
         guidance_cooldown_frames=args.guidance_cooldown_frames,
         guidance_shadow_mode=args.guidance_shadow_mode,
+        prefix_tactical_mode=args.prefix_tactical_mode,
+        prefix_start_frame=args.prefix_start_frame,
+        prefix_hold_frames=args.prefix_hold_frames,
+        tactical_shadow_mode=args.tactical_shadow_mode,
+        tactical_cooldown_frames=args.tactical_cooldown_frames,
     )
 
-    with preserve_runtime_file(ROOT / "aircraft" / "f16" / "f16_init.xml"), activate_rule_xml(
-        args.bt_rule_xml,
-        ROOT,
-        aliases=args.bt_rule_alias,
-        include_default=not args.bt_rule_alias_only,
-    ):
+    with ExitStack() as runtime_stack:
+        runtime_stack.enter_context(
+            preserve_runtime_file(ROOT / "aircraft" / "f16" / "f16_init.xml")
+        )
+        runtime_stack.enter_context(
+            activate_rule_xml(
+                args.bt_rule_xml,
+                ROOT,
+                aliases=args.bt_rule_alias,
+                include_default=not args.bt_rule_alias_only,
+            )
+        )
+        if args.target_bt_rule_xml:
+            if args.target_backend != "bt":
+                raise ValueError("--target-bt-rule-xml requires --target-backend bt")
+            if not args.bt_rule_alias_only:
+                raise ValueError(
+                    "separate target BT XML requires --bt-rule-alias-only so the ownship XML "
+                    "does not also claim Rule_forTraining.xml"
+                )
+            runtime_stack.enter_context(
+                activate_rule_xml(
+                    args.target_bt_rule_xml,
+                    ROOT,
+                    aliases=(),
+                    include_default=True,
+                )
+            )
         env_config = {
                 "observation_mode": observation_hook["mode"] if observation_hook else args.observation_mode,
                 "observation_module": args.observation_module,

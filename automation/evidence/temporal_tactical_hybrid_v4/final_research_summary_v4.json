@@ -1,0 +1,97 @@
+{
+  "action_space": {
+    "best_static_option": "PURE_PURSUIT__d120",
+    "best_static_value": 0.02103990056762617,
+    "clean_pairs": 2322,
+    "large_regression_pairs": 799,
+    "oracle_intervention_mean": 0.06307834405066642,
+    "oracle_intervention_median": 0.004031663379670203,
+    "oracle_nondefault_coverage": 0.7209302325581395,
+    "overall_policy_value": 0.045475085245829286,
+    "positive_geometry_count": 9,
+    "status": "TACTICAL_ORACLE_FEASIBLE"
+  },
+  "active_counterfactual_cycles": 1,
+  "counterfactual": {
+    "bt_default_parity": "PASSED_180_FRAMES_EXACT",
+    "causal_truth": "PREFIX_REPLAY",
+    "prefix_parity": "PASSED_180_FRAMES_EXACT",
+    "restart_state": "RESTART_STATE_CAUSAL_INVALID"
+  },
+  "datasets": {
+    "long120_primary": {
+      "observation_size": 127,
+      "scenario_count": 35,
+      "sha256": "D36D6FA5CED7FC3FEA8C94C22D27F8E097EB4C28BAA5704521B877F7082A291B",
+      "state_action_pairs": 3000,
+      "unique_events": 300
+    },
+    "primary_groupfix": {
+      "observation_size": 93,
+      "scenario_count": 34,
+      "sha256": "370A53E66F7691B683955AD8F97DAFDAC5AD1215D041BF339EF06D9EA5D8EEF1",
+      "state_action_pairs": 3000,
+      "unique_events": 300
+    }
+  },
+  "final_model_diagnostic": {
+    "architecture": "long120 MLP 132-64-64 distributional ensemble",
+    "consistent_seed_count": 0,
+    "epochs_per_model": 240,
+    "intervention_coverage": 0.33666666666666667,
+    "intervention_precision": 0.42574257425742573,
+    "large_regression_ratio": 0.38613861386138615,
+    "model_sha256": "D57DCA26BB7648222D84F19D9E623E467EE9E03B703D2843FF0CA52333F51158",
+    "offline_policy_value": 0.014467264012381697,
+    "optimizer_updates": 4320,
+    "seeds": [41021, 41022, 41023],
+    "status": "OFFLINE_POLICY_GATE_FAILED"
+  },
+  "model_ladder": [
+    {
+      "architecture": "M1 93D MLP ensemble",
+      "coverage": 0.4033333333333333,
+      "intervention_precision": 0.48760330578512395,
+      "large_regression_ratio": 0.4049586776859504,
+      "policy_value": 0.0005914516676123273,
+      "scenario_grouping": "corrected case-level",
+      "seed_consistency": 0,
+      "status": "OFFLINE_POLICY_GATE_FAILED"
+    },
+    {
+      "architecture": "M2 4x17 GRU-32 distributional ensemble",
+      "coverage": 0.18666666666666668,
+      "intervention_precision": 0.39285714285714285,
+      "large_regression_ratio": 0.4642857142857143,
+      "policy_value": -0.0033488418284445516,
+      "scenario_grouping": "corrected case-level",
+      "seed_consistency": 0,
+      "status": "OFFLINE_POLICY_GATE_FAILED"
+    }
+  ],
+  "nearest_cross_scenario_label_diagnostic": {
+    "large_regression_disagreement_range": [0.4066666666666667, 0.5466666666666666],
+    "nearest_rms_median": 0.11677302167700238,
+    "sign_agreement_range": [0.33666666666666667, 0.46]
+  },
+  "phase_gates": {
+    "development": "NOT_RUN_OFFLINE_GATE",
+    "held_out": "NOT_OPENED",
+    "micro": "NOT_RUN_OFFLINE_GATE",
+    "ppo": "NOT_ALLOWED",
+    "shadow": "NOT_RUN_OFFLINE_GATE",
+    "submission_freeze": "REFUSED_UNPROMOTED"
+  },
+  "root_cause": {
+    "category": "OBSERVATION_TEMPORAL_GENERALIZATION",
+    "code": "SERVER_SAFE_TEMPORAL_GENERALIZATION_FAILED",
+    "hard_stop": "D"
+  },
+  "server": "SERVER_BLOCKED",
+  "status": [
+    "NOT_PROMOTED",
+    "PURE_BT_FALLBACK_RECOMMENDED",
+    "TACTICAL_ORACLE_FEASIBLE",
+    "HARD_BLOCKED"
+  ]
+}

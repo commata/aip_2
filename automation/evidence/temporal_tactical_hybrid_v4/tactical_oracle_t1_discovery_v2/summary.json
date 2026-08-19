@@ -1,0 +1,42 @@
+{
+  "schema_version": "tactical_oracle_v4.v1",
+  "stage": "DISCOVERY",
+  "action_space_level": "T1",
+  "events_requested": 12,
+  "events_with_clean_options": 12,
+  "clean_pairs": 108,
+  "contaminated_or_invalid_pairs": 0,
+  "oracle_nondefault_coverage": 0.6666666666666666,
+  "oracle_intervention_mean": 0.005152164147738593,
+  "oracle_intervention_median": 0.003026328102161191,
+  "oracle_intervention_positive_ratio": 1.0,
+  "overall_policy_value": 0.0034347760984923953,
+  "best_static_tactical_mode": "PURE_PURSUIT__d120",
+  "best_static_value": 0.00215202591280167,
+  "oracle_static_gap": 0.0012827501856907254,
+  "positive_geometries": [
+    "crossing_left",
+    "high_closing",
+    "lateral_right",
+    "neutral",
+    "tail_chase",
+    "vertical_high",
+    "vertical_low"
+  ],
+  "large_regression_pairs": 50,
+  "duration_distribution": {"30": 1, "60": 2, "120": 5},
+  "epsilon": 1e-09,
+  "large_regression_threshold": 1e-06,
+  "gate": {
+    "positive_opportunities": 8,
+    "meaningful_nondefault_coverage": 0.6666666666666666,
+    "positive_geometry_count": 7,
+    "coverage_or_absolute_count": true,
+    "multiple_geometries": true,
+    "direction_positive": true,
+    "requires_independent_revalidation": true
+  },
+  "oracle_sha256": "E81201656133F68866DD84F41EECCFFFA91754FB4C20BAD16BD88CFBED3854DB",
+  "pairs_sha256": "FD99D5B9EF77160AD2F6117832A593CFD017441DFDC7BFD81E8316A9BB566418",
+  "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_v2"
+}

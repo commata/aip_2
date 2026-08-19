@@ -1,0 +1,58 @@
+{
+  "schema_version": "prefix_replay_fidelity_v4.v1",
+  "status": "PREFIX_REPLAY_PARITY_PASSED",
+  "restart_status": "RESTART_STATE_CAUSAL_INVALID",
+  "causal_truth": "PREFIX_REPLAY",
+  "reconstructed_restart_allowed_for_labels": false,
+  "seed": 71001,
+  "decision_frame": 60,
+  "pure_bt": {
+    "dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+  },
+  "prefix_pure_a_vs_b": {
+    "match": true,
+    "hash_match": true,
+    "maximum_absolute_error": 0.0,
+    "reason": "exact_hash_match"
+  },
+  "prefix_pure_vs_bt_default_override": {
+    "match": true,
+    "hash_match": true,
+    "maximum_absolute_error": 0.0,
+    "reason": "exact_hash_match"
+  },
+  "trajectory_pure_a_vs_b": {
+    "frames": 180,
+    "exact": true,
+    "maximum_error": 0.0
+  },
+  "trajectory_pure_vs_bt_default_override": {
+    "frames": 180,
+    "exact": true,
+    "maximum_error": 0.0
+  },
+  "restart_vs_original_continuation": {
+    "frames": 59,
+    "exact": false,
+    "ownship_position_error_m_max": 49.42189866458366,
+    "target_position_error_m_max": 46.318278780061426,
+    "ownship_attitude_error_deg_max": 11.528999999999996,
+    "target_attitude_error_deg_max": 1.6239999999999952,
+    "ownship_speed_error_m_s_max": 40.434984000000014,
+    "target_speed_error_m_s_max": 39.14888400000001,
+    "distance_error_m_max": 3.939694906032855,
+    "los_error_deg_max": 2.31534112609604,
+    "bt_action_error_max": 1.2250625044107437,
+    "bt_vp_error_m_max": 50.67569285299393,
+    "target_damage_error_max": 0.0,
+    "ownship_damage_error_max": 0.0
+  },
+  "noise_floor": {
+    "deterministic": true,
+    "observed_repeat_damage_range": 0.0,
+    "epsilon": 1e-09,
+    "large_regression_threshold": 1e-06
+  },
+  "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/prefix_fidelity_vertical_high_s71001_v1"
+}

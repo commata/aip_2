@@ -1,0 +1,221 @@
+{
+  "schema_version": "temporal_tactical_hybrid_v4.research_manifest.v1",
+  "status": "HARD_BLOCKED_NOT_PROMOTED",
+  "issue": "https://github.com/commata/aip_2/issues/28",
+  "branch": "codex/temporal-tactical-mode-hybrid-v4",
+  "base_main_sha": "ae4b2e0c1ea43d9f1b74e783a65293b5490ffcc4",
+  "artifact_protection": "append_only; preserve all v1/v2/v3 artifacts and raw evidence",
+  "frozen_hashes": {
+    "pure_bt_dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "pure_bt_xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE",
+    "hybrid_v1_model_sha256": "FAD2BCB268D4669BD65DB89CE8F36832B1E8C4B646163897E9BBC2A6372FBB6C",
+    "hybrid_v3_model_sha256": "7B97E8DF6CEA3250AE873FAC00C77C1B4AE923B12D0AC596C0DC25F1F36550F2",
+    "hybrid_v3_dataset_sha256": "4DFBF311AA680AA8F8054F9ED969A0729CAB89B1A1EEEFF0D7D8492F8614D6A3"
+  },
+  "v3_hard_block": {
+    "category": "ACTION_SPACE",
+    "code": "CURRENT_BOUNDED_PULSE_ACTION_SPACE_HARD_BLOCKED",
+    "repeated_work_forbidden": [
+      "simple AZ/EL 0.10/0.25/0.50 degree sweep",
+      "short bounded pulse duration sweep",
+      "PPO on the same bounded pulse actions",
+      "epoch-only or hidden-width-only scaling"
+    ]
+  },
+  "phase0_inventory": {
+    "champion_xml_nodes": [
+      "SelectTarget",
+      "DirectionVectorUpdate",
+      "DistanceUpdate",
+      "CheckSight",
+      "AngleOffUpdate",
+      "AspectAngleUpdate",
+      "Task_Pursue"
+    ],
+    "champion_dll_confirmed_exports": [
+      "CreateBehaviorTree",
+      "ChangeData",
+      "Step",
+      "GetVP",
+      "Reset",
+      "RemoveBT"
+    ],
+    "champion_dll_absent_probed_exports": [
+      "PurePursuitRun",
+      "LagPursuitRun",
+      "LeadPursuitRun",
+      "SetPursuitMode",
+      "SetMode",
+      "SetVP"
+    ],
+    "champion_runtime_mode_switch": false,
+    "implementation_path": "B_SERVER_VISIBLE_DETERMINISTIC_VP_GENERATORS",
+    "existing_controller": "vp_error_pd_v2 with exact BT throttle",
+    "runners": [
+      "run_local_dogfight.py",
+      "run_unreal_inference.py"
+    ]
+  },
+  "tactical_action_space": {
+    "default_action": "BT_DEFAULT",
+    "primary_bounded_pulses_forbidden": true,
+    "discovery_hold_frames_frozen": [30, 60, 120],
+    "conditional_extension_hold_frames": [240],
+    "candidate_levels": {
+      "T1": ["BT_DEFAULT", "PURE_PURSUIT", "LEAD_PURSUIT_T060", "LAG_PURSUIT_D250"],
+      "T2": ["LOS_RATE_DAMPED_PURSUIT", "CROSSING_LEAD_T100", "CONE_CAPTURE"]
+    },
+    "coordinate_contract": {
+      "champion_vp": "north/east/altitude_m_z_up",
+      "tactical_vp": "north/east/down_m_ned"
+    },
+    "throttle": "EXACT_PURE_BT_ONLY"
+  },
+  "counterfactual": {
+    "causal_truth": "PREFIX_REPLAY",
+    "restart_state_use": "RESTART_STATE_CAUSAL_INVALID; NEVER_USE_FOR_LABELS",
+    "fidelity_evidence": "automation/evidence/temporal_tactical_hybrid_v4/prefix_fidelity_vertical_high_s71001_v1/evaluation.json",
+    "raw_fidelity_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/prefix_fidelity_vertical_high_s71001_v1",
+    "prefix_replay_parity": "PASSED_180_FRAMES_EXACT",
+    "bt_default_override_parity": "PASSED_180_FRAMES_EXACT",
+    "horizons_seconds": [1, 2, 4, 8, 12, "terminal"],
+    "required_prefix_fields": [
+      "frame",
+      "ownship_server_state",
+      "target_server_state",
+      "bt_action",
+      "bt_vp",
+      "damage",
+      "observable_telemetry_hash"
+    ]
+  },
+  "noise_floor": {
+    "status": "DETERMINISTIC_REPEAT_NOISE_ZERO",
+    "epsilon": 1e-09,
+    "large_regression_threshold": 1e-06
+  },
+  "temporal_observation": {
+    "contract": "guidance_selector_server_temporal_v4",
+    "current_state_contract": "guidance_selector_server_v2",
+    "observation_size": 93,
+    "current_state_size": 42,
+    "delta_features_per_lag": 17,
+    "history_frames": [0, 6, 12, 30],
+    "startup_padding": "repeat_first_zero_delta",
+    "delta_normalization": "(current_normalized-lagged_normalized)/2",
+    "packet_replay_parity": "BYTE_IDENTICAL",
+    "runtime_forbidden": ["health", "Damage", "hidden FDM truth", "offline labels"]
+  },
+  "pure_bt_decision_events": {
+    "status": "DISCOVERY_COLLECTED",
+    "unique_events": 2038,
+    "fights": 23,
+    "raw_frames": 16482,
+    "geometry_families": 11,
+    "opponents": ["autopilot"],
+    "ownship_crashes": 0,
+    "target_crashes": 0,
+    "diagnostic_taxonomy_is_label": false,
+    "primary_label": "PENDING_PREFIX_REPLAY_PAIRED_DAMAGE",
+    "events_sha256": "D63406BF2654631226D69620D1D16FEF143FBCAFC77C4AB96C1C1A1A045A4B7B",
+    "summary": "automation/evidence/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1/summary.json",
+    "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1"
+  },
+  "tactical_oracle": {
+    "status": "TACTICAL_ORACLE_FEASIBLE_AFTER_VP_COORDINATE_FIX",
+    "action_space_level": "T1",
+    "discovery_events": 12,
+    "clean_pairs": 108,
+    "oracle_nondefault_coverage": 0.6666666666666666,
+    "oracle_intervention_mean": 0.005152164147738593,
+    "overall_policy_value": 0.0034347760984923953,
+    "positive_geometry_count": 7,
+    "large_regression_pairs": 50,
+    "risk_head_required": true,
+    "independent_revalidation_target_events": 36,
+    "independent_revalidation_events": 36,
+    "independent_clean_pairs": 324,
+    "independent_oracle_nondefault_coverage": 0.6388888888888888,
+    "independent_oracle_intervention_mean": 0.03408376499356323,
+    "independent_overall_policy_value": 0.02177573874588762,
+    "independent_positive_geometry_count": 9,
+    "independent_large_regression_pairs": 129,
+    "best_static_value": -0.010091185467276957,
+    "coordinate_fixed_discovery_events": 12,
+    "coordinate_fixed_discovery_clean_pairs": 108,
+    "coordinate_fixed_discovery_coverage": 0.8333333333333334,
+    "coordinate_fixed_discovery_overall_policy_value": 0.003928045496657845,
+    "coordinate_fixed_revalidation_events": 36,
+    "coordinate_fixed_revalidation_clean_pairs": 324,
+    "coordinate_fixed_revalidation_coverage": 0.75,
+    "coordinate_fixed_revalidation_intervention_median": 0.0037556443889907865,
+    "coordinate_fixed_revalidation_overall_policy_value": 0.06881827761827365,
+    "coordinate_fixed_revalidation_positive_geometry_count": 9,
+    "coordinate_fixed_revalidation_large_regression_pairs": 111,
+    "action_space_gate_passed": true,
+    "superseded_evidence_reason": "Champion VP Z-up was interpreted as NED Z-down in the controller baseline; rerun required",
+    "discovery_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_v2/summary.json",
+    "revalidation_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_revalidation_v1/summary.json",
+    "coordinate_fixed_discovery_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_coordfix_v1/summary.json",
+    "coordinate_fixed_revalidation_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_revalidation_coordfix_v1/summary.json"
+  },
+  "promotion": {
+    "submission_freeze_allowed": false,
+    "held_out_opened": false,
+    "ppo_allowed": false,
+    "fallback": "PURE_BT_CHAMPION"
+  },
+  "primary_dataset_and_model_ladder": {
+    "dataset_unique_events": 300,
+    "dataset_state_action_pairs": 3000,
+    "dataset_sha256": "370A53E66F7691B683955AD8F97DAFDAC5AD1215D041BF339EF06D9EA5D8EEF1",
+    "scenario_count": 34,
+    "m1_93d": {
+      "offline_gate": "FAILED",
+      "policy_value": 0.0005914516676123273,
+      "intervention_precision": 0.48760330578512395,
+      "intervention_coverage": 0.4033333333333333,
+      "large_regression_ratio": 0.4049586776859504,
+      "consistent_seed_count": 0
+    },
+    "m2_gru": {
+      "offline_gate": "FAILED",
+      "policy_value": -0.0033488418284445516,
+      "intervention_precision": 0.39285714285714285,
+      "intervention_coverage": 0.18666666666666668,
+      "large_regression_ratio": 0.4642857142857143,
+      "consistent_seed_count": 0
+    },
+    "long120": {
+      "observation_size": 127,
+      "dataset_unique_events": 300,
+      "dataset_state_action_pairs": 3000,
+      "dataset_sha256": "D36D6FA5CED7FC3FEA8C94C22D27F8E097EB4C28BAA5704521B877F7082A291B",
+      "model_sha256": "D57DCA26BB7648222D84F19D9E623E467EE9E03B703D2843FF0CA52333F51158",
+      "offline_gate": "FAILED",
+      "policy_value": 0.014467264012381697,
+      "intervention_precision": 0.42574257425742573,
+      "intervention_coverage": 0.33666666666666667,
+      "large_regression_ratio": 0.38613861386138615,
+      "consistent_seed_count": 0,
+      "seeds": [41021, 41022, 41023],
+      "epochs_per_model": 240,
+      "optimizer_updates": 4320
+    }
+  },
+  "final_decision": {
+    "code": "SERVER_SAFE_TEMPORAL_GENERALIZATION_FAILED",
+    "hard_stop": "D",
+    "root_cause_category": "OBSERVATION_TEMPORAL_GENERALIZATION",
+    "shadow": "NOT_RUN_OFFLINE_GATE",
+    "micro": "NOT_RUN_OFFLINE_GATE",
+    "development": "NOT_RUN_OFFLINE_GATE",
+    "held_out": "NOT_OPENED",
+    "ppo": "NOT_ALLOWED",
+    "submission": "NOT_PROMOTED",
+    "recommendation": "PURE_BT_FALLBACK_RECOMMENDED",
+    "evidence": "automation/evidence/temporal_tactical_hybrid_v4/final_research_summary_v4.json",
+    "report": "automation/reports/Temporal_Tactical_Hybrid_v4_최종결과.md"
+  },
+  "actual_server": "SERVER_BLOCKED"
+}
