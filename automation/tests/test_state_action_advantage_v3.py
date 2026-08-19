@@ -6,6 +6,7 @@ from automation.train_state_action_advantage_v3 import (
     assign_group_folds,
     encode_factorized_input,
     policy_value,
+    select_threshold,
     unique_state_actions,
 )
 
@@ -62,3 +63,18 @@ def test_policy_value_counts_selected_zero_as_intervention() -> None:
     assert result["interventions"] == 2
     assert result["coverage"] == 1.0
     assert result["mean"] == 0.01
+
+
+def test_threshold_selection_reports_failed_gate_honestly() -> None:
+    diagnostic = {
+        "threshold": {"score": 0.001},
+        "policy": {
+            "interventions": 10,
+            "intervention_precision": 0.9,
+            "mean": 0.01,
+            "large_regression_ratio": 0.1,
+        },
+    }
+    selected = select_threshold([diagnostic])
+    assert not selected["offline_gate_passed"]
+    assert selected["selection_status"] == "OFFLINE_POLICY_GATE_FAILED"

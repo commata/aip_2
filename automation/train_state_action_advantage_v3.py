@@ -178,10 +178,11 @@ def ensemble_predictions(
 
 def threshold_grid() -> list[dict[str, float]]:
     return [
-        {"score": score, "positive": positive, "regression": regression, "lambda": 1.0}
-        for score in (0.0005, 0.001, 0.002, 0.003, 0.005)
-        for positive in (0.60, 0.70, 0.80)
-        for regression in (0.05, 0.10, 0.20)
+        {"score": score, "positive": positive, "regression": regression, "lambda": penalty}
+        for score in (0.0005, 0.001, 0.002, 0.003, 0.005, 0.008, 0.010)
+        for positive in (0.60, 0.70, 0.80, 0.90)
+        for regression in (0.02, 0.05, 0.10, 0.20)
+        for penalty in (1.0, 2.0)
     ]
 
 
@@ -252,7 +253,7 @@ def select_threshold(diagnostics: list[dict[str, Any]]) -> dict[str, Any]:
         and row["policy"]["large_regression_ratio"] <= 0.05
     ]
     candidates = eligible or diagnostics
-    return max(
+    selected = max(
         candidates,
         key=lambda row: (
             row["policy"]["mean"],
@@ -260,6 +261,13 @@ def select_threshold(diagnostics: list[dict[str, Any]]) -> dict[str, Any]:
             -row["policy"]["large_regression_ratio"],
         ),
     )
+    return {
+        **selected,
+        "offline_gate_passed": bool(eligible),
+        "selection_status": (
+            "OFFLINE_POLICY_GATE_PASSED" if eligible else "OFFLINE_POLICY_GATE_FAILED"
+        ),
+    }
 
 
 def train_and_evaluate(
@@ -352,15 +360,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=160)
+    parser.add_argument(
+        "--include-experiment",
+        action="append",
+        default=[],
+        help="Train only rows from one or more named source experiments",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     payload = json.loads(args.dataset.read_text(encoding="utf-8"))
+    rows = payload["rows"]
+    if args.include_experiment:
+        included = set(args.include_experiment)
+        rows = [row for row in rows if row["source_experiment"] in included]
+        if not rows:
+            raise ValueError(f"no rows matched source experiments: {sorted(included)}")
     result, models = train_and_evaluate(
-        payload["rows"], folds=args.folds, epochs=args.epochs, seeds=ENSEMBLE_SEEDS
+        rows, folds=args.folds, epochs=args.epochs, seeds=ENSEMBLE_SEEDS
     )
+    result["included_source_experiments"] = list(args.include_experiment) or ["all"]
     save_bundle(args.output.resolve(), models, result)
     print(json.dumps(result["selected_oof_policy"], indent=2, sort_keys=True))
 
