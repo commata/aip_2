@@ -109,7 +109,9 @@ def build_server_guidance_observation(
     own = np.asarray(ownship_state, dtype=np.float64)
     target = np.asarray(target_state, dtype=np.float64)
     bt = np.asarray(bt_action, dtype=np.float32)
-    if own.shape[0] <= StateIndex.HEALTH or target.shape[0] <= StateIndex.HEALTH:
+    # Runtime needs through ALT only. Health may be present in the local state
+    # schema, but it is deliberately neither required nor read by this contract.
+    if own.shape[0] <= StateIndex.ALT or target.shape[0] <= StateIndex.ALT:
         raise ValueError("server Guidance state vectors are incomplete")
     if bt.shape != (4,) or not np.all(np.isfinite(bt)):
         raise ValueError("server Guidance requires a finite BT action")
