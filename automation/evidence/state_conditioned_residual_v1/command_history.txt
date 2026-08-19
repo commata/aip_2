@@ -2,3 +2,5 @@
 2026-08-19: python -m pytest tests -q -p no:cacheprovider
 2026-08-19: python -m compileall src automation scripts run_local_dogfight.py run_unreal_inference.py train_rllib.py train_curriculum.py
 2026-08-19: run_local_dogfight.py Pure 0815 raw-BT smoke, 60-frame limit, seed 7101
+2026-08-19: evaluate_counterfactual_pulses.py --mode pulses --suite automation/scenarios/state_conditioned_stage_a_v1.json --pure-reference baseline_repeat_v1_20260819/evaluation.json --residual-scale 0.125 --pulse-frames 6 --pulse-magnitude 0.19867990911006927
+2026-08-19: Stage A completed 84/84; gate failed; Stage B/BC/PPO/held-out/proxy/200s skipped

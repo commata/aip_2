@@ -1,6 +1,23 @@
 {
-  "status": "PREFLIGHT_COMPLETE",
-  "stage": "PREFLIGHT",
-  "episode_count": 0,
-  "decision": "COUNTERFACTUAL_STAGE_A_ALLOWED"
+  "status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT",
+  "stage": "COUNTERFACTUAL_STAGE_A",
+  "new_episode_count": 84,
+  "pure_reference_count": 12,
+  "clean_pair_count": 72,
+  "damage_delta": {"mean":-0.0005014774542690207,"median":0.0,"min":-0.005819447741756578,"max":0.0022512945245320992},
+  "positive_pairs": 31,
+  "positive_ratio": 0.4305555555555556,
+  "meaningful_positive_pairs": 11,
+  "meaningful_world_geometries": 1,
+  "large_regressions": 9,
+  "canonical_mirror_pair_count": 0,
+  "canonical_mirror_consistent": false,
+  "contamination": 0,
+  "ownship_crash": 0,
+  "process_error": 0,
+  "invalid_or_nonfinite": 0,
+  "throttle_violation": 0,
+  "zero_exact_bt": true,
+  "raw_aggregate_recompute_match": true,
+  "decision": "DATASET_NOT_CREATED / BC_NOT_RUN / PPO_NOT_RUN"
 }

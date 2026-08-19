@@ -8,9 +8,12 @@
     "action_mode": "raw_native_bt",
     "throttle_mode": "raw_bt_only"
   },
-  "promotion_status": "PREFLIGHT_COMPLETE",
+  "promotion_status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT / DATASET_NOT_CREATED / NOT_PROMOTED",
   "target_bt_status": "TARGET_BT_PENDING",
   "server_status": "SERVER_BLOCKED",
-  "next_gate": "COUNTERFACTUAL_STAGE_A",
-  "evidence_sha256": {}
+  "next_gate": "PURE_BT_FALLBACK_SUBMISSION_PREPARATION",
+  "evidence_sha256": {
+    "stage_a_evaluation": "B565B7AB86103832FC12BF6C30D3FA31159954BBD93D18E643E3CEAA21AE224E",
+    "pure_bt_baseline": "A1ECA86C7949781123904BE5B85BCF29C702908F8631D87369737C5DB4AD16CE"
+  }
 }
