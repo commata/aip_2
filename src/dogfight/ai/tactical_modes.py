@@ -201,6 +201,7 @@ def generate_tactical_vp(
 
 
 def vp_to_local_setpoint(vp: Any, ownship_state: Any) -> GuidanceSetpoint:
+    """Convert a server-state NED VP into ownship-local guidance."""
     own = _server_visible_state(ownship_state)
     desired = np.asarray(vp, dtype=np.float64)
     if desired.shape != (3,) or not np.all(np.isfinite(desired)):
@@ -223,6 +224,16 @@ def vp_to_local_setpoint(vp: Any, ownship_state: Any) -> GuidanceSetpoint:
         distance_m=max(1.0, distance),
         target_speed_m_s=max(1.0, float(own[StateIndex.KCAS])),
     )
+
+
+def champion_vp_to_local_setpoint(vp: Any, ownship_state: Any) -> GuidanceSetpoint:
+    """Convert the Champion DLL's north/east/altitude (Z-up) VP contract."""
+    own = _server_visible_state(ownship_state)
+    champion = np.asarray(vp, dtype=np.float64)
+    if champion.shape != (3,) or not np.all(np.isfinite(champion)):
+        raise ValueError("Champion VP must be a finite north/east/altitude vector")
+    ned = np.asarray([champion[0], champion[1], -champion[2]], dtype=np.float64)
+    return vp_to_local_setpoint(ned, own)
 
 
 def apply_tactical_mode(
@@ -257,7 +268,7 @@ def apply_tactical_mode(
             name, ownship_state, target_state, config=mode_config
         )
         assert desired_vp is not None
-        base = vp_to_local_setpoint(bt_vp, ownship_state)
+        base = champion_vp_to_local_setpoint(bt_vp, ownship_state)
         desired = vp_to_local_setpoint(desired_vp, ownship_state)
         desired = GuidanceSetpoint(
             desired.local_azimuth_deg,
@@ -319,6 +330,8 @@ def tactical_action_contract() -> dict[str, Any]:
         "hold_frames": list(TACTICAL_HOLD_FRAMES),
         "default_action": "BT_DEFAULT",
         "controller": "vp_error_pd_v2",
+        "champion_vp_coordinates": "north/east/altitude_m_z_up",
+        "tactical_vp_coordinates": "north/east/down_m_ned",
         "throttle": "exact same-frame Pure BT",
         "runtime_forbidden": ["health", "Damage", "hidden FDM truth"],
         "fallback": "exception/nonfinite/invalid => exact BT action",

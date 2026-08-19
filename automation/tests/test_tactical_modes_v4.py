@@ -8,6 +8,7 @@ from dogfight.ai.tactical_modes import (
     TACTICAL_MODES_T1,
     TacticalModeConfig,
     apply_tactical_mode,
+    champion_vp_to_local_setpoint,
     generate_tactical_vp,
     tactical_action_contract,
 )
@@ -40,6 +41,18 @@ def test_t1_contract_and_duration_are_frozen() -> None:
     assert TACTICAL_HOLD_FRAMES == (30, 60, 120)
     assert contract["default_action"] == "BT_DEFAULT"
     assert contract["throttle"] == "exact same-frame Pure BT"
+    assert contract["champion_vp_coordinates"] == "north/east/altitude_m_z_up"
+    assert contract["tactical_vp_coordinates"] == "north/east/down_m_ned"
+
+
+def test_champion_vp_z_up_contract_converts_to_local_elevation() -> None:
+    own = state(position=(0.0, 0.0, -4500.0))
+    level = champion_vp_to_local_setpoint(np.array([1000.0, 0.0, 4500.0]), own)
+    above = champion_vp_to_local_setpoint(np.array([1000.0, 0.0, 4600.0]), own)
+    below = champion_vp_to_local_setpoint(np.array([1000.0, 0.0, 4400.0]), own)
+    assert level.local_elevation_deg == pytest.approx(0.0)
+    assert above.local_elevation_deg > 0.0
+    assert below.local_elevation_deg < 0.0
 
 
 def test_pure_lead_and_lag_semantics_match_names() -> None:
@@ -78,7 +91,7 @@ def test_tactical_modes_preserve_bt_throttle_and_are_finite(mode: str) -> None:
     final, info = apply_tactical_mode(
         mode,
         bt_action,
-        np.array([1200.0, 0.0, -4500.0]),
+        np.array([1200.0, 0.0, 4500.0]),
         own,
         target,
     )
@@ -96,7 +109,7 @@ def test_nonfinite_input_falls_back_to_exact_bt() -> None:
     final, info = apply_tactical_mode(
         "LEAD_PURSUIT_T060",
         bt_action,
-        np.array([800.0, 0.0, -4500.0]),
+        np.array([800.0, 0.0, 4500.0]),
         own,
         target,
     )

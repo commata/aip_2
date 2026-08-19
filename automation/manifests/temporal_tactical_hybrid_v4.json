@@ -65,6 +65,10 @@
       "T1": ["BT_DEFAULT", "PURE_PURSUIT", "LEAD_PURSUIT_T060", "LAG_PURSUIT_D250"],
       "T2": ["LOS_RATE_DAMPED_PURSUIT", "CROSSING_LEAD_T100", "CONE_CAPTURE"]
     },
+    "coordinate_contract": {
+      "champion_vp": "north/east/altitude_m_z_up",
+      "tactical_vp": "north/east/down_m_ned"
+    },
     "throttle": "EXACT_PURE_BT_ONLY"
   },
   "counterfactual": {
@@ -118,7 +122,7 @@
     "raw_evidence": "artifacts/evaluations/temporal_tactical_hybrid_v4/pure_bt_events_discovery_v1"
   },
   "tactical_oracle": {
-    "status": "TACTICAL_ORACLE_FEASIBLE",
+    "status": "REVALIDATION_REQUIRED_AFTER_VP_COORDINATE_FIX",
     "action_space_level": "T1",
     "discovery_events": 12,
     "clean_pairs": 108,
@@ -137,7 +141,8 @@
     "independent_positive_geometry_count": 9,
     "independent_large_regression_pairs": 129,
     "best_static_value": -0.010091185467276957,
-    "action_space_gate_passed": true,
+    "action_space_gate_passed": false,
+    "superseded_evidence_reason": "Champion VP Z-up was interpreted as NED Z-down in the controller baseline; rerun required",
     "discovery_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_discovery_v2/summary.json",
     "revalidation_summary": "automation/evidence/temporal_tactical_hybrid_v4/tactical_oracle_t1_revalidation_v1/summary.json"
   },
