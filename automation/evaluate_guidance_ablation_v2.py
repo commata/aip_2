@@ -5,6 +5,7 @@ from collections import defaultdict
 import csv
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -22,8 +23,8 @@ from automation.evaluate_guidance_counterfactual import build_cases
 from dogfight.ai.guidance_advantage import GUIDANCE_ADVANTAGE_ACTIONS
 
 
-PURE_DLL = Path("C:/Users/shy66/Downloads/aip_final_0815/aip_final_0815/AIP_DCS_GDCC_0815.dll")
-PURE_XML = Path("C:/Users/shy66/Downloads/aip_final_0815/aip_final_0815/Rule_DCS_GDCC_0815.xml")
+EXPECTED_PURE_DLL_SHA256 = "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9"
+EXPECTED_PURE_XML_SHA256 = "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
 MAGNITUDES_DEG = (0.10, 0.25, 0.50)
 DURATIONS_FRAMES = (6, 12, 18, 24, 36)
 NONDEFAULT_ACTIONS = GUIDANCE_ADVANTAGE_ACTIONS[1:]
@@ -169,13 +170,19 @@ def _scenario_path(case: dict[str, Any], case_root: Path) -> Path:
     return path
 
 
-def _common_command(case: dict[str, Any], scenario_path: Path, result_path: Path) -> list[str]:
+def _common_command(
+    case: dict[str, Any],
+    scenario_path: Path,
+    result_path: Path,
+    pure_dll: Path,
+    pure_xml: Path,
+) -> list[str]:
     return [
         sys.executable,
         str(ROOT / "run_local_dogfight.py"),
         "--target-backend", "autopilot",
-        "--ownship-bt-dll", str(PURE_DLL),
-        "--bt-rule-xml", str(PURE_XML),
+        "--ownship-bt-dll", str(pure_dll),
+        "--bt-rule-xml", str(pure_xml),
         "--bt-rule-alias", "Rule_DCS_GDCC_0815.xml",
         "--bt-rule-alias-only",
         "--bt-turn-throttle-mode", "raw",
@@ -193,6 +200,8 @@ def run_one(
     candidate: dict[str, Any],
     output_root: Path,
     timeout_s: float,
+    pure_dll: Path,
+    pure_xml: Path,
 ) -> dict[str, Any]:
     case_root = output_root / "runs" / case["case_id"]
     case_root.mkdir(parents=True, exist_ok=True)
@@ -204,7 +213,7 @@ def run_one(
         result = json.loads(result_path.read_text(encoding="utf-8"))
         result["resumed"] = True
         return result
-    command = _common_command(case, scenario_path, result_path)
+    command = _common_command(case, scenario_path, result_path, pure_dll, pure_xml)
     if name == "PURE_BT":
         command[2:2] = ["--ownship-backend", "bt"]
     else:
@@ -462,6 +471,18 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Guidance Controller v2 causal action ablation")
     parser.add_argument(
+        "--pure-bt-dll",
+        type=Path,
+        default=os.environ.get("AIP_PURE_BT_DLL"),
+        help="Pure BT Champion DLL path; may also be supplied by AIP_PURE_BT_DLL.",
+    )
+    parser.add_argument(
+        "--pure-bt-xml",
+        type=Path,
+        default=os.environ.get("AIP_PURE_BT_XML"),
+        help="Pure BT Champion XML path; may also be supplied by AIP_PURE_BT_XML.",
+    )
+    parser.add_argument(
         "--output-root",
         type=Path,
         default=ROOT / "artifacts/evaluations/guidance_advantage_v2/ablation_pilot_20260819",
@@ -486,6 +507,22 @@ def main() -> None:
     args = parse_args()
     if args.states < 6 or args.states > 100:
         raise ValueError("--states must be between 6 and 100")
+    if args.pure_bt_dll is None or args.pure_bt_xml is None:
+        raise ValueError(
+            "Pure BT paths are required via --pure-bt-dll/--pure-bt-xml or "
+            "AIP_PURE_BT_DLL/AIP_PURE_BT_XML"
+        )
+    pure_dll = args.pure_bt_dll.resolve()
+    pure_xml = args.pure_bt_xml.resolve()
+    if not pure_dll.is_file() or not pure_xml.is_file():
+        raise FileNotFoundError(f"Pure BT baseline missing: dll={pure_dll}, xml={pure_xml}")
+    dll_sha256 = sha256(pure_dll)
+    xml_sha256 = sha256(pure_xml)
+    if dll_sha256 != EXPECTED_PURE_DLL_SHA256 or xml_sha256 != EXPECTED_PURE_XML_SHA256:
+        raise ValueError(
+            "Pure BT baseline checksum mismatch: "
+            f"dll={dll_sha256}, xml={xml_sha256}"
+        )
     output_root = args.output_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
     if args.suite_mode == "near_event_v2":
@@ -518,7 +555,14 @@ def main() -> None:
     ]
     for case_index, case in enumerate(cases, start=1):
         for candidate in (*baseline_candidates, *grid):
-            result = run_one(case, candidate, output_root, args.timeout_s)
+            result = run_one(
+                case,
+                candidate,
+                output_root,
+                args.timeout_s,
+                pure_dll,
+                pure_xml,
+            )
             records.append(compact(case, candidate, result))
         progress = {
             "completed_states": case_index,
@@ -532,8 +576,8 @@ def main() -> None:
         print(json.dumps(progress, sort_keys=True), flush=True)
     aggregate, pairs = summarize(records)
     aggregate["wall_seconds"] = perf_counter() - started
-    aggregate["pure_dll_sha256"] = sha256(PURE_DLL)
-    aggregate["pure_xml_sha256"] = sha256(PURE_XML)
+    aggregate["pure_dll_sha256"] = dll_sha256
+    aggregate["pure_xml_sha256"] = xml_sha256
     (output_root / "records.json").write_text(
         json.dumps(records, indent=2, sort_keys=True), encoding="utf-8"
     )
