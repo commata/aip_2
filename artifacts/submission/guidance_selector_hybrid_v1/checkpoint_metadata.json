@@ -1,0 +1,18 @@
+{
+  "artifact_kind": "numpy_mlp_categorical_bundle",
+  "bc_seeds": [
+    8701,
+    8702,
+    8703
+  ],
+  "bc_total_epochs": 231,
+  "bc_training_executed": true,
+  "candidate_kind": "RULE_DISTILLED_SAFE",
+  "model_sha256": "FAD2BCB268D4669BD65DB89CE8F36832B1E8C4B646163897E9BBC2A6372FBB6C",
+  "ppo_status": "PPO_NOT_RUN_FAILED_DEV_GATE",
+  "ppo_steps": 0,
+  "promotion_status": "NOT_PROMOTED",
+  "restore_command": "python automation/build_guidance_rule_distilled.py",
+  "status": "EXPERIMENTAL_SAFE_HYBRID",
+  "training_steps": 0
+}

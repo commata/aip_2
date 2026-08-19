@@ -1,19 +1,43 @@
 {
-  "preferred_candidate": null,
-  "bc_candidate": null,
+  "schema_version": "submission_candidate_ladder.v1",
+  "issue": 19,
+  "selected": "rule_distilled_safe_guidance_selector",
+  "status": "SUBMISSION_READY_HYBRID_CANDIDATE",
+  "promotion_status": "NOT_PROMOTED",
+  "ladder": [
+    {
+      "rank": 1,
+      "candidate": "counterfactual_bc",
+      "status": "CREATED_BUT_FAILED_DEVELOPMENT_GATE",
+      "reason": "12 threshold/seed candidates produced zero non-BT_DEFAULT frames"
+    },
+    {
+      "rank": 2,
+      "candidate": "bc_plus_conservative_ppo",
+      "status": "PPO_NOT_RUN_FAILED_DEV_GATE",
+      "iterations": 0,
+      "steps": 0,
+      "episodes": 0
+    },
+    {
+      "rank": 3,
+      "candidate": "conservative_filtered_bc_only",
+      "status": "NOT_SELECTED",
+      "reason": "loadable BC bundles existed but had zero actual intervention"
+    },
+    {
+      "rank": 4,
+      "candidate": "rule_distilled_safe_guidance_selector",
+      "status": "EXPERIMENTAL_SAFE_HYBRID",
+      "model_sha256": "FAD2BCB268D4669BD65DB89CE8F36832B1E8C4B646163897E9BBC2A6372FBB6C",
+      "operational_status": "SUBMISSION_READY_HYBRID_CANDIDATE",
+      "promotion_status": "NOT_PROMOTED"
+    }
+  ],
   "pure_bt_fallback": {
-    "alias": "Pure 0815 BT",
+    "status": "READY",
     "dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
-    "xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE",
-    "action_mode": "raw_native_bt",
-    "throttle_mode": "raw_bt_only"
+    "xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
   },
-  "promotion_status": "COUNTERFACTUAL_SIGNAL_INSUFFICIENT / DATASET_NOT_CREATED / NOT_PROMOTED",
-  "target_bt_status": "TARGET_BT_PENDING",
-  "server_status": "SERVER_BLOCKED",
-  "next_gate": "PURE_BT_FALLBACK_SUBMISSION_PREPARATION",
-  "evidence_sha256": {
-    "stage_a_evaluation": "B565B7AB86103832FC12BF6C30D3FA31159954BBD93D18E643E3CEAA21AE224E",
-    "pure_bt_baseline": "A1ECA86C7949781123904BE5B85BCF29C702908F8631D87369737C5DB4AD16CE"
-  }
+  "server_status": "SERVER_BLOCKED"
 }

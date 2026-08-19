@@ -1,0 +1,174 @@
+{
+  "action_library": [
+    "BT_DEFAULT",
+    "VP_AZ_POS_SMALL",
+    "VP_AZ_NEG_SMALL",
+    "VP_EL_POS_SMALL",
+    "VP_EL_NEG_SMALL",
+    "VP_RANGE_FORWARD_SMALL",
+    "VP_RANGE_BACKWARD_SMALL",
+    "TARGET_SPEED_UP_SMALL",
+    "TARGET_SPEED_DOWN_SMALL"
+  ],
+  "action_magnitude": {
+    "angular_offset_deg": 0.5,
+    "range_offset_m": 50.0,
+    "target_speed_offset_m_s": 10.0
+  },
+  "activation_gate": {
+    "kind": "rear120_and_offensive_or_pre_aim",
+    "offensive": {
+      "enter_ata_deg": 15.0,
+      "enter_max_range_m": 1500.0,
+      "enter_min_target_ata_deg": 135.0,
+      "exit_ata_deg": 25.0,
+      "exit_max_range_m": 2000.0,
+      "exit_min_target_ata_deg": 110.0,
+      "min_range_m": 152.4
+    },
+    "phase_pre_aim": {
+      "enter_angle_margin_deg": 7.0,
+      "enter_range_margin_m": 300.0,
+      "exit_angle_margin_deg": 10.0,
+      "exit_range_margin_m": 550.0,
+      "min_hold_steps": 12,
+      "min_range_m": 152.4
+    },
+    "safety_veto": {
+      "maximum_closing_rate_m_s": 250.0,
+      "minimum_altitude_m": 350.0,
+      "minimum_speed_m_s": 170.0,
+      "veto_if_all_surfaces_saturated": true
+    }
+  },
+  "bt": {
+    "dll_path": "C:\\Users\\shy66\\Downloads\\aip_final_0815\\aip_final_0815\\AIP_DCS_GDCC_0815.dll",
+    "dll_sha256": "4C93B4C6719CB0423388D5FC721D356020A3A36CD5AD2C56B5C3CA795BFE18C9",
+    "rule_alias": "Rule_DCS_GDCC_0815.xml",
+    "turn_throttle_mode": "raw",
+    "xml_path": "C:\\Users\\shy66\\Downloads\\aip_final_0815\\aip_final_0815\\Rule_DCS_GDCC_0815.xml",
+    "xml_sha256": "D84C27B0B8BA22E1649AF2375BE0B83C762BC62EB5047BB590539B374F8271EE"
+  },
+  "bundle_path": "../../artifacts/submission/guidance_selector_hybrid_v1/bundle",
+  "bundle_sha256": "FAD2BCB268D4669BD65DB89CE8F36832B1E8C4B646163897E9BBC2A6372FBB6C",
+  "candidate_kind": "EXPERIMENTAL_SAFE_HYBRID",
+  "controller": {
+    "maximum_surface_correction": 0.08,
+    "pitch_per_angular_action": 0.04,
+    "pitch_per_range_action": 0.01,
+    "pitch_per_speed_action": 0.02,
+    "roll_per_angular_action": 0.04,
+    "yaw_per_angular_action": 0.02
+  },
+  "expected_sim_hz": 60,
+  "fallback_mode": "exact_pure_bt",
+  "force_side": "both",
+  "hard_eligibility_gate": {
+    "enter_target_ata_deg": 120.0,
+    "exit_target_ata_deg": 110.0,
+    "kind": "rear120",
+    "sim_hz": 60
+  },
+  "health_source": "simulator",
+  "latency_threshold_s": 0.1667,
+  "mode": "guidance_selector",
+  "model_path": "../../artifacts/submission/guidance_selector_hybrid_v1/bundle/model.npz",
+  "normalization_version": "guidance_selector.norm.v1",
+  "observation_features": [
+    "ownship_roll_norm",
+    "ownship_pitch_norm",
+    "ownship_yaw_norm",
+    "ownship_speed_norm",
+    "ownship_alt_norm",
+    "ownship_health_norm",
+    "delta_n_norm",
+    "delta_e_norm",
+    "delta_d_norm",
+    "ata_norm",
+    "aa_norm",
+    "az_norm",
+    "el_norm",
+    "target_health_norm",
+    "in_wez",
+    "pursuit_score_norm",
+    "signed_aim_azimuth_norm",
+    "signed_aim_elevation_norm",
+    "los_azimuth_rate_norm",
+    "los_elevation_rate_norm",
+    "range_norm",
+    "closing_rate_norm",
+    "target_ata_norm",
+    "phase_norm",
+    "bt_roll",
+    "bt_pitch",
+    "bt_yaw",
+    "bt_throttle_bipolar",
+    "bt_vp_local_azimuth_norm",
+    "bt_vp_local_elevation_norm",
+    "bt_vp_distance_norm",
+    "bt_target_speed_norm",
+    "roll_positive_headroom_norm",
+    "pitch_positive_headroom_norm",
+    "yaw_positive_headroom_norm",
+    "roll_negative_headroom_norm",
+    "pitch_negative_headroom_norm",
+    "yaw_negative_headroom_norm",
+    "any_surface_saturation",
+    "recent_applied_requested_authority_ratio",
+    "previous_selected_action_norm",
+    "current_action_hold_norm",
+    "gate_elapsed_norm",
+    "gate_active",
+    "safety_margin_norm"
+  ],
+  "phase_config": [
+    {
+      "end_s": 100.0,
+      "half_angle_deg": 1.0,
+      "max_range_m": 914.4000000000001,
+      "phase": 1
+    },
+    {
+      "end_s": 150.0,
+      "half_angle_deg": 2.0,
+      "max_range_m": 1066.8,
+      "phase": 2
+    },
+    {
+      "end_s": 200.0,
+      "half_angle_deg": 3.0,
+      "max_range_m": 1219.2,
+      "phase": 3
+    }
+  ],
+  "policy_id": "guidance_selector_rule_distilled",
+  "promotion_status": "NOT_PROMOTED",
+  "rule_distillation": {
+    "active_window": "gate_elapsed_frames < 36 of 90",
+    "claim": "No learned performance-improvement claim",
+    "otherwise": "BT_DEFAULT",
+    "rule_id": "rear120_early_preaim_v1",
+    "selected_action": "VP_EL_POS_SMALL"
+  },
+  "runtime": {
+    "confidence_threshold": 0.55,
+    "cooldown_frames": 30,
+    "inference_timeout_s": 0.1667,
+    "maximum_active_frames": 90,
+    "minimum_action_hold_frames": 18,
+    "selector_action_repeat_frames": 6,
+    "sim_hz": 60
+  },
+  "runtime_observation_mode": "tactical16",
+  "schema_version": "guidance_selector_submission.v1",
+  "selector_observation_contract": "guidance_selector_v1",
+  "selector_observation_size": 45,
+  "server_status": "SERVER_BLOCKED",
+  "status": "SUBMISSION_READY_HYBRID_CANDIDATE",
+  "throttle_policy": "bt_only",
+  "wez": {
+    "angle_deg": 3.0,
+    "max_range_m": 1219.2,
+    "min_range_m": 152.4
+  }
+}

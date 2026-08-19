@@ -1,0 +1,28 @@
+{
+  "actions": [
+    "BT_DEFAULT",
+    "VP_AZ_POS_SMALL",
+    "VP_AZ_NEG_SMALL",
+    "VP_EL_POS_SMALL",
+    "VP_EL_NEG_SMALL",
+    "VP_RANGE_FORWARD_SMALL",
+    "VP_RANGE_BACKWARD_SMALL",
+    "TARGET_SPEED_UP_SMALL",
+    "TARGET_SPEED_DOWN_SMALL"
+  ],
+  "bt_default": "exact Pure BT",
+  "controller": {
+    "maximum_surface_correction": 0.08,
+    "pitch_per_angular_action": 0.04,
+    "pitch_per_range_action": 0.01,
+    "pitch_per_speed_action": 0.02,
+    "roll_per_angular_action": 0.04,
+    "yaw_per_angular_action": 0.02
+  },
+  "magnitude": {
+    "angular_offset_deg": 0.5,
+    "range_offset_m": 50.0,
+    "target_speed_offset_m_s": 10.0
+  },
+  "throttle": "exact BT-only"
+}
