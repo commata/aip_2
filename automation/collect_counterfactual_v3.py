@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -26,6 +27,7 @@ from dogfight.ai.guidance_advantage import GUIDANCE_ADVANTAGE_ACTIONS
 
 
 DEFAULT_OUTPUT = ROOT / "artifacts/evaluations/state_conditioned_hybrid_v3/adaptive_stage1_20260819"
+EVALUATION_SCENARIO_ROOT = ROOT / "automation/scenarios/0815_aim_mirror"
 
 
 def verify_pure_baseline(dll: Path, xml: Path) -> None:
@@ -126,6 +128,61 @@ def build_adaptive_cases(count: int, *, start_index: int = 0) -> list[dict[str, 
     return cases
 
 
+def build_evaluation_boundary_cases(
+    count: int, *, start_index: int = 0
+) -> list[dict[str, Any]]:
+    """Sample near the clean-suite geometry without copying its exact states."""
+    if count <= 0 or count % 6:
+        raise ValueError("evaluation-boundary state count must be a positive multiple of six")
+    families = (
+        "lateral_left",
+        "lateral_right",
+        "vertical_high",
+        "vertical_low",
+        "crossing_left",
+        "crossing_right",
+    )
+    cases = []
+    for local_index in range(count):
+        family = families[local_index % len(families)]
+        band = local_index // len(families)
+        centered = band - 0.5 * (count // len(families) - 1)
+        payload = json.loads(
+            (EVALUATION_SCENARIO_ROOT / f"{family}.json").read_text(encoding="utf-8")
+        )
+        env = copy.deepcopy(payload["env_config"])
+        env["target"][0] += 10.0 * centered
+        lateral_sign = -1.0 if "left" in family else 1.0
+        if family.startswith(("lateral", "crossing")):
+            env["target"][1] += lateral_sign * 2.0 * centered
+        vertical_sign = -1.0 if family == "vertical_high" else 1.0
+        if family.startswith("vertical"):
+            env["target"][2] += vertical_sign * 3.0 * centered
+        heading_sign = -1.0 if "right" in family else 1.0
+        env["ownship"][5] += heading_sign * 0.25 * centered
+        env["target"][5] -= heading_sign * 0.25 * centered
+        env["ownship"][6] += 0.5 * centered
+        env["target"][6] -= 0.25 * centered
+        env["target_autopilot"]["heading_cmd"] = env["target"][5]
+        env["target_autopilot"]["altitude_cmd"] = -env["target"][2]
+        env["target_autopilot"]["speed_cmd"] = env["target"][6]
+        index = start_index + local_index
+        cases.append(
+            {
+                "case_id": f"v3_boundary_{index + 1:04d}_{family}",
+                "seed": 22001 + index,
+                "family": family,
+                "distance_band": "evaluation_boundary",
+                "closing_band": "positive" if env["ownship"][6] > env["target"][6] else "negative",
+                "scenario": {
+                    "name": f"state_conditioned_v3_boundary_{index + 1:04d}_{family}",
+                    "env_config": env,
+                },
+            }
+        )
+    return cases
+
+
 def coarse_candidates() -> list[dict[str, Any]]:
     return [
         {
@@ -145,6 +202,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--states", type=int, default=120)
     parser.add_argument("--start-index", type=int, default=200)
+    parser.add_argument(
+        "--profile", choices=("adaptive", "evaluation-boundary"), default="adaptive"
+    )
     parser.add_argument("--timeout-s", type=float, default=120.0)
     return parser.parse_args()
 
@@ -156,7 +216,11 @@ def main() -> None:
     verify_pure_baseline(pure_dll, pure_xml)
     output = args.output_root.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    cases = build_adaptive_cases(args.states, start_index=args.start_index)
+    cases = (
+        build_adaptive_cases(args.states, start_index=args.start_index)
+        if args.profile == "adaptive"
+        else build_evaluation_boundary_cases(args.states, start_index=args.start_index)
+    )
     candidates = [
         {
             "candidate_id": "PURE_BT",
@@ -176,7 +240,7 @@ def main() -> None:
         json.dumps(
             {
                 "schema_version": "state_conditioned_acquisition_v3.v1",
-                "strategy": "coarse_all_axis_sign_m0.25_d36",
+                "strategy": f"coarse_all_axis_sign_m0.25_d36_{args.profile}",
                 "cases": cases,
                 "candidates": candidates,
             },
