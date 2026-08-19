@@ -247,13 +247,18 @@ def grouped_split(records: list[dict[str, Any]]) -> dict[str, str]:
     events: dict[str, dict[str, Any]] = {}
     for row in records:
         events.setdefault(row["event_id"], row)
-    assignment = {}
-    for event_id, row in sorted(events.items()):
-        # Scenario is the widest correlated unit. Hashing it assigns every
-        # fight/trajectory/event/seed nested under the same geometry together.
-        token = f"{row['opponent_id']}|{row['scenario_id']}".encode()
-        bucket = int(hashlib.sha256(token).hexdigest()[:8], 16) % 10
-        assignment[event_id] = "test" if bucket == 0 else "validation" if bucket < 3 else "train"
+    groups = sorted(
+        {(row["opponent_id"], row["scenario_id"]) for row in events.values()},
+        key=lambda group: hashlib.sha256(f"{group[0]}|{group[1]}".encode()).hexdigest(),
+    )
+    group_split = {
+        group: "test" if index % 5 == 0 else "validation" if index % 5 == 1 else "train"
+        for index, group in enumerate(groups)
+    }
+    assignment = {
+        event_id: group_split[(row["opponent_id"], row["scenario_id"])]
+        for event_id, row in events.items()
+    }
     validate_group_assignment(records, assignment)
     return assignment
 

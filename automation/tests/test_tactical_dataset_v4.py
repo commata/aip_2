@@ -57,6 +57,12 @@ def test_grouped_split_keeps_same_scenario_across_fights_together() -> None:
     assert assignment["e1"] == assignment["e2"]
 
 
+def test_grouped_split_balances_distinct_scenarios_without_row_randomness() -> None:
+    records = [_record(f"e{i}", f"f{i}", f"g{i}", i) for i in range(10)]
+    splits = set(grouped_split(records).values())
+    assert splits == {"train", "validation", "test"}
+
+
 def test_leakage_validator_rejects_same_fight_in_two_splits() -> None:
     records = [_record("e1", "same", "g1", 1), _record("e2", "same", "g2", 2)]
     with pytest.raises(ValueError, match="group leakage"):
