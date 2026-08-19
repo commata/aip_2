@@ -1,11 +1,27 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from automation.evaluate_guidance_ablation_v2 import (
+    _common_command,
     build_near_event_cases,
     build_vertical_high_focus_cases,
     candidate_grid,
     summarize,
 )
+
+
+def test_common_command_uses_injected_pure_bt_paths():
+    case = {"seed": 7}
+    command = _common_command(
+        case,
+        Path("scenario.json"),
+        Path("result.json"),
+        Path("portable/baseline.dll"),
+        Path("portable/Rule.xml"),
+    )
+    assert command[command.index("--ownship-bt-dll") + 1] == "portable\\baseline.dll"
+    assert command[command.index("--bt-rule-xml") + 1] == "portable\\Rule.xml"
 
 
 def record(case, candidate, margin, *, family="lateral_left", frames=6):
