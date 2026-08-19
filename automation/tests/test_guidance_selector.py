@@ -254,6 +254,18 @@ class GuidanceProviderTests(unittest.TestCase):
         self.assertTrue(np.array_equal(result.action, provider.bt_provider.action))
         self.assertEqual(result.action[3], provider.bt_provider.action[3])
 
+    def test_e2e_latency_covers_every_action_frame(self):
+        provider = self.provider(FixedGuidanceSelector("BT_DEFAULT"))
+        provider.compute_action(context())
+        provider.compute_action(context())
+        telemetry = provider.telemetry()
+        self.assertEqual(telemetry["e2e_ai_latency_samples"], 2)
+        self.assertGreaterEqual(telemetry["e2e_ai_latency_ms_p50"], 0.0)
+        self.assertGreaterEqual(telemetry["e2e_ai_latency_ms_p95"], 0.0)
+        self.assertGreaterEqual(telemetry["e2e_ai_latency_ms_p99"], 0.0)
+        self.assertGreaterEqual(telemetry["e2e_ai_latency_ms_max"], 0.0)
+        self.assertEqual(telemetry["e2e_ai_latency_over_166_7ms"], 0)
+
     def test_nondefault_applies_guidance_with_bt_throttle(self):
         provider = self.provider(FixedGuidanceSelector("VP_AZ_POS_SMALL"))
         result = provider.compute_action(context())

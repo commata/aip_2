@@ -599,6 +599,7 @@ class GuidanceSelectorActionProvider(ActionProvider):
         self._recent_authority_ratio = 1.0
         self._selector_calls = 0
         self._selector_latency_ms: list[float] = []
+        self._e2e_latency_ms: list[float] = []
         self._fallback_counts: dict[str, int] = {}
         self._action_counts = np.zeros(len(GUIDANCE_ACTIONS), dtype=np.int64)
         self._gate_steps = 0
@@ -638,6 +639,13 @@ class GuidanceSelectorActionProvider(ActionProvider):
         return ActionResult(bt_action.copy(), "bt_guidance_selector", 1.0, frame)
 
     def compute_action(self, context: ActionContext) -> ActionResult:
+        started = perf_counter()
+        try:
+            return self._compute_action_impl(context)
+        finally:
+            self._e2e_latency_ms.append((perf_counter() - started) * 1000.0)
+
+    def _compute_action_impl(self, context: ActionContext) -> ActionResult:
         try:
             bt_result = self.bt_provider.compute_action(context)
             raw_bt = np.asarray(bt_result.action, dtype=np.float32)
@@ -796,6 +804,7 @@ class GuidanceSelectorActionProvider(ActionProvider):
 
     def telemetry(self) -> dict:
         latency = np.asarray(self._selector_latency_ms, dtype=np.float64)
+        e2e_latency = np.asarray(self._e2e_latency_ms, dtype=np.float64)
         total = int(np.sum(self._action_counts))
         return {
             **self.gate.telemetry(),
@@ -811,6 +820,18 @@ class GuidanceSelectorActionProvider(ActionProvider):
             "selector_inference_latency_ms_p99": float(np.percentile(latency, 99)) if latency.size else 0.0,
             "selector_inference_latency_ms_max": float(np.max(latency)) if latency.size else 0.0,
             "selector_inference_over_166_7ms": int(np.sum(latency > 166.7)),
+            "e2e_ai_latency_samples": int(e2e_latency.size),
+            "e2e_ai_latency_ms_p50": (
+                float(np.percentile(e2e_latency, 50)) if e2e_latency.size else 0.0
+            ),
+            "e2e_ai_latency_ms_p95": (
+                float(np.percentile(e2e_latency, 95)) if e2e_latency.size else 0.0
+            ),
+            "e2e_ai_latency_ms_p99": (
+                float(np.percentile(e2e_latency, 99)) if e2e_latency.size else 0.0
+            ),
+            "e2e_ai_latency_ms_max": float(np.max(e2e_latency)) if e2e_latency.size else 0.0,
+            "e2e_ai_latency_over_166_7ms": int(np.sum(e2e_latency > 166.7)),
             "action_counts": {
                 name: int(self._action_counts[index]) for index, name in enumerate(GUIDANCE_ACTIONS)
             },
