@@ -277,6 +277,34 @@ def rate_aware_candidates() -> list[dict[str, Any]]:
     ]
 
 
+def continuous_grid_candidates() -> list[dict[str, Any]]:
+    directions = (*GUIDANCE_ADVANTAGE_ACTIONS[1:], *GUIDANCE_COMPOSITE_ACTIONS)
+    return [
+        {
+            "candidate_id": f"{action}__m{magnitude:.2f}__d36",
+            "action": action,
+            "magnitude_deg": magnitude,
+            "duration_frames": 36,
+        }
+        for magnitude in (0.10, 0.50)
+        for action in directions
+    ]
+
+
+def limit_cases_per_family(cases: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    if limit <= 0:
+        raise ValueError("trace per-family limit must be positive")
+    counts: dict[str, int] = {}
+    selected = []
+    for case in cases:
+        family = case["family"]
+        if counts.get(family, 0) >= limit:
+            continue
+        counts[family] = counts.get(family, 0) + 1
+        selected.append(case)
+    return selected
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect adaptive state-action counterfactuals v3")
     parser.add_argument("--pure-bt-dll", type=Path, required=True)
@@ -290,9 +318,10 @@ def parse_args() -> argparse.Namespace:
         default="adaptive",
     )
     parser.add_argument("--trace-root", type=Path)
+    parser.add_argument("--trace-per-family", type=int)
     parser.add_argument(
         "--action-level",
-        choices=("single-axis", "two-axis", "rate-aware"),
+        choices=("single-axis", "two-axis", "rate-aware", "continuous-grid"),
         default="single-axis",
     )
     parser.add_argument("--timeout-s", type=float, default=120.0)
@@ -316,6 +345,8 @@ def main() -> None:
         cases = build_shadow_trace_cases(
             args.trace_root.resolve(), start_index=args.start_index, limit=args.states
         )
+        if args.trace_per_family is not None:
+            cases = limit_cases_per_family(cases, args.trace_per_family)
     candidates = [
         {
             "candidate_id": "PURE_BT",
@@ -335,6 +366,8 @@ def main() -> None:
             else two_axis_candidates()
             if args.action_level == "two-axis"
             else rate_aware_candidates()
+            if args.action_level == "rate-aware"
+            else continuous_grid_candidates()
         ),
     ]
     (output / "suite.json").write_text(

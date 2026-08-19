@@ -10,6 +10,8 @@ from automation.collect_counterfactual_v3 import (
     coarse_candidates,
     two_axis_candidates,
     rate_aware_candidates,
+    continuous_grid_candidates,
+    limit_cases_per_family,
     verify_pure_baseline,
 )
 
@@ -79,6 +81,24 @@ def test_rate_aware_stage_names_geometry_driven_effects():
         "DAMP_AZ_RATE",
         "DAMP_EL_RATE",
     }
+
+
+def test_continuous_grid_screen_covers_eight_directions_at_two_bounds():
+    candidates = continuous_grid_candidates()
+    assert len(candidates) == 16
+    assert {candidate["magnitude_deg"] for candidate in candidates} == {0.10, 0.50}
+    assert len({candidate["action"] for candidate in candidates}) == 8
+
+
+def test_trace_family_limit_is_balanced():
+    cases = [
+        {"case_id": f"{family}_{index}", "family": family}
+        for family in ("left", "right", "high")
+        for index in range(4)
+    ]
+    selected = limit_cases_per_family(cases, 2)
+    assert len(selected) == 6
+    assert all(sum(case["family"] == family for case in selected) == 2 for family in ("left", "right", "high"))
 
 
 def test_shadow_trace_cases_preserve_only_server_pose_and_speed(tmp_path):
