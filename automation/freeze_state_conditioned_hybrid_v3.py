@@ -59,7 +59,10 @@ def promotion_prerequisites(
 ) -> dict[str, Any]:
     seed_policies = model_metadata.get("seed_oof_policies_at_selected_threshold", {})
     positive_seed_count = sum(
-        value.get("mean", 0.0) > 0.0 for value in seed_policies.values()
+        value.get("mean", 0.0) > 0.0
+        and value.get("intervention_precision", 0.0) >= 0.60
+        and value.get("large_regression_ratio", 1.0) <= 0.05
+        for value in seed_policies.values()
     )
     gates = {
         "offline_gate": bool(model_metadata.get("offline_gate_passed")),

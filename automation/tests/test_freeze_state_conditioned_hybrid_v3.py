@@ -16,9 +16,9 @@ def test_freezer_requires_every_performance_and_seed_gate():
     metadata = {
         "offline_gate_passed": True,
         "seed_oof_policies_at_selected_threshold": {
-            "1": {"mean": 0.01},
-            "2": {"mean": 0.02},
-            "3": {"mean": -0.01},
+            "1": {"mean": 0.01, "intervention_precision": 0.8, "large_regression_ratio": 0.0},
+            "2": {"mean": 0.02, "intervention_precision": 0.7, "large_regression_ratio": 0.0},
+            "3": {"mean": -0.01, "intervention_precision": 0.9, "large_regression_ratio": 0.0},
         },
     }
     evaluations = {
@@ -36,9 +36,9 @@ def test_freezer_rejects_single_positive_model_seed():
     metadata = {
         "offline_gate_passed": True,
         "seed_oof_policies_at_selected_threshold": {
-            "1": {"mean": 0.01},
-            "2": {"mean": -0.01},
-            "3": {"mean": 0.0},
+            "1": {"mean": 0.01, "intervention_precision": 0.8, "large_regression_ratio": 0.0},
+            "2": {"mean": -0.01, "intervention_precision": 0.9, "large_regression_ratio": 0.0},
+            "3": {"mean": 0.0, "intervention_precision": 0.9, "large_regression_ratio": 0.0},
         },
     }
     evaluations = {
